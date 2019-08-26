@@ -3,11 +3,13 @@ package pl.touk.exposed.generator
 import com.google.testing.compile.CompilationRule
 import org.junit.Before
 import org.junit.Rule
+import pl.touk.exposed.generator.env.TypeEnvironment
 import pl.touk.exposed.generator.env.toVariableElement
 import javax.lang.model.element.Element
 import javax.lang.model.element.TypeElement
 import javax.lang.model.element.VariableElement
 import javax.lang.model.util.Elements
+import javax.lang.model.util.Types
 
 abstract class AnnotationProcessorTest {
 
@@ -16,11 +18,15 @@ abstract class AnnotationProcessorTest {
     var rule = CompilationRule()
 
     lateinit var elements: Elements
+    lateinit var types: Types
 
     @Before
     fun setup() {
         elements = rule.elements
+        types = rule.types
     }
+
+    fun getTypeEnv() = TypeEnvironment(types, elements)
 
     fun getTypeElement(name: String): TypeElement = elements.getTypeElement(name)
 
