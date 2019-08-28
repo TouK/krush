@@ -13,4 +13,5 @@ dependencies {
     testCompile 'junit:junit:4.12'
     testCompile 'com.google.testing.compile:compile-testing:0.18'
     testCompile 'org.assertj:assertj-core:3.13.2'
+    testRuntime 'ch.qos.logback:logback-classic:1.2.3'
 }
