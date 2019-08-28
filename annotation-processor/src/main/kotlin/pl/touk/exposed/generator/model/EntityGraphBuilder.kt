@@ -44,8 +44,8 @@ class EntityGraphBuilder(
 //                    (it as DeclaredType).asElement().toTypeElement().qualifiedName.contentEquals(NotNull::class.java.canonicalName)
 //                }
                 val type = columnElt.asType().getTypeDefinition()
-                val columnDefinition = ColumnDefinition(name = columnElt.simpleName, annotation = columnAnn, type = type)
-                entity.addColumn(columnDefinition)
+                val columnDefinition = PropertyDefinition(name = columnElt.simpleName, annotation = columnAnn, type = type)
+                entity.addProperty(columnDefinition)
             }
         }
 

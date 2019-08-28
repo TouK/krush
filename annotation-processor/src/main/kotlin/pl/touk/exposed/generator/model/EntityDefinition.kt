@@ -9,9 +9,16 @@ data class EntityDefinition(
         val qualifiedName: Name,
         val table: String,
         val id: IdDefinition? = null,
-        val columns: List<ColumnDefinition> = emptyList()
+        val properties: List<PropertyDefinition> = emptyList()
 ) {
-    fun addColumn(column: ColumnDefinition) = this.copy(columns = this.columns + column)
+    fun addProperty(column: PropertyDefinition) = this.copy(properties = this.properties + column)
+
+    fun getPropertyAndIdNames() : List<Name> {
+        val props = properties.map(PropertyDefinition::name)
+        id?.let { id -> return listOf(id.name) + props } ?: return props
+    }
+
+    fun getPropertyNames() = properties.map(PropertyDefinition::name)
 }
 
 data class IdDefinition(
@@ -19,7 +26,7 @@ data class IdDefinition(
         val generatedValue: Boolean = false
 )
 
-data class ColumnDefinition(
+data class PropertyDefinition(
         val name: Name,
         val annotation: Column,
         val type: TypeDefinition
@@ -32,3 +39,9 @@ enum class TypeDefinition {
 typealias EntityGraph = MutableMap<TypeElement, EntityDefinition>
 
 fun EntityGraph(): EntityGraph = mutableMapOf()
+
+fun EntityGraph.traverse(function: (EntityDefinition) -> Unit) {
+    this.entries.forEach { (_, value) -> function.invoke(value) }
+}
+
+fun Name.asArgument() = this.toString().decapitalize()
