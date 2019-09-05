@@ -1,12 +1,14 @@
 package pl.touk.exposed.generator.model
 
-import pl.touk.exposed.generator.GeneratedValueWithoutId
+import pl.touk.exposed.generator.validation.GeneratedValueWithoutIdException
 import javax.lang.model.type.TypeMirror
 import javax.persistence.Column
 import javax.persistence.Table
 import pl.touk.exposed.generator.env.*
+import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind
-
+import javax.persistence.JoinColumn
+import javax.persistence.OneToMany
 
 class EntityGraphBuilder(
         private val typeEnv: TypeEnvironment, private val annEnv: AnnotationEnvironment
@@ -30,7 +32,7 @@ class EntityGraphBuilder(
         for (genValueElt in annEnv.genValues) {
             val entityType = genValueElt.enclosingTypeElement()
             graph.computeIfPresent(entityType) { _, entity ->
-                val idDefinition = entity.id ?: throw GeneratedValueWithoutId(genValueElt, entityType)
+                val idDefinition = entity.id ?: throw GeneratedValueWithoutIdException(genValueElt, entityType)
                 entity.copy(id = idDefinition.copy(generatedValue = true))
             }
         }
@@ -49,14 +51,50 @@ class EntityGraphBuilder(
             }
         }
 
+        for (oneToMany in annEnv.oneToMany) {
+            val entityType = oneToMany.enclosingTypeElement()
+            graph.computeIfPresent(entityType) { _, entity ->
+                val otmAnn = oneToMany.getAnnotation(OneToMany::class.java)
+                val target = oneToMany.asType().getTypeArgument()
+                val associationDef = AssociationDefinition(
+                        name = oneToMany.simpleName, type = AssociationType.ONE_TO_MANY,
+                        target = target.asElement().toTypeElement(), mappedBy = otmAnn.mappedBy
+                )
+                entity.addAssociation(associationDef)
+            }
+        }
+
+        for (manyToOne in annEnv.manyToOne) {
+            val entityType = manyToOne.enclosingTypeElement()
+            graph.computeIfPresent(entityType) { _, entity ->
+                val join = manyToOne.getAnnotation(JoinColumn::class.java)
+                val target = manyToOne.toVariableElement().asType().asDeclaredType().asElement().toTypeElement()
+                val associationDef = AssociationDefinition(
+                        name = manyToOne.simpleName, type = AssociationType.MANY_TO_ONE,
+                        target = target, joinColumn = join.name
+                )
+                entity.addAssociation(associationDef)
+            }
+
+        }
+
         return graph
     }
 
-    private fun TypeMirror.getTypeDefinition() : TypeDefinition {
+    private fun TypeMirror.asDeclaredType(): DeclaredType {
+        require(this is DeclaredType)
+        return this
+    }
+
+    private fun TypeMirror.getTypeArgument(): DeclaredType {
+        return this.asDeclaredType().typeArguments[0].asDeclaredType()
+    }
+
+    private fun TypeMirror.getTypeDefinition() : PropertyType {
         return when {
-            isString() -> TypeDefinition.STRING
-            isBoolean() -> TypeDefinition.BOOL
-            isNumeric() -> TypeDefinition.LONG
+            isString() -> PropertyType.STRING
+            isBoolean() -> PropertyType.BOOL
+            isNumeric() -> PropertyType.LONG
             else -> TODO()
         }
     }
