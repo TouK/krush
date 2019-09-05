@@ -1,19 +1,14 @@
 package pl.touk.exposed.generator.env
 
-import java.lang.IllegalArgumentException
 import javax.annotation.processing.ProcessingEnvironment
 import javax.annotation.processing.RoundEnvironment
 import javax.lang.model.element.Element
 import javax.lang.model.element.TypeElement
 import javax.lang.model.element.VariableElement
-import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.Elements
 import javax.lang.model.util.Types
-import javax.persistence.Column
-import javax.persistence.Entity
-import javax.persistence.GeneratedValue
-import javax.persistence.Id
+import javax.persistence.*
 
 data class TypeEnvironment(
         val typeUtils: Types,
@@ -30,22 +25,20 @@ data class AnnotationEnvironment(
         val entities: List<TypeElement>,
         val ids: List<VariableElement>,
         val genValues: List<VariableElement>,
-        val columns: List<VariableElement>
+        val columns: List<VariableElement>,
+        val oneToMany: List<VariableElement>,
+        val manyToOne: List<VariableElement>
 )
 
 fun Element.enclosingTypeElement() = this.enclosingElement.toTypeElement()
 
 fun Element.toTypeElement(): TypeElement {
-    if (this !is TypeElement) {
-        throw IllegalArgumentException("Invalid element type ${this.kind}, type expected")
-    }
+    require(this is TypeElement) { "Invalid element type ${this.kind}, type expected" }
     return this
 }
 
  fun Element.toVariableElement(): VariableElement {
-    if (this !is VariableElement) {
-        throw IllegalArgumentException("Invalid element type ${this.kind}, var expected")
-    }
+    require(this is VariableElement) { "Invalid element type ${this.kind}, var expected" }
     return this
 }
 
@@ -56,8 +49,10 @@ class EnvironmentBuilder(private val roundEnv: RoundEnvironment, private val pro
         val ids = roundEnv.getElementsAnnotatedWith(Id::class.java).toVariableElements()
         val genValues = roundEnv.getElementsAnnotatedWith(GeneratedValue::class.java).toVariableElements()
         val columns = roundEnv.getElementsAnnotatedWith(Column::class.java).toVariableElements()
+        val oneToMany = roundEnv.getElementsAnnotatedWith(OneToMany::class.java).toVariableElements()
+        val manyToOne = roundEnv.getElementsAnnotatedWith(ManyToOne::class.java).toVariableElements()
 
-        return AnnotationEnvironment(entities, ids, genValues, columns)
+        return AnnotationEnvironment(entities, ids, genValues, columns, oneToMany, manyToOne)
     }
 
     fun buildTypeEnv() = TypeEnvironment(processingEnv.typeUtils, processingEnv.elementUtils)
