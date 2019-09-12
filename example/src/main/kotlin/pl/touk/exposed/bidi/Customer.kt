@@ -1,4 +1,4 @@
-package pl.touk.exposed
+package pl.touk.exposed.bidi
 
 import javax.persistence.*
 
@@ -15,11 +15,9 @@ data class Customer(
         val age: Long,
 
         @OneToMany(fetch = FetchType.EAGER, mappedBy = "customer")
-        @JoinColumn(name = "customer_id")
         val phones: List<Phone> = emptyList(),
 
         @OneToMany(fetch = FetchType.EAGER, mappedBy = "customer")
-        @JoinColumn(name = "customer_id")
         val addresses: List<Address> = emptyList()
 )
 
