@@ -6,9 +6,12 @@ import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Before
 import org.junit.Test
-import pl.touk.exposed.Address
-import pl.touk.exposed.Customer
-import pl.touk.exposed.Phone
+import pl.touk.exposed.bidi.Address
+import pl.touk.exposed.bidi.Customer
+import pl.touk.exposed.bidi.Phone
+import pl.touk.exposed.uni.UniAddress
+import pl.touk.exposed.uni.UniCustomer
+import pl.touk.exposed.uni.UniPhone
 
 class CustomerTest {
 
@@ -18,7 +21,7 @@ class CustomerTest {
     }
 
     @Test
-    fun shouldInsertAndSelectSimpleEntity() {
+    fun shouldInsertAndSelectBidiOneToMany() {
         transaction {
             SchemaUtils.create(CustomerTable, PhoneTable, AddressTable)
 
@@ -40,6 +43,36 @@ class CustomerTest {
 
             // then
             val customers = (CustomerTable leftJoin PhoneTable leftJoin AddressTable).selectAll().toCustomers()
+
+            // then
+            val fullCustomer = customer.copy(addresses = listOf(address), phones = listOf(phone))
+            assertThat(customers).containsOnly(fullCustomer)
+        }
+    }
+
+    @Test
+    fun shouldInsertAndSelectUniOneToMany() {
+        transaction {
+            SchemaUtils.create(UniCustomerTable, UniPhoneTable, UniAddressTable)
+
+            // given
+            val customer = UniCustomer(name = "TouK", age = 13).let { customer ->
+                val customerId = UniCustomerTable.insert { it.from(customer) }[UniCustomerTable.id]
+                customer.copy(id = customerId)
+            }
+
+            val phone = UniPhone(number = "777 888 999").let { phone ->
+                val phoneId = UniPhoneTable.insert { it.from(phone, customer) }[UniPhoneTable.id]
+                phone.copy(id = phoneId)
+            }
+
+            val address = UniAddress(city = "Warsaw", street = "Suwak", houseNo = "12/14", apartmentNo = "206").let { address ->
+                val addressId = UniAddressTable.insert { it.from(address, customer) }[UniAddressTable.id]
+                address.copy(id = addressId)
+            }
+
+            // then
+            val customers = (UniCustomerTable leftJoin UniPhoneTable leftJoin UniAddressTable).selectAll().toUniCustomers()
 
             // then
             val fullCustomer = customer.copy(addresses = listOf(address), phones = listOf(phone))

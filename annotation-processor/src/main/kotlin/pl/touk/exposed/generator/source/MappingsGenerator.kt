@@ -22,6 +22,7 @@ class MappingsGenerator : SourceGenerator {
             }
 
             graph.traverse { entityType, entity ->
+                // TODO split
                 function("to${entity.name}") {
                     receiverType("ResultRow")
                     returnType(entity.name.toString())
@@ -90,6 +91,9 @@ class MappingsGenerator : SourceGenerator {
                     receiverType("UpdateBuilder<Any>")
                     val param = entity.name.asVariable()
                     param(param, entity.name.toString())
+                    entity.associations.filter { !it.mapped }.forEach { assoc ->
+                        param(assoc.target.simpleName.asVariable(), "${assoc.target.simpleName}?", "null")
+                    }
                     val tableName = "${entity.name}Table"
                     body {
                         entity.getPropertyNames().forEach { name ->
@@ -99,7 +103,12 @@ class MappingsGenerator : SourceGenerator {
                             val sep = if (idx == entity.associations.lastIndex) "\n" else ""
                             if (assoc.type == AssociationType.MANY_TO_ONE) {
                                 val name = assoc.name
-                                append("\tthis[$tableName.$name] = $param.$name?.id$sep")
+                                val targetParam = assoc.target.simpleName.asVariable()
+                                if (assoc.mapped) {
+                                    append("\tthis[$tableName.$name] = $param.$name?.id$sep")
+                                } else {
+                                    append("\t${targetParam}?.let { this[$tableName.$name] = it.id }$sep")
+                                }
                             }
                         }
                     }

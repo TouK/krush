@@ -17,6 +17,7 @@ class EntityGraphBuilder(
     fun build(): EntityGraph {
         val graph = EntityGraph()
 
+        // TODO split
         for (entityElt in annEnv.entities) {
             val tableAnn = entityElt.getAnnotation(Table::class.java)
             graph[entityElt] = EntityDefinition(name = entityElt.simpleName, qualifiedName = entityElt.qualifiedName, table = tableAnn.name)
@@ -53,12 +54,12 @@ class EntityGraphBuilder(
 
         for (oneToMany in annEnv.oneToMany) {
             val entityType = oneToMany.enclosingTypeElement()
+            val otmAnn = oneToMany.getAnnotation(OneToMany::class.java)
+            val target = oneToMany.asType().getTypeArgument().asElement().toTypeElement()
             graph.computeIfPresent(entityType) { _, entity ->
-                val otmAnn = oneToMany.getAnnotation(OneToMany::class.java)
-                val target = oneToMany.asType().getTypeArgument()
                 val associationDef = AssociationDefinition(
                         name = oneToMany.simpleName, type = AssociationType.ONE_TO_MANY,
-                        target = target.asElement().toTypeElement(), mappedBy = otmAnn.mappedBy
+                        target = target, mappedBy = otmAnn.mappedBy
                 )
                 entity.addAssociation(associationDef)
             }
@@ -75,9 +76,23 @@ class EntityGraphBuilder(
                 )
                 entity.addAssociation(associationDef)
             }
-
         }
 
+        for (oneToMany in annEnv.oneToMany) {
+            val entityType = oneToMany.enclosingTypeElement()
+            val joinColumnAnn = oneToMany.getAnnotation(JoinColumn::class.java) ?: continue
+            val target = oneToMany.asType().getTypeArgument().asElement().toTypeElement()
+
+            graph.computeIfPresent(target) { _, entity ->
+                val isMapped = entity.associations.any { assoc -> assoc.type == AssociationType.MANY_TO_ONE && assoc.target == entityType }
+                if (isMapped) entity
+                val associationDef = AssociationDefinition(
+                        name = entityType.simpleName, type = AssociationType.MANY_TO_ONE,
+                        target = entityType, joinColumn = joinColumnAnn.name, mapped = false
+                )
+                entity.addAssociation(associationDef)
+            }
+        }
         return graph
     }
 
