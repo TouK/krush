@@ -1,14 +1,10 @@
 package pl.touk.exposed.generator.source
 
-import org.yanex.takenoko.KoFile
+import com.squareup.kotlinpoet.FileSpec
 import pl.touk.exposed.generator.model.EntityGraph
+import pl.touk.exposed.generator.model.EntityGraphs
 
 interface SourceGenerator {
 
-    fun generate(graph: EntityGraph, packageName: String) : GeneratedFile
+    fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String) : FileSpec
 }
-
-data class GeneratedFile(
-        val koFile: KoFile,
-        val name: String
-)

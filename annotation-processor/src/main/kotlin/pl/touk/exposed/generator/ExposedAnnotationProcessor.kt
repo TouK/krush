@@ -1,17 +1,17 @@
 package pl.touk.exposed.generator
 
-import org.jetbrains.exposed.sql.Table
-import org.yanex.takenoko.*
 import pl.touk.exposed.generator.env.EnvironmentBuilder
-import pl.touk.exposed.generator.model.*
+import pl.touk.exposed.generator.model.EntityGraphBuilder
 import pl.touk.exposed.generator.source.MappingsGenerator
 import pl.touk.exposed.generator.source.TablesGenerator
 import java.io.File
-import javax.annotation.processing.*
+import javax.annotation.processing.AbstractProcessor
+import javax.annotation.processing.RoundEnvironment
+import javax.annotation.processing.SupportedAnnotationTypes
+import javax.annotation.processing.SupportedOptions
+import javax.annotation.processing.SupportedSourceVersion
 import javax.lang.model.SourceVersion
-import javax.lang.model.element.Name
 import javax.lang.model.element.TypeElement
-import javax.persistence.TableGenerator
 import javax.tools.Diagnostic.Kind.ERROR
 
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
@@ -32,23 +32,24 @@ class ExposedAnnotationProcessor : AbstractProcessor() {
 
         val envBuilder = EnvironmentBuilder(roundEnv, processingEnv)
 
-        val graph = try {
+        val graphs = try {
             EntityGraphBuilder(envBuilder.buildTypeEnv(), envBuilder.buildAnnotationEnv()).build()
         } catch (e: Exception) {
             processingEnv.messager.printMessage(ERROR, "Exception while building entity graph: $e")
             return false
         }
 
-        if (graph.isEmpty()) return false
+        if (graphs.isEmpty()) return false
 
         try {
             val generators = listOf(TablesGenerator(), MappingsGenerator())
-            val packageName = "generated"
             generators.forEach { generator ->
-                val (koFile, fileName) = generator.generate(graph, packageName)
-                File(kaptKotlinGeneratedDir, fileName).apply {
-                    parentFile.mkdirs()
-                    writeText(koFile.accept(PrettyPrinter(PrettyPrinterConfiguration())))
+                graphs.entries.forEach { (packageName, graph) ->
+                    val poetFile = generator.generate(graph, graphs, packageName)
+                    File(kaptKotlinGeneratedDir).apply {
+                        parentFile.mkdirs()
+                        poetFile.writeTo(this)
+                    }
                 }
             }
             return true

@@ -1,10 +1,13 @@
 package pl.touk.exposed.generator.model
 
+import com.sun.org.apache.xml.internal.serialize.HTMLdtd.isBoolean
+import jdk.nashorn.internal.runtime.JSType.isString
 import pl.touk.exposed.generator.validation.GeneratedValueWithoutIdException
 import javax.lang.model.type.TypeMirror
 import javax.persistence.Column
 import javax.persistence.Table
 import pl.touk.exposed.generator.env.*
+import pl.touk.exposed.generator.validation.EntityNotMappedException
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind
 import javax.persistence.JoinColumn
@@ -14,17 +17,22 @@ class EntityGraphBuilder(
         private val typeEnv: TypeEnvironment, private val annEnv: AnnotationEnvironment
 ) {
 
-    fun build(): EntityGraph {
-        val graph = EntityGraph()
+    fun build(): EntityGraphs {
+        val graphs = EntityGraphs()
 
         // TODO split
         for (entityElt in annEnv.entities) {
             val tableAnn = entityElt.getAnnotation(Table::class.java)
-            graph[entityElt] = EntityDefinition(name = entityElt.simpleName, qualifiedName = entityElt.qualifiedName, table = tableAnn.name)
+            val graph = graphs.getOrDefault(entityElt.packageName, EntityGraph())
+            graph[entityElt] = EntityDefinition(
+                    name = entityElt.simpleName, qualifiedName = entityElt.qualifiedName, table = tableAnn.name
+            )
+            graphs[entityElt.packageName] = graph
         }
 
         for (idElt in annEnv.ids) {
             val entityType = idElt.enclosingTypeElement()
+            val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
             graph.computeIfPresent(entityType) { _, entity ->
                 entity.copy(id = IdDefinition(idElt.simpleName))
             }
@@ -32,6 +40,7 @@ class EntityGraphBuilder(
 
         for (genValueElt in annEnv.genValues) {
             val entityType = genValueElt.enclosingTypeElement()
+            val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
             graph.computeIfPresent(entityType) { _, entity ->
                 val idDefinition = entity.id ?: throw GeneratedValueWithoutIdException(genValueElt, entityType)
                 entity.copy(id = idDefinition.copy(generatedValue = true))
@@ -40,6 +49,7 @@ class EntityGraphBuilder(
 
         for (columnElt in annEnv.columns) {
             val entityType = columnElt.enclosingTypeElement()
+            val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
             graph.computeIfPresent(entityType) { _, entity ->
                 val columnAnn = columnElt.getAnnotation(Column::class.java)
                 // TODO nullable
@@ -47,13 +57,14 @@ class EntityGraphBuilder(
 //                    (it as DeclaredType).asElement().toTypeElement().qualifiedName.contentEquals(NotNull::class.java.canonicalName)
 //                }
                 val type = columnElt.asType().getTypeDefinition()
-                val columnDefinition = PropertyDefinition(name = columnElt.simpleName, annotation = columnAnn, type = type)
+                val columnDefinition = PropertyDefinition(name = columnElt.simpleName, annotation = columnAnn, type = type, typeMirror = columnElt.asType())
                 entity.addProperty(columnDefinition)
             }
         }
 
         for (oneToMany in annEnv.oneToMany) {
             val entityType = oneToMany.enclosingTypeElement()
+            val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
             val otmAnn = oneToMany.getAnnotation(OneToMany::class.java)
             val target = oneToMany.asType().getTypeArgument().asElement().toTypeElement()
             graph.computeIfPresent(entityType) { _, entity ->
@@ -67,6 +78,7 @@ class EntityGraphBuilder(
 
         for (manyToOne in annEnv.manyToOne) {
             val entityType = manyToOne.enclosingTypeElement()
+            val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
             graph.computeIfPresent(entityType) { _, entity ->
                 val join = manyToOne.getAnnotation(JoinColumn::class.java)
                 val target = manyToOne.toVariableElement().asType().asDeclaredType().asElement().toTypeElement()
@@ -80,20 +92,25 @@ class EntityGraphBuilder(
 
         for (oneToMany in annEnv.oneToMany) {
             val entityType = oneToMany.enclosingTypeElement()
-            val joinColumnAnn = oneToMany.getAnnotation(JoinColumn::class.java) ?: continue
-            val target = oneToMany.asType().getTypeArgument().asElement().toTypeElement()
 
-            graph.computeIfPresent(target) { _, entity ->
+            val joinColumnAnn = oneToMany.getAnnotation(JoinColumn::class.java) ?: continue
+            val targetType = oneToMany.asType().getTypeArgument().asElement().toTypeElement()
+
+            val graph = graphs[targetType.packageName] ?: throw EntityNotMappedException(targetType)
+            graph.computeIfPresent(targetType) { _, entity ->
                 val isMapped = entity.associations.any { assoc -> assoc.type == AssociationType.MANY_TO_ONE && assoc.target == entityType }
-                if (isMapped) entity
-                val associationDef = AssociationDefinition(
-                        name = entityType.simpleName, type = AssociationType.MANY_TO_ONE,
-                        target = entityType, joinColumn = joinColumnAnn.name, mapped = false
-                )
-                entity.addAssociation(associationDef)
+                if (isMapped) {
+                    entity
+                } else {
+                    val associationDef = AssociationDefinition(
+                            name = entityType.simpleName, type = AssociationType.MANY_TO_ONE,
+                            target = entityType, joinColumn = joinColumnAnn.name, mapped = false
+                    )
+                    entity.addAssociation(associationDef)
+                }
             }
         }
-        return graph
+        return graphs
     }
 
     private fun TypeMirror.asDeclaredType(): DeclaredType {
