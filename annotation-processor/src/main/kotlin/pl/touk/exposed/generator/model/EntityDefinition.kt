@@ -3,6 +3,7 @@ package pl.touk.exposed.generator.model
 import pl.touk.exposed.generator.validation.MissingIdException
 import javax.lang.model.element.Name
 import javax.lang.model.element.TypeElement
+import javax.lang.model.type.TypeMirror
 import javax.persistence.Column
 
 data class EntityDefinition(
@@ -47,7 +48,8 @@ data class AssociationDefinition(
 data class PropertyDefinition(
         val name: Name,
         val annotation: Column,
-        val type: PropertyType
+        val type: PropertyType,
+        val typeMirror: TypeMirror
 )
 
 enum class PropertyType {
@@ -58,9 +60,11 @@ enum class AssociationType {
     ONE_TO_ONE, ONE_TO_MANY, MANY_TO_ONE, MANY_TO_MANY
 }
 
+typealias EntityGraphs = MutableMap<String, EntityGraph>
 typealias EntityGraph = MutableMap<TypeElement, EntityDefinition>
 
 fun EntityGraph(): EntityGraph = mutableMapOf()
+fun EntityGraphs(): EntityGraphs = mutableMapOf()
 
 fun EntityGraph.traverse(function: (EntityDefinition) -> Unit) {
     this.entries.forEach { (_, value) -> function.invoke(value) }
@@ -70,4 +74,16 @@ fun EntityGraph.traverse(function: (TypeElement, EntityDefinition) -> Unit) {
     this.entries.forEach { (key, value) -> function.invoke(key, value) }
 }
 
+fun EntityGraph.allAssociations() =
+        this.values.flatMap { entityDef -> entityDef.associations.map { it.target } }.toSet()
+
 fun Name.asVariable() = this.toString().decapitalize()
+
+val TypeElement.packageName: String
+    get() {
+        val dotIdx = this.qualifiedName.lastIndexOf('.')
+        if (dotIdx < 0) {
+            return "default"
+        }
+        return this.qualifiedName.substring(0 until dotIdx)
+    }

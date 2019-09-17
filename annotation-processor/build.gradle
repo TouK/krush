@@ -3,7 +3,7 @@ apply plugin: 'kotlin-kapt'
 
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    compile 'com.github.yanex:takenoko:0.1'
+    compile 'com.squareup:kotlinpoet:1.3.0'
     compile "org.jetbrains.exposed:exposed:$exposed_version"
     compile 'org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.0.Final'
     

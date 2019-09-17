@@ -4,7 +4,7 @@ import javax.persistence.*
 
 @Entity
 @Table(name = "customers")
-data class UniCustomer(
+data class Customer(
         @Id @GeneratedValue
         val id: Long? = null,
 
@@ -16,16 +16,16 @@ data class UniCustomer(
 
         @OneToMany
         @JoinColumn(name = "customer_id")
-        val phones: List<UniPhone> = emptyList(),
+        val phones: List<Phone> = emptyList(),
 
         @OneToMany
         @JoinColumn(name = "customer_id")
-        val addresses: List<UniAddress> = emptyList()
+        val addresses: List<Address> = emptyList()
 )
 
 @Entity
 @Table(name = "phones")
-data class UniPhone(
+data class Phone(
         @Id @GeneratedValue
         val id: Long? = null,
 
@@ -35,7 +35,7 @@ data class UniPhone(
 
 @Entity
 @Table(name = "addresses")
-data class UniAddress(
+data class Address(
         @Id @GeneratedValue
         val id: Long? = null,
 

@@ -15,7 +15,11 @@ class EntityGraphBuilderTest : AnnotationProcessorTest() {
 
         val graphBuilder = EntityGraphBuilder(getTypeEnv(), annEnv)
 
-        assertThat(graphBuilder.build())
+        val graphs = graphBuilder.build()
+
+        assertThat(graphs).containsKey("pl.touk.example")
+
+        assertThat(graphs["pl.touk.example"])
                 .containsKey(customerElt)
                 .containsValue(
                         EntityDefinition(
