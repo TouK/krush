@@ -1,13 +1,10 @@
-package pl.touk.exposed.uni
+package pl.touk.exposed.one2many.uni
 
 import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Before
 import org.junit.Test
-import pl.touk.exposed.bidi.*
-import pl.touk.exposed.bidi.from
-import pl.touk.exposed.uni.*
 
 class CustomerTest {
 

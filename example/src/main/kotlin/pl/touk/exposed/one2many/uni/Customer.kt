@@ -1,4 +1,4 @@
-package pl.touk.exposed.uni
+package pl.touk.exposed.one2many.uni
 
 import javax.persistence.*
 

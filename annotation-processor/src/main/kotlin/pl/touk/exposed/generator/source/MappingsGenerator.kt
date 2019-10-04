@@ -8,11 +8,13 @@ import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.statements.UpdateBuilder
+import pl.touk.exposed.generator.model.AssociationDefinition
 import pl.touk.exposed.generator.model.AssociationType
 import pl.touk.exposed.generator.model.EntityDefinition
 import pl.touk.exposed.generator.model.EntityGraph
 import pl.touk.exposed.generator.model.EntityGraphs
 import pl.touk.exposed.generator.model.allAssociations
+import pl.touk.exposed.generator.model.asObject
 import pl.touk.exposed.generator.model.asVariable
 import pl.touk.exposed.generator.model.packageName
 import pl.touk.exposed.generator.model.traverse
@@ -40,6 +42,9 @@ class MappingsGenerator : SourceGenerator {
             fileSpec.addFunction(buildToEntityFunc(entityType, entity))
             fileSpec.addFunction(buildToEntityListFunc(entityType, entity, graphs))
             fileSpec.addFunction(buildFromEntityFunc(entityType, entity))
+            entity.getAssociations(AssociationType.MANY_TO_MANY).forEach { assoc ->
+                fileSpec.addFunction(buildFromManyToManyFunc(entityType, entity, assoc))
+            }
         }
 
         return fileSpec.build()
@@ -130,7 +135,7 @@ class MappingsGenerator : SourceGenerator {
             "\tthis[$tableName.$name] = $param.$name"
         }
 
-        val assocMappings = entity.associations.filter { it.type == AssociationType.MANY_TO_ONE }.map { assoc ->
+        val assocMappings = entity.getAssociations(AssociationType.MANY_TO_ONE).map { assoc ->
             val name = assoc.name
             val targetParam = assoc.target.simpleName.asVariable()
             if (assoc.mapped) {
@@ -145,6 +150,25 @@ class MappingsGenerator : SourceGenerator {
         }
 
         return func.build()
+    }
+
+    private fun buildFromManyToManyFunc(entityType: TypeElement, entity: EntityDefinition, assoc: AssociationDefinition): FunSpec {
+        val param = entity.name.asVariable()
+        val targetVal = assoc.target.simpleName.asVariable()
+        val targetType = assoc.target
+        val tableName = "${entity.name}${assoc.name.asObject()}Table"
+
+        val func = FunSpec.builder("from")
+                .receiver(UpdateBuilder::class.parameterizedBy(Any::class))
+                .addParameter(param, entityType.asType().asTypeName())
+                .addParameter(targetVal, targetType.asClassName())
+
+        listOf(param, targetVal).forEach { side ->
+            func.addStatement("\t${side}.id?.let { id -> this[$tableName.${side}Id] = id }")
+        }
+
+        return func.build()
+
     }
 
 }

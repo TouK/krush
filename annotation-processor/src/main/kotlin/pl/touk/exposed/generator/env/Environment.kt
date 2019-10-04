@@ -27,7 +27,8 @@ data class AnnotationEnvironment(
         val genValues: List<VariableElement>,
         val columns: List<VariableElement>,
         val oneToMany: List<VariableElement>,
-        val manyToOne: List<VariableElement>
+        val manyToOne: List<VariableElement>,
+        val manyToMany: List<VariableElement>
 )
 
 fun Element.enclosingTypeElement() = this.enclosingElement.toTypeElement()
@@ -51,8 +52,9 @@ class EnvironmentBuilder(private val roundEnv: RoundEnvironment, private val pro
         val columns = roundEnv.getElementsAnnotatedWith(Column::class.java).toVariableElements()
         val oneToMany = roundEnv.getElementsAnnotatedWith(OneToMany::class.java).toVariableElements()
         val manyToOne = roundEnv.getElementsAnnotatedWith(ManyToOne::class.java).toVariableElements()
+        val manyToMany = roundEnv.getElementsAnnotatedWith(ManyToMany::class.java).toVariableElements()
 
-        return AnnotationEnvironment(entities, ids, genValues, columns, oneToMany, manyToOne)
+        return AnnotationEnvironment(entities, ids, genValues, columns, oneToMany, manyToOne, manyToMany)
     }
 
     fun buildTypeEnv() = TypeEnvironment(processingEnv.typeUtils, processingEnv.elementUtils)
