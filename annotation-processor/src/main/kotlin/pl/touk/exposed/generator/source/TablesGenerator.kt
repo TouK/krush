@@ -18,6 +18,8 @@ import pl.touk.exposed.generator.model.EntityGraph
 import pl.touk.exposed.generator.model.EntityGraphs
 import pl.touk.exposed.generator.model.PropertyType
 import pl.touk.exposed.generator.model.allAssociations
+import pl.touk.exposed.generator.model.asObject
+import pl.touk.exposed.generator.model.asVariable
 import pl.touk.exposed.generator.model.packageName
 import pl.touk.exposed.generator.model.traverse
 
@@ -34,7 +36,9 @@ class TablesGenerator : SourceGenerator {
         }
 
         graph.traverse { entity ->
-            val objectSpec = TypeSpec.objectBuilder("${entity.name}Table")
+            val rootVal = entity.name.asVariable()
+
+            val tableSpec = TypeSpec.objectBuilder("${entity.name}Table")
                     .superclass(Table::class)
                     .addSuperclassConstructorParameter(CodeBlock.of("%S", entity.table))
 
@@ -47,8 +51,9 @@ class TablesGenerator : SourceGenerator {
                     initializer += ".autoIncrement()"
                 }
                 idSpec.initializer(initializer)
-                objectSpec.addProperty(idSpec.build())
+                tableSpec.addProperty(idSpec.build())
             }
+
             entity.properties.forEach { column ->
                 val name = column.name.toString()
                 val columnType = Column::class.asTypeName().parameterizedBy(column.type.asTypeName() ?: column.typeMirror.asTypeName())
@@ -61,22 +66,46 @@ class TablesGenerator : SourceGenerator {
                     PropertyType.DATETIME -> CodeBlock.of("datetime(%S)", name)
                 }
                 propSpec.initializer(initializer)
-                objectSpec.addProperty(propSpec.build())
+                tableSpec.addProperty(propSpec.build())
             }
-            entity.associations.forEach { association ->
-                val name = association.name.toString()
-                val columnName = association.joinColumn ?: "${name}_id"
-                val targetTable = "${association.target.simpleName}Table"
-                if (association.type == AssociationType.MANY_TO_ONE) {
+
+            entity.associations.forEach { assoc ->
+                val name = assoc.name.toString()
+                val columnName = assoc.joinColumn ?: "${name}_id"
+                val targetTable = "${assoc.target.simpleName}Table"
+                if (assoc.type == AssociationType.MANY_TO_ONE) {
                     val columnType = Column::class.asClassName().parameterizedBy(Long::class.asClassName().copy(nullable = true))
-                    objectSpec.addProperty(
+                    tableSpec.addProperty(
                             PropertySpec.builder(name, columnType)
                                     .initializer("long(\"$columnName\").references($targetTable.id).nullable()")
                                     .build()
                     )
                 }
             }
-            fileSpec.addType(objectSpec.build())
+
+            fileSpec.addType(tableSpec.build())
+
+            entity.getAssociations(AssociationType.MANY_TO_MANY).forEach { assoc ->
+                val targetVal = assoc.target.simpleName.asVariable()
+                val targetTable = "${assoc.target.simpleName}Table"
+                val manyToManyTableName = "${entity.name}${assoc.name.asObject()}Table"
+                val manyToManyTableSpec = TypeSpec.objectBuilder(manyToManyTableName)
+                        .superclass(Table::class)
+                        .addSuperclassConstructorParameter(CodeBlock.of("%S", assoc.joinTable))
+
+                manyToManyTableSpec.addProperty(
+                        PropertySpec.builder("${rootVal}Id", Column::class.java.parameterizedBy(Long::class.java))
+                                .initializer("long(\"${rootVal}_id\").references(${entity.tableName}.id)")
+                                .build()
+                )         
+                manyToManyTableSpec.addProperty(
+                        PropertySpec.builder("${targetVal}Id", Column::class.java.parameterizedBy(Long::class.java))
+                                .initializer("long(\"${targetVal}_id\").references($targetTable.id)")
+                                .build()
+                )
+
+                fileSpec.addType(manyToManyTableSpec.build())
+            }
         }
 
         return fileSpec.build()

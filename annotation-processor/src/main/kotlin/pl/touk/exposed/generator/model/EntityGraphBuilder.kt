@@ -11,6 +11,7 @@ import pl.touk.exposed.generator.validation.EntityNotMappedException
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind
 import javax.persistence.JoinColumn
+import javax.persistence.JoinTable
 import javax.persistence.OneToMany
 
 class EntityGraphBuilder(
@@ -90,6 +91,21 @@ class EntityGraphBuilder(
             }
         }
 
+        for (manyToMany in annEnv.manyToMany) {
+            val entityType = manyToMany.enclosingTypeElement()
+            val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
+            val joinTableAnn = manyToMany.getAnnotation(JoinTable::class.java)
+            val target = manyToMany.asType().getTypeArgument().asElement().toTypeElement()
+            graph.computeIfPresent(entityType) { _, entity ->
+                val associationDef = AssociationDefinition(
+                        name = manyToMany.simpleName, type = AssociationType.MANY_TO_MANY,
+                        target = target, joinTable = joinTableAnn.name
+                )
+                entity.addAssociation(associationDef)
+            }
+        }
+
+        // unidirectional post-process
         for (oneToMany in annEnv.oneToMany) {
             val entityType = oneToMany.enclosingTypeElement()
 

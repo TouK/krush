@@ -11,7 +11,7 @@ class EntityGraphBuilderTest : AnnotationProcessorTest() {
     fun shouldPutEntityToGraph() {
         val customerElt = getTypeElement("pl.touk.example.Customer")
 
-        val annEnv = AnnotationEnvironment(listOf(customerElt), emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
+        val annEnv = AnnotationEnvironment(listOf(customerElt), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
 
         val graphBuilder = EntityGraphBuilder(getTypeEnv(), annEnv)
 

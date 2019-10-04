@@ -1,4 +1,4 @@
-package pl.touk.exposed.bidi
+package pl.touk.exposed.one2many.bidi
 
 import javax.persistence.*
 

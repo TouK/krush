@@ -27,6 +27,8 @@ data class EntityDefinition(
 
     fun getAssociations(vararg types: AssociationType) = associations.filter { it.type in types }
 
+    fun hasManyToMany() = getAssociations(AssociationType.MANY_TO_MANY).isNotEmpty()
+
     val tableName: String get() = "${name}Table"
     val idColumn: String get() = id?.let { id -> "${tableName}.${id.name}" } ?: throw MissingIdException(this)
 }
@@ -42,6 +44,7 @@ data class AssociationDefinition(
         val mapped: Boolean = true,
         val mappedBy: String? = null,
         val joinColumn: String? = null,
+        val joinTable: String? = null,
         val type: AssociationType
 )
 
@@ -77,6 +80,7 @@ fun EntityGraph.traverse(function: (TypeElement, EntityDefinition) -> Unit) {
 fun EntityGraph.allAssociations() =
         this.values.flatMap { entityDef -> entityDef.associations.map { it.target } }.toSet()
 
+fun Name.asObject() = this.toString().capitalize()
 fun Name.asVariable() = this.toString().decapitalize()
 
 val TypeElement.packageName: String

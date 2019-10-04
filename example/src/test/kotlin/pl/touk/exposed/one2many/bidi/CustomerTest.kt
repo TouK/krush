@@ -1,4 +1,4 @@
-package pl.touk.exposed.bidi
+package pl.touk.exposed.one2many.bidi
 
 import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.sql.Database
