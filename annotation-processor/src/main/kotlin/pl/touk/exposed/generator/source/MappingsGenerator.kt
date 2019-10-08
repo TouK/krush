@@ -73,11 +73,11 @@ class MappingsGenerator : SourceGenerator {
         val rootValId = "${rootVal}Id"
 
         // TODO: real id type
-        func.addStatement("val roots = mutableMapOf<Long, ${entity.name}>()")
+        func.addStatement("val roots = mutableMapOf<${entity.id?.type?.asTypeName()}, ${entity.name}>()")
         val associations = entity.getAssociations(AssociationType.ONE_TO_MANY, AssociationType.MANY_TO_MANY)
         associations.forEach { assoc ->
             val target = graphs[assoc.target.packageName]?.get(assoc.target) ?: throw EntityNotMappedException(assoc.target)
-            func.addStatement("val ${assoc.name} = mutableMapOf<Long, MutableList<${target.name}>>()" )
+            func.addStatement("val ${assoc.name} = mutableMapOf<${assoc.idType.asTypeName()}, MutableList<${target.name}>>()" )
         }
         func.addStatement("this.forEach { resultRow ->")
         func.addStatement("\tval $rootValId = resultRow[${entity.name}Table.id]")

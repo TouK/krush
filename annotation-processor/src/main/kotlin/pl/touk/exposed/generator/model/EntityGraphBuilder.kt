@@ -1,18 +1,13 @@
 package pl.touk.exposed.generator.model
 
-import com.sun.org.apache.xml.internal.serialize.HTMLdtd.isBoolean
-import jdk.nashorn.internal.runtime.JSType.isString
+import pl.touk.exposed.generator.env.*
 import pl.touk.exposed.generator.validation.GeneratedValueWithoutIdException
 import javax.lang.model.type.TypeMirror
-import javax.persistence.Column
-import javax.persistence.Table
-import pl.touk.exposed.generator.env.*
 import pl.touk.exposed.generator.validation.EntityNotMappedException
+import pl.touk.exposed.generator.validation.MissingIdException
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind
-import javax.persistence.JoinColumn
-import javax.persistence.JoinTable
-import javax.persistence.OneToMany
+import javax.persistence.*
 
 class EntityGraphBuilder(
         private val typeEnv: TypeEnvironment, private val annEnv: AnnotationEnvironment
@@ -35,7 +30,9 @@ class EntityGraphBuilder(
             val entityType = idElt.enclosingTypeElement()
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
             graph.computeIfPresent(entityType) { _, entity ->
-                entity.copy(id = IdDefinition(idElt.simpleName))
+                val type = idElt.asType().getIdTypeDefinition()
+                val annotation = idElt.getAnnotation(Column::class.java)
+                entity.copy(id = IdDefinition(idElt.simpleName, type = type, annotation = annotation, typeMirror = idElt.asType()))
             }
         }
 
@@ -51,14 +48,19 @@ class EntityGraphBuilder(
         for (columnElt in annEnv.columns) {
             val entityType = columnElt.enclosingTypeElement()
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
+
+            val sourceGraph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
+            val sourceEntity = sourceGraph[entityType] ?: throw EntityNotMappedException(entityType)
             graph.computeIfPresent(entityType) { _, entity ->
                 val columnAnn = columnElt.getAnnotation(Column::class.java)
+
+                val typeMirror = sourceEntity.id?.typeMirror ?: throw MissingIdException(sourceEntity)
                 // TODO nullable
 //                val isNotNull = columnElt.annotationMirrors.any {
 //                    (it as DeclaredType).asElement().toTypeElement().qualifiedName.contentEquals(NotNull::class.java.canonicalName)
 //                }
                 val type = columnElt.asType().getTypeDefinition()
-                val columnDefinition = PropertyDefinition(name = columnElt.simpleName, annotation = columnAnn, type = type, typeMirror = columnElt.asType())
+                val columnDefinition = PropertyDefinition(name = columnElt.simpleName, annotation = columnAnn, type = type, typeMirror = typeMirror)
                 entity.addProperty(columnDefinition)
             }
         }
@@ -68,10 +70,15 @@ class EntityGraphBuilder(
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
             val otmAnn = oneToMany.getAnnotation(OneToMany::class.java)
             val target = oneToMany.asType().getTypeArgument().asElement().toTypeElement()
+
+            val sourceGraph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
+            val sourceEntity = sourceGraph[entityType] ?: throw EntityNotMappedException(entityType)
+
             graph.computeIfPresent(entityType) { _, entity ->
+                val idType = sourceEntity.id?.type ?: throw MissingIdException(sourceEntity)
                 val associationDef = AssociationDefinition(
                         name = oneToMany.simpleName, type = AssociationType.ONE_TO_MANY,
-                        target = target, mappedBy = otmAnn.mappedBy
+                        target = target, mappedBy = otmAnn.mappedBy, idType = idType
                 )
                 entity.addAssociation(associationDef)
             }
@@ -80,12 +87,17 @@ class EntityGraphBuilder(
         for (manyToOne in annEnv.manyToOne) {
             val entityType = manyToOne.enclosingTypeElement()
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
+
+            val sourceGraph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
+            val sourceEntity = sourceGraph[entityType] ?: throw EntityNotMappedException(entityType)
+
             graph.computeIfPresent(entityType) { _, entity ->
                 val join = manyToOne.getAnnotation(JoinColumn::class.java)
                 val target = manyToOne.toVariableElement().asType().asDeclaredType().asElement().toTypeElement()
+                val idType = sourceEntity.id?.type ?: throw MissingIdException(sourceEntity)
                 val associationDef = AssociationDefinition(
                         name = manyToOne.simpleName, type = AssociationType.MANY_TO_ONE,
-                        target = target, joinColumn = join.name
+                        target = target, joinColumn = join.name, idType = idType
                 )
                 entity.addAssociation(associationDef)
             }
@@ -96,10 +108,15 @@ class EntityGraphBuilder(
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
             val joinTableAnn = manyToMany.getAnnotation(JoinTable::class.java)
             val target = manyToMany.asType().getTypeArgument().asElement().toTypeElement()
+
+            val sourceGraph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
+            val sourceEntity = sourceGraph[entityType] ?: throw EntityNotMappedException(entityType)
+
             graph.computeIfPresent(entityType) { _, entity ->
+                val idType = sourceEntity.id?.type ?: throw MissingIdException(sourceEntity)
                 val associationDef = AssociationDefinition(
                         name = manyToMany.simpleName, type = AssociationType.MANY_TO_MANY,
-                        target = target, joinTable = joinTableAnn.name
+                        target = target, joinTable = joinTableAnn.name, idType = idType
                 )
                 entity.addAssociation(associationDef)
             }
@@ -108,9 +125,11 @@ class EntityGraphBuilder(
         // unidirectional post-process
         for (oneToMany in annEnv.oneToMany) {
             val entityType = oneToMany.enclosingTypeElement()
-
             val joinColumnAnn = oneToMany.getAnnotation(JoinColumn::class.java) ?: continue
             val targetType = oneToMany.asType().getTypeArgument().asElement().toTypeElement()
+
+            val sourceGraph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
+            val sourceEntity = sourceGraph[entityType] ?: throw EntityNotMappedException(entityType)
 
             val graph = graphs[targetType.packageName] ?: throw EntityNotMappedException(targetType)
             graph.computeIfPresent(targetType) { _, entity ->
@@ -118,9 +137,11 @@ class EntityGraphBuilder(
                 if (isMapped) {
                     entity
                 } else {
+                    val idType = sourceEntity.id?.type ?: throw MissingIdException(sourceEntity)
                     val associationDef = AssociationDefinition(
                             name = entityType.simpleName, type = AssociationType.MANY_TO_ONE,
-                            target = entityType, joinColumn = joinColumnAnn.name, mapped = false
+                            target = entityType, joinColumn = joinColumnAnn.name, mapped = false,
+                            idType = idType
                     )
                     entity.addAssociation(associationDef)
                 }
@@ -138,7 +159,7 @@ class EntityGraphBuilder(
         return this.asDeclaredType().typeArguments[0].asDeclaredType()
     }
 
-    private fun TypeMirror.getTypeDefinition() : PropertyType {
+    private fun TypeMirror.getTypeDefinition(): PropertyType {
         return when {
             isString() -> PropertyType.STRING
             isBoolean() -> PropertyType.BOOL
@@ -147,9 +168,26 @@ class EntityGraphBuilder(
         }
     }
 
+    private fun TypeMirror.getIdTypeDefinition(): IdType {
+        return when {
+            isUUID() -> IdType.UUID
+            isString() -> IdType.STRING
+            isInteger() -> IdType.INTEGER
+            isShort() -> IdType.SHORT
+            isNumeric() -> IdType.LONG
+            else -> TODO()
+        }
+    }
+
     private fun TypeMirror.isString() = typeEnv.isSameType(this, "java.lang.String")
 
+    private fun TypeMirror.isInteger() = typeEnv.isSameType(this, "java.lang.Integer")
+
+    private fun TypeMirror.isShort() = typeEnv.isSameType(this, "java.lang.Short")
+
     private fun TypeMirror.isBoolean() = typeEnv.isSameType(this, "java.lang.Boolean") || kind == TypeKind.BOOLEAN
+
+    private fun TypeMirror.isUUID() = typeEnv.isSameType(this, "java.util.UUID")
 
     // TODO float/int/long/double
     private fun TypeMirror.isNumeric() = typeEnv.isSubType(this, "java.lang.Number") ||

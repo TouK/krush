@@ -1,5 +1,6 @@
 package pl.touk.exposed.generator.model
 
+import com.squareup.kotlinpoet.TypeName
 import pl.touk.exposed.generator.validation.MissingIdException
 import javax.lang.model.element.Name
 import javax.lang.model.element.TypeElement
@@ -33,8 +34,11 @@ data class EntityDefinition(
     val idColumn: String get() = id?.let { id -> "${tableName}.${id.name}" } ?: throw MissingIdException(this)
 }
 
-data class IdDefinition(
+data class IdDefinition (
         val name: Name,
+        val annotation: Column?,
+        val type: IdType,
+        val typeMirror: TypeMirror,
         val generatedValue: Boolean = false
 )
 
@@ -45,7 +49,8 @@ data class AssociationDefinition(
         val mappedBy: String? = null,
         val joinColumn: String? = null,
         val joinTable: String? = null,
-        val type: AssociationType
+        val type: AssociationType,
+        val idType: IdType
 )
 
 data class PropertyDefinition(
@@ -55,8 +60,21 @@ data class PropertyDefinition(
         val typeMirror: TypeMirror
 )
 
+enum class IdType {
+    STRING, LONG, INTEGER, SHORT, UUID;
+
+    fun asTypeName(): TypeName {
+        return when (this) {
+            LONG -> com.squareup.kotlinpoet.LONG
+            STRING -> com.squareup.kotlinpoet.STRING
+            INTEGER -> com.squareup.kotlinpoet.INT
+            else -> TODO()
+        }
+    }
+}
+
 enum class PropertyType {
-    STRING, BOOL, LONG, DATE, DATETIME
+    STRING, BOOL, LONG, DATE, DATETIME, UUID
 }
 
 enum class AssociationType {
@@ -79,6 +97,7 @@ fun EntityGraph.traverse(function: (TypeElement, EntityDefinition) -> Unit) {
 
 fun EntityGraph.allAssociations() =
         this.values.flatMap { entityDef -> entityDef.associations.map { it.target } }.toSet()
+
 
 fun Name.asObject() = this.toString().capitalize()
 fun Name.asVariable() = this.toString().decapitalize()

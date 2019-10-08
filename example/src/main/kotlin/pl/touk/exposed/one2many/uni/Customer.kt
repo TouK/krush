@@ -27,7 +27,7 @@ data class Customer(
 @Table(name = "phones")
 data class Phone(
         @Id @GeneratedValue
-        val id: Long? = null,
+        val id: Int? = null,
 
         @Column(name = "number")
         val number: String

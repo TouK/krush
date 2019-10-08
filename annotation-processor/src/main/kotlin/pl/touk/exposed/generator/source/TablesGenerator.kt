@@ -1,27 +1,10 @@
 package pl.touk.exposed.generator.source
 
-import com.squareup.kotlinpoet.BOOLEAN
-import com.squareup.kotlinpoet.CodeBlock
-import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.LONG
+import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.PropertySpec
-import com.squareup.kotlinpoet.STRING
-import com.squareup.kotlinpoet.TypeName
-import com.squareup.kotlinpoet.TypeSpec
-import com.squareup.kotlinpoet.asClassName
-import com.squareup.kotlinpoet.asTypeName
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.Table
-import pl.touk.exposed.generator.model.AssociationType
-import pl.touk.exposed.generator.model.EntityGraph
-import pl.touk.exposed.generator.model.EntityGraphs
-import pl.touk.exposed.generator.model.PropertyType
-import pl.touk.exposed.generator.model.allAssociations
-import pl.touk.exposed.generator.model.asObject
-import pl.touk.exposed.generator.model.asVariable
-import pl.touk.exposed.generator.model.packageName
-import pl.touk.exposed.generator.model.traverse
+import pl.touk.exposed.generator.model.*
 
 class TablesGenerator : SourceGenerator {
 
@@ -44,13 +27,23 @@ class TablesGenerator : SourceGenerator {
 
             entity.id?.let { id ->
                 val name = id.name.toString()
-                // TODO id type
-                val idSpec = PropertySpec.builder(name, Column::class.parameterizedBy(Long::class))
-                var initializer = "long(\"$name\").primaryKey()"
-                if (id.generatedValue) {
-                    initializer += ".autoIncrement()"
+
+                val columnType = Column::class.asTypeName().parameterizedBy(id.type.asTypeName())
+                val idSpec = PropertySpec.builder(name, columnType)
+                val builder = CodeBlock.builder()
+                val initializer = when (id.type) {
+                    IdType.STRING ->  CodeBlock.of("varchar(%S, %L)", name, id.annotation?.length ?: 255)
+                    IdType.LONG -> CodeBlock.of("long(%S)", name)
+                    IdType.INTEGER -> CodeBlock.of("integer(%S)", name)
+                    IdType.UUID -> CodeBlock.of("uuid(%S)", name)
+                    IdType.SHORT -> TODO() //TODO update exposed
                 }
-                idSpec.initializer(initializer)
+                builder.add(initializer)
+
+                if (id.generatedValue) {
+                    builder.add(CodeBlock.of(".autoIncrement()")) //TODO disable autoIncrement when id is varchar
+                }
+                idSpec.initializer(builder.build())
                 tableSpec.addProperty(idSpec.build())
             }
 
@@ -64,23 +57,29 @@ class TablesGenerator : SourceGenerator {
                     PropertyType.BOOL -> CodeBlock.of("bool(%S)", name)
                     PropertyType.DATE -> CodeBlock.of("date(%S)", name)
                     PropertyType.DATETIME -> CodeBlock.of("datetime(%S)", name)
+                    PropertyType.UUID -> CodeBlock.of("uuid(%S)", name)
                 }
                 propSpec.initializer(initializer)
                 tableSpec.addProperty(propSpec.build())
             }
 
-            entity.associations.forEach { assoc ->
+            entity.getAssociations(AssociationType.MANY_TO_ONE).forEach { assoc ->
                 val name = assoc.name.toString()
                 val columnName = assoc.joinColumn ?: "${name}_id"
                 val targetTable = "${assoc.target.simpleName}Table"
-                if (assoc.type == AssociationType.MANY_TO_ONE) {
-                    val columnType = Column::class.asClassName().parameterizedBy(Long::class.asClassName().copy(nullable = true))
-                    tableSpec.addProperty(
-                            PropertySpec.builder(name, columnType)
-                                    .initializer("long(\"$columnName\").references($targetTable.id).nullable()")
-                                    .build()
-                    )
+                val columnType = assoc.idType.asTypeName()
+                val initializer = when (assoc.idType) {
+                    IdType.STRING ->  CodeBlock.of("varchar(%S, %L).references(%L).nullable()", columnName, 255, "$targetTable.id") //todo read length from annotation
+                    IdType.LONG -> CodeBlock.of("long(%S).references(%L).nullable()", columnName, "$targetTable.id")
+                    IdType.INTEGER -> CodeBlock.of("integer(%S).references(%L).nullable()", name, "$targetTable.id")
+                    IdType.UUID -> CodeBlock.of("uuid(%S).references(%L).nullable()", name, "$targetTable.id")
+                    IdType.SHORT -> TODO() //TODO update exposed
                 }
+                tableSpec.addProperty(
+                        PropertySpec.builder(name, Column::class.asClassName().parameterizedBy(columnType.copy(nullable = true)))
+                                .initializer(initializer)
+                                .build()
+                )
             }
 
             fileSpec.addType(tableSpec.build())
@@ -97,7 +96,7 @@ class TablesGenerator : SourceGenerator {
                         PropertySpec.builder("${rootVal}Id", Column::class.java.parameterizedBy(Long::class.java))
                                 .initializer("long(\"${rootVal}_id\").references(${entity.tableName}.id)")
                                 .build()
-                )         
+                )
                 manyToManyTableSpec.addProperty(
                         PropertySpec.builder("${targetVal}Id", Column::class.java.parameterizedBy(Long::class.java))
                                 .initializer("long(\"${targetVal}_id\").references($targetTable.id)")
@@ -119,5 +118,5 @@ private fun PropertyType.asTypeName(): TypeName? {
         PropertyType.BOOL -> BOOLEAN
         else -> null
     }
-
 }
+
