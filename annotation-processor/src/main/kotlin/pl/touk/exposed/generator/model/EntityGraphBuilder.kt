@@ -56,9 +56,8 @@ class EntityGraphBuilder(
         for (columnElt in annEnv.columns) {
             val entityType = columnElt.enclosingTypeElement()
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
+            val sourceEntity = graph[entityType] ?: throw EntityNotMappedException(entityType)
 
-            val sourceGraph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
-            val sourceEntity = sourceGraph[entityType] ?: throw EntityNotMappedException(entityType)
             graph.computeIfPresent(entityType) { _, entity ->
                 val columnAnn = columnElt.getAnnotation(Column::class.java)
 
@@ -78,9 +77,7 @@ class EntityGraphBuilder(
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
             val otmAnn = oneToMany.getAnnotation(OneToMany::class.java)
             val target = oneToMany.asType().getTypeArgument().asElement().toTypeElement()
-
-            val sourceGraph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
-            val sourceEntity = sourceGraph[entityType] ?: throw EntityNotMappedException(entityType)
+            val sourceEntity = graph[entityType] ?: throw EntityNotMappedException(entityType)
 
             graph.computeIfPresent(entityType) { _, entity ->
                 val idType = sourceEntity.id?.type ?: throw MissingIdException(sourceEntity)
@@ -95,9 +92,7 @@ class EntityGraphBuilder(
         for (manyToOne in annEnv.manyToOne) {
             val entityType = manyToOne.enclosingTypeElement()
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
-
-            val sourceGraph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
-            val sourceEntity = sourceGraph[entityType] ?: throw EntityNotMappedException(entityType)
+            val sourceEntity = graph[entityType] ?: throw EntityNotMappedException(entityType)
 
             graph.computeIfPresent(entityType) { _, entity ->
                 val join = manyToOne.getAnnotation(JoinColumn::class.java)
@@ -116,9 +111,7 @@ class EntityGraphBuilder(
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
             val joinTableAnn = manyToMany.getAnnotation(JoinTable::class.java)
             val target = manyToMany.asType().getTypeArgument().asElement().toTypeElement()
-
-            val sourceGraph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
-            val sourceEntity = sourceGraph[entityType] ?: throw EntityNotMappedException(entityType)
+            val sourceEntity = graph[entityType] ?: throw EntityNotMappedException(entityType)
 
             graph.computeIfPresent(entityType) { _, entity ->
                 val idType = sourceEntity.id?.type ?: throw MissingIdException(sourceEntity)

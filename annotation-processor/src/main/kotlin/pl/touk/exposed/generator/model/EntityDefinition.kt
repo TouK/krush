@@ -1,6 +1,5 @@
 package pl.touk.exposed.generator.model
 
-import com.squareup.kotlinpoet.TypeName
 import pl.touk.exposed.generator.validation.MissingIdException
 import javax.lang.model.element.Name
 import javax.lang.model.element.TypeElement
