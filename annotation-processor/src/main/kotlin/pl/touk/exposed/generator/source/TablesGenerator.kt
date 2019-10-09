@@ -1,11 +1,29 @@
 package pl.touk.exposed.generator.source
 
-import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.BOOLEAN
+import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.LONG
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.STRING
+import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.asClassName
+import com.squareup.kotlinpoet.asTypeName
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.Table
-import pl.touk.exposed.generator.model.*
-import java.util.*
+import pl.touk.exposed.generator.model.AssociationType
+import pl.touk.exposed.generator.model.EntityGraph
+import pl.touk.exposed.generator.model.EntityGraphs
+import pl.touk.exposed.generator.model.IdType
+import pl.touk.exposed.generator.model.PropertyType
+import pl.touk.exposed.generator.model.allAssociations
+import pl.touk.exposed.generator.model.asObject
+import pl.touk.exposed.generator.model.asVariable
+import pl.touk.exposed.generator.model.packageName
+import pl.touk.exposed.generator.model.traverse
+import java.util.UUID
 
 class TablesGenerator : SourceGenerator {
 

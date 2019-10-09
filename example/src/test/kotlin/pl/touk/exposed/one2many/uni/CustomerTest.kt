@@ -1,11 +1,14 @@
 package pl.touk.exposed.one2many.uni
 
 import org.assertj.core.api.Assertions.assertThat
-import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Before
 import org.junit.Test
-import java.util.*
+import java.util.UUID
 
 class CustomerTest {
 
