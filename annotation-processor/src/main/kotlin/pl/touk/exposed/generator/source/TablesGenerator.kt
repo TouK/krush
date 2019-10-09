@@ -59,7 +59,7 @@ class TablesGenerator : SourceGenerator {
                 val columnType = Column::class.asTypeName().parameterizedBy(column.type.asTypeName() ?: column.typeMirror.asTypeName())
                 val propSpec = PropertySpec.builder(name, columnType)
                 val initializer = when (column.type) {
-                    PropertyType.STRING -> CodeBlock.of("varchar(%S, %L)", name, column.annotation.length)
+                    PropertyType.STRING -> CodeBlock.of("varchar(%S, %L)", name, column.annotation?.length ?: 255)
                     PropertyType.LONG -> CodeBlock.of("long(%S)", name)
                     PropertyType.BOOL -> CodeBlock.of("bool(%S)", name)
                     PropertyType.DATE -> CodeBlock.of("date(%S)", name)

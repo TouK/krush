@@ -10,7 +10,6 @@ data class Customer(
         @Column(name = "name", length = 100)
         val name: String,
 
-        @Column(name = "age")
         val age: Long,
 
         @OneToMany(fetch = FetchType.EAGER, mappedBy = "customer")

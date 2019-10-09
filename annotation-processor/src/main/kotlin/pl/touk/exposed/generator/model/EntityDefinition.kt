@@ -51,7 +51,7 @@ data class AssociationDefinition(
 
 data class PropertyDefinition(
         val name: Name,
-        val annotation: Column,
+        val annotation: Column?,
         val type: PropertyType,
         val typeMirror: TypeMirror
 )
