@@ -3,7 +3,6 @@ package pl.touk.exposed.one2many.bidi
 import javax.persistence.*
 
 @Entity
-@Table(name = "customers")
 data class Customer(
         @Id @GeneratedValue
         val id: Long? = null,

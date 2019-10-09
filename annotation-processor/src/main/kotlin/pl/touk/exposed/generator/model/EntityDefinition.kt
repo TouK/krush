@@ -5,6 +5,7 @@ import javax.lang.model.element.Name
 import javax.lang.model.element.TypeElement
 import javax.lang.model.type.TypeMirror
 import javax.persistence.Column
+import javax.persistence.Table
 
 data class EntityDefinition(
         val name: Name,
@@ -90,4 +91,9 @@ val TypeElement.packageName: String
             return "default"
         }
         return this.qualifiedName.substring(0 until dotIdx)
+    }
+
+val TypeElement.tableName: String
+    get() {
+        return this.getAnnotation(Table::class.java)?.name ?: this.simpleName.asVariable()
     }

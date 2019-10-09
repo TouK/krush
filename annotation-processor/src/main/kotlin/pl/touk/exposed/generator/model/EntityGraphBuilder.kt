@@ -23,10 +23,9 @@ class EntityGraphBuilder(
 
         // TODO split
         for (entityElt in annEnv.entities) {
-            val tableAnn = entityElt.getAnnotation(Table::class.java)
             val graph = graphs.getOrDefault(entityElt.packageName, EntityGraph())
             graph[entityElt] = EntityDefinition(
-                    name = entityElt.simpleName, qualifiedName = entityElt.qualifiedName, table = tableAnn.name
+                    name = entityElt.simpleName, qualifiedName = entityElt.qualifiedName, table = entityElt.tableName
             )
             graphs[entityElt.packageName] = graph
         }
@@ -154,5 +153,4 @@ class EntityGraphBuilder(
     // TODO float/int/long/double
     private fun TypeMirror.isNumeric() = typeEnv.isSubType(this, "java.lang.Number") ||
             kind in listOf(TypeKind.LONG, TypeKind.INT, TypeKind.DOUBLE, TypeKind.FLOAT, TypeKind.SHORT)
-
 }
