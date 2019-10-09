@@ -139,3 +139,12 @@ private fun PropertyType.asTypeName(): TypeName? {
     }
 }
 
+fun IdType.asTypeName(): TypeName? {
+    return when (this) {
+        IdType.LONG -> com.squareup.kotlinpoet.LONG
+        IdType.STRING -> com.squareup.kotlinpoet.STRING
+        IdType.INTEGER -> com.squareup.kotlinpoet.INT
+        IdType.SHORT -> com.squareup.kotlinpoet.SHORT
+        else -> null
+    }
+}
