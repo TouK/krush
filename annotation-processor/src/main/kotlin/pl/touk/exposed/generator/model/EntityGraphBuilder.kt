@@ -1,15 +1,16 @@
 package pl.touk.exposed.generator.model
 
-import com.sun.org.apache.xml.internal.serialize.HTMLdtd.isBoolean
-import jdk.nashorn.internal.runtime.JSType.isString
-import pl.touk.exposed.generator.validation.GeneratedValueWithoutIdException
-import javax.lang.model.type.TypeMirror
-import javax.persistence.Column
-import javax.persistence.Table
-import pl.touk.exposed.generator.env.*
+import pl.touk.exposed.generator.env.AnnotationEnvironment
+import pl.touk.exposed.generator.env.TypeEnvironment
+import pl.touk.exposed.generator.env.enclosingTypeElement
+import pl.touk.exposed.generator.env.toTypeElement
+import pl.touk.exposed.generator.env.toVariableElement
 import pl.touk.exposed.generator.validation.EntityNotMappedException
+import pl.touk.exposed.generator.validation.GeneratedValueWithoutIdException
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind
+import javax.lang.model.type.TypeMirror
+import javax.persistence.Column
 import javax.persistence.JoinColumn
 import javax.persistence.JoinTable
 import javax.persistence.OneToMany

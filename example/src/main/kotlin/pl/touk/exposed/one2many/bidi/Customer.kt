@@ -16,7 +16,10 @@ data class Customer(
         val phones: List<Phone> = emptyList(),
 
         @OneToMany(fetch = FetchType.EAGER, mappedBy = "customer")
-        val addresses: List<Address> = emptyList()
+        val addresses: List<Address> = emptyList(),
+
+        @Transient
+        val currentAddress: Address? = null
 )
 
 @Entity

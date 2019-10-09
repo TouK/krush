@@ -20,7 +20,10 @@ data class Customer(
 
         @OneToMany
         @JoinColumn(name = "customer_id")
-        val addresses: List<Address> = emptyList()
+        val addresses: List<Address> = emptyList(),
+
+        @Transient
+        val currentAddress: Address? = null
 )
 
 @Entity
