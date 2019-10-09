@@ -13,10 +13,13 @@ import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.Table
+import pl.touk.exposed.generator.model.AssociationDefinition
 import pl.touk.exposed.generator.model.AssociationType
 import pl.touk.exposed.generator.model.EntityGraph
 import pl.touk.exposed.generator.model.EntityGraphs
+import pl.touk.exposed.generator.model.IdDefinition
 import pl.touk.exposed.generator.model.IdType
+import pl.touk.exposed.generator.model.PropertyDefinition
 import pl.touk.exposed.generator.model.PropertyType
 import pl.touk.exposed.generator.model.allAssociations
 import pl.touk.exposed.generator.model.asObject
@@ -50,13 +53,7 @@ class TablesGenerator : SourceGenerator {
                 val columnType = Column::class.asTypeName().parameterizedBy(id.type.asTypeName() ?: id.typeMirror.asTypeName())
                 val idSpec = PropertySpec.builder(name, columnType)
                 val builder = CodeBlock.builder()
-                val initializer = when (id.type) {
-                    IdType.STRING ->  CodeBlock.of("varchar(%S, %L)", name, id.annotation?.length ?: 255)
-                    IdType.LONG -> CodeBlock.of("long(%S)", name)
-                    IdType.INTEGER -> CodeBlock.of("integer(%S)", name)
-                    IdType.UUID -> CodeBlock.of("uuid(%S)", name)
-                    IdType.SHORT -> CodeBlock.of("short(%S)", name)
-                }
+                val initializer = createIdInitializer(id, name)
                 builder.add(initializer)
 
                 if (id.generatedValue) {
@@ -70,30 +67,18 @@ class TablesGenerator : SourceGenerator {
                 val name = column.name.toString()
                 val columnType = Column::class.asTypeName().parameterizedBy(column.type.asTypeName() ?: column.typeMirror.asTypeName())
                 val propSpec = PropertySpec.builder(name, columnType)
-                val initializer = when (column.type) {
-                    PropertyType.STRING -> CodeBlock.of("varchar(%S, %L)", name, column.annotation.length)
-                    PropertyType.LONG -> CodeBlock.of("long(%S)", name)
-                    PropertyType.BOOL -> CodeBlock.of("bool(%S)", name)
-                    PropertyType.DATE -> CodeBlock.of("date(%S)", name)
-                    PropertyType.DATETIME -> CodeBlock.of("datetime(%S)", name)
-                    PropertyType.UUID -> CodeBlock.of("uuid(%S)", name)
-                }
+                val initializer = createPropertyInitializer(column, name)
+
                 propSpec.initializer(initializer)
                 tableSpec.addProperty(propSpec.build())
             }
 
             entity.getAssociations(AssociationType.MANY_TO_ONE).forEach { assoc ->
                 val name = assoc.name.toString()
-                val columnName = assoc.joinColumn ?: "${name}_id"
-                val targetTable = "${assoc.target.simpleName}Table"
+
                 val columnType = assoc.idType.asTypeName()
-                val initializer = when (assoc.idType) {
-                    IdType.STRING ->  CodeBlock.of("varchar(%S, %L).references(%L).nullable()", columnName, 255, "$targetTable.id") //todo read length from annotation
-                    IdType.LONG -> CodeBlock.of("long(%S).references(%L).nullable()", columnName, "$targetTable.id")
-                    IdType.INTEGER -> CodeBlock.of("integer(%S).references(%L).nullable()", name, "$targetTable.id")
-                    IdType.UUID -> CodeBlock.of("uuid(%S).references(%L).nullable()", name, "$targetTable.id")
-                    IdType.SHORT -> CodeBlock.of("short(%S).references(%L).nullable()", name, "$targetTable.id")
-                }
+                CodeBlock.builder()
+                val initializer = createAssociationInitializer(assoc, name)
                 tableSpec.addProperty(
                         PropertySpec.builder(name, Column::class.asClassName().parameterizedBy(columnType?.copy(nullable = true) ?: UUID::class.java.asTypeName()))
                                 .initializer(initializer)
@@ -127,6 +112,40 @@ class TablesGenerator : SourceGenerator {
         }
 
         return fileSpec.build()
+    }
+
+    private fun createIdInitializer(id: IdDefinition, idName: String) : CodeBlock {
+        return when (id.type) {
+            IdType.STRING ->  CodeBlock.of("varchar(%S, %L)", idName, id.annotation?.length ?: 255)
+            IdType.LONG -> CodeBlock.of("long(%S)", idName)
+            IdType.INTEGER -> CodeBlock.of("integer(%S)", idName)
+            IdType.UUID -> CodeBlock.of("uuid(%S)", idName)
+            IdType.SHORT -> CodeBlock.of("short(%S)", idName)
+        }
+    }
+
+    private fun createPropertyInitializer(property: PropertyDefinition, propertyName: String) : CodeBlock {
+        return when (property.type) {
+            PropertyType.STRING -> CodeBlock.of("varchar(%S, %L)", propertyName, property.annotation.length)
+            PropertyType.LONG -> CodeBlock.of("long(%S)", propertyName)
+            PropertyType.BOOL -> CodeBlock.of("bool(%S)", propertyName)
+            PropertyType.DATE -> CodeBlock.of("date(%S)", propertyName)
+            PropertyType.DATETIME -> CodeBlock.of("datetime(%S)", propertyName)
+            PropertyType.UUID -> CodeBlock.of("uuid(%S)", propertyName)
+        }
+    }
+
+    private fun createAssociationInitializer(association: AssociationDefinition, idName: String) : CodeBlock {
+        val columnName = association.joinColumn ?: "${idName}_id"
+        val targetTable = "${association.target.simpleName}Table"
+
+        return when (association.idType) {
+            IdType.STRING ->  CodeBlock.of("varchar(%S, %L).references(%L).nullable()", columnName, 255, "$targetTable.id") //todo read length from annotation
+            IdType.LONG -> CodeBlock.of("long(%S).references(%L).nullable()", columnName, "$targetTable.id")
+            IdType.INTEGER -> CodeBlock.of("integer(%S).references(%L).nullable()", idName, "$targetTable.id")
+            IdType.UUID -> CodeBlock.of("uuid(%S).references(%L).nullable()", idName, "$targetTable.id")
+            IdType.SHORT -> CodeBlock.of("short(%S).references(%L).nullable()", idName, "$targetTable.id")
+        }
     }
 }
 
