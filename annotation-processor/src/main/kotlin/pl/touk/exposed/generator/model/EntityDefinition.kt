@@ -63,12 +63,13 @@ data class PropertyDefinition(
 enum class IdType {
     STRING, LONG, INTEGER, SHORT, UUID;
 
-    fun asTypeName(): TypeName {
+    fun asTypeName(): TypeName? {
         return when (this) {
             LONG -> com.squareup.kotlinpoet.LONG
             STRING -> com.squareup.kotlinpoet.STRING
             INTEGER -> com.squareup.kotlinpoet.INT
-            else -> TODO()
+            SHORT -> com.squareup.kotlinpoet.SHORT
+            else -> null
         }
     }
 }

@@ -73,7 +73,7 @@ class MappingsGenerator : SourceGenerator {
         val rootValId = "${rootVal}Id"
 
         // TODO: real id type
-        func.addStatement("val roots = mutableMapOf<${entity.id?.type?.asTypeName()}, ${entity.name}>()")
+        func.addStatement("val roots = mutableMapOf<${entity.id?.type?.asTypeName() ?: entity.id?.typeMirror?.asTypeName()}, ${entity.name}>()")
         val associations = entity.getAssociations(AssociationType.ONE_TO_MANY, AssociationType.MANY_TO_MANY)
         associations.forEach { assoc ->
             val target = graphs[assoc.target.packageName]?.get(assoc.target) ?: throw EntityNotMappedException(assoc.target)
@@ -131,6 +131,11 @@ class MappingsGenerator : SourceGenerator {
 
         assocParams.forEach { func.addParameter(it) }
 
+        val idMapping = when (entity.id?.generatedValue) {
+            false -> "\tthis[$tableName.${entity.id.name}] = $param.${entity.id.name}"
+            else -> ""
+        }
+
         val propsMappings = entity.getPropertyNames().map { name ->
             "\tthis[$tableName.$name] = $param.$name"
         }
@@ -145,7 +150,7 @@ class MappingsGenerator : SourceGenerator {
             }
         }
 
-        (propsMappings + assocMappings).forEach {
+        (listOf(idMapping) + propsMappings + assocMappings).forEach {
             func.addStatement(it)
         }
 

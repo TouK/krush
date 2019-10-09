@@ -5,6 +5,7 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.Table
 import pl.touk.exposed.generator.model.*
+import java.util.*
 
 class TablesGenerator : SourceGenerator {
 
@@ -28,7 +29,7 @@ class TablesGenerator : SourceGenerator {
             entity.id?.let { id ->
                 val name = id.name.toString()
 
-                val columnType = Column::class.asTypeName().parameterizedBy(id.type.asTypeName())
+                val columnType = Column::class.asTypeName().parameterizedBy(id.type.asTypeName() ?: id.typeMirror.asTypeName())
                 val idSpec = PropertySpec.builder(name, columnType)
                 val builder = CodeBlock.builder()
                 val initializer = when (id.type) {
@@ -36,7 +37,7 @@ class TablesGenerator : SourceGenerator {
                     IdType.LONG -> CodeBlock.of("long(%S)", name)
                     IdType.INTEGER -> CodeBlock.of("integer(%S)", name)
                     IdType.UUID -> CodeBlock.of("uuid(%S)", name)
-                    IdType.SHORT -> TODO() //TODO update exposed
+                    IdType.SHORT -> CodeBlock.of("short(%S)", name)
                 }
                 builder.add(initializer)
 
@@ -73,10 +74,10 @@ class TablesGenerator : SourceGenerator {
                     IdType.LONG -> CodeBlock.of("long(%S).references(%L).nullable()", columnName, "$targetTable.id")
                     IdType.INTEGER -> CodeBlock.of("integer(%S).references(%L).nullable()", name, "$targetTable.id")
                     IdType.UUID -> CodeBlock.of("uuid(%S).references(%L).nullable()", name, "$targetTable.id")
-                    IdType.SHORT -> TODO() //TODO update exposed
+                    IdType.SHORT -> CodeBlock.of("short(%S).references(%L).nullable()", name, "$targetTable.id")
                 }
                 tableSpec.addProperty(
-                        PropertySpec.builder(name, Column::class.asClassName().parameterizedBy(columnType.copy(nullable = true)))
+                        PropertySpec.builder(name, Column::class.asClassName().parameterizedBy(columnType?.copy(nullable = true) ?: UUID::class.java.asTypeName()))
                                 .initializer(initializer)
                                 .build()
                 )

@@ -1,5 +1,6 @@
 package pl.touk.exposed.one2many.uni
 
+import java.util.*
 import javax.persistence.*
 
 @Entity
@@ -36,8 +37,8 @@ data class Phone(
 @Entity
 @Table(name = "addresses")
 data class Address(
-        @Id @GeneratedValue
-        val id: Long? = null,
+        @Id
+        val id: UUID,
 
         @Column(name = "city")
         val city: String,
