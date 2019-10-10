@@ -1,6 +1,13 @@
 package pl.touk.exposed.one2many.uni
 
-import javax.persistence.*
+import java.util.UUID
+import javax.persistence.Column
+import javax.persistence.Entity
+import javax.persistence.GeneratedValue
+import javax.persistence.Id
+import javax.persistence.JoinColumn
+import javax.persistence.OneToMany
+import javax.persistence.Table
 
 @Entity
 @Table(name = "customers")
@@ -30,7 +37,7 @@ data class Customer(
 @Table(name = "phones")
 data class Phone(
         @Id @GeneratedValue
-        val id: Long? = null,
+        val id: Int? = null,
 
         @Column(name = "number")
         val number: String
@@ -39,8 +46,8 @@ data class Phone(
 @Entity
 @Table(name = "addresses")
 data class Address(
-        @Id @GeneratedValue
-        val id: Long? = null,
+        @Id
+        val id: UUID,
 
         @Column(name = "city")
         val city: String,
