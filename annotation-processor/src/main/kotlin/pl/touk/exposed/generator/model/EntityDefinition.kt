@@ -1,5 +1,6 @@
 package pl.touk.exposed.generator.model
 
+import pl.touk.exposed.generator.validation.EntityNotMappedException
 import pl.touk.exposed.generator.validation.MissingIdException
 import javax.lang.model.element.Name
 import javax.lang.model.element.TypeElement
@@ -88,6 +89,10 @@ fun EntityGraph.traverse(function: (TypeElement, EntityDefinition) -> Unit) {
 fun EntityGraph.allAssociations() =
         this.values.flatMap { entityDef -> entityDef.associations.map { it.target } }.toSet()
 
+fun EntityGraphs.entityId(typeElement: TypeElement) : IdDefinition {
+    val graph = this[typeElement.packageName] ?: throw EntityNotMappedException(typeElement)
+    return graph[typeElement]?.id ?: throw EntityNotMappedException(typeElement)
+}
 
 fun Name.asObject() = this.toString().capitalize()
 fun Name.asVariable() = this.toString().decapitalize()

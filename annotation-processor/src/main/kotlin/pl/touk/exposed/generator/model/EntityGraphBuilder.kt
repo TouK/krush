@@ -56,12 +56,11 @@ class EntityGraphBuilder(
         for (columnElt in annEnv.columns) {
             val entityType = columnElt.enclosingTypeElement()
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
-            val sourceEntity = graph[entityType] ?: throw EntityNotMappedException(entityType)
 
             graph.computeIfPresent(entityType) { _, entity ->
                 val columnAnn = columnElt.getAnnotation(Column::class.java)
 
-                val typeMirror = sourceEntity.id?.typeMirror ?: throw MissingIdException(sourceEntity)
+                val typeMirror = entity.id?.typeMirror ?: throw MissingIdException(entity)
                 // TODO nullable
 //                val isNotNull = columnElt.annotationMirrors.any {
 //                    (it as DeclaredType).asElement().toTypeElement().qualifiedName.contentEquals(NotNull::class.java.canonicalName)
@@ -77,10 +76,9 @@ class EntityGraphBuilder(
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
             val otmAnn = oneToMany.getAnnotation(OneToMany::class.java)
             val target = oneToMany.asType().getTypeArgument().asElement().toTypeElement()
-            val sourceEntity = graph[entityType] ?: throw EntityNotMappedException(entityType)
 
             graph.computeIfPresent(entityType) { _, entity ->
-                val idType = sourceEntity.id?.type ?: throw MissingIdException(sourceEntity)
+                val idType = entity.id?.type ?: throw MissingIdException(entity)
                 val associationDef = AssociationDefinition(
                         name = oneToMany.simpleName, type = AssociationType.ONE_TO_MANY,
                         target = target, mappedBy = otmAnn.mappedBy, idType = idType
@@ -92,12 +90,11 @@ class EntityGraphBuilder(
         for (manyToOne in annEnv.manyToOne) {
             val entityType = manyToOne.enclosingTypeElement()
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
-            val sourceEntity = graph[entityType] ?: throw EntityNotMappedException(entityType)
 
             graph.computeIfPresent(entityType) { _, entity ->
                 val join = manyToOne.getAnnotation(JoinColumn::class.java)
                 val target = manyToOne.toVariableElement().asType().asDeclaredType().asElement().toTypeElement()
-                val idType = sourceEntity.id?.type ?: throw MissingIdException(sourceEntity)
+                val idType = entity.id?.type ?: throw MissingIdException(entity)
                 val associationDef = AssociationDefinition(
                         name = manyToOne.simpleName, type = AssociationType.MANY_TO_ONE,
                         target = target, joinColumn = join.name, idType = idType
@@ -111,10 +108,9 @@ class EntityGraphBuilder(
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
             val joinTableAnn = manyToMany.getAnnotation(JoinTable::class.java)
             val target = manyToMany.asType().getTypeArgument().asElement().toTypeElement()
-            val sourceEntity = graph[entityType] ?: throw EntityNotMappedException(entityType)
 
             graph.computeIfPresent(entityType) { _, entity ->
-                val idType = sourceEntity.id?.type ?: throw MissingIdException(sourceEntity)
+                val idType = entity.id?.type ?: throw MissingIdException(entity)
                 val associationDef = AssociationDefinition(
                         name = manyToMany.simpleName, type = AssociationType.MANY_TO_MANY,
                         target = target, joinTable = joinTableAnn.name, idType = idType
@@ -129,20 +125,17 @@ class EntityGraphBuilder(
             val joinColumnAnn = oneToMany.getAnnotation(JoinColumn::class.java) ?: continue
             val targetType = oneToMany.asType().getTypeArgument().asElement().toTypeElement()
 
-            val sourceGraph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
-            val sourceEntity = sourceGraph[entityType] ?: throw EntityNotMappedException(entityType)
-
             val graph = graphs[targetType.packageName] ?: throw EntityNotMappedException(targetType)
             graph.computeIfPresent(targetType) { _, entity ->
                 val isMapped = entity.associations.any { assoc -> assoc.type == AssociationType.MANY_TO_ONE && assoc.target == entityType }
                 if (isMapped) {
                     entity
                 } else {
-                    val idType = sourceEntity.id?.type ?: throw MissingIdException(sourceEntity)
+                    val parentEntityId = graphs.entityId(entityType)
                     val associationDef = AssociationDefinition(
                             name = entityType.simpleName, type = AssociationType.MANY_TO_ONE,
                             target = entityType, joinColumn = joinColumnAnn.name, mapped = false,
-                            idType = idType
+                            idType = parentEntityId.type
                     )
                     entity.addAssociation(associationDef)
                 }
