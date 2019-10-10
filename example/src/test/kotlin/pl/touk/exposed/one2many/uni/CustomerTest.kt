@@ -1,10 +1,14 @@
 package pl.touk.exposed.one2many.uni
 
 import org.assertj.core.api.Assertions.assertThat
-import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Before
 import org.junit.Test
+import java.util.UUID
 
 class CustomerTest {
 
@@ -29,9 +33,9 @@ class CustomerTest {
                 phone.copy(id = phoneId)
             }
 
-            val address = Address(city = "Warsaw", street = "Suwak", houseNo = "12/14", apartmentNo = "206").let { address ->
-                val addressId = AddressTable.insert { it.from(address, customer) }[AddressTable.id]
-                address.copy(id = addressId)
+            val address = Address(id = UUID.randomUUID(), city = "Warsaw", street = "Suwak", houseNo = "12/14", apartmentNo = "206").let { address ->
+                AddressTable.insert { it.from(address, customer) }[AddressTable.id]
+                address
             }
 
             // then
