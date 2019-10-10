@@ -1,5 +1,7 @@
 package pl.touk.exposed.generator.model
 
+import org.jetbrains.annotations.NotNull
+import org.jetbrains.annotations.Nullable
 import pl.touk.exposed.generator.env.AnnotationEnvironment
 import pl.touk.exposed.generator.env.TypeEnvironment
 import pl.touk.exposed.generator.env.enclosingTypeElement
@@ -8,6 +10,7 @@ import pl.touk.exposed.generator.env.toVariableElement
 import pl.touk.exposed.generator.validation.EntityNotMappedException
 import pl.touk.exposed.generator.validation.GeneratedValueWithoutIdException
 import pl.touk.exposed.generator.validation.MissingIdException
+import javax.lang.model.element.VariableElement
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
@@ -59,14 +62,12 @@ class EntityGraphBuilder(
 
             graph.computeIfPresent(entityType) { _, entity ->
                 val columnAnn = columnElt.getAnnotation(Column::class.java)
-
                 val typeMirror = entity.id?.typeMirror ?: throw MissingIdException(entity)
-                // TODO nullable
-//                val isNotNull = columnElt.annotationMirrors.any {
-//                    (it as DeclaredType).asElement().toTypeElement().qualifiedName.contentEquals(NotNull::class.java.canonicalName)
-//                }
                 val type = columnElt.asType().getTypeDefinition()
-                val columnDefinition = PropertyDefinition(name = columnElt.simpleName, annotation = columnAnn, type = type, typeMirror = typeMirror)
+
+                val columnDefinition = PropertyDefinition(name = columnElt.simpleName, annotation = columnAnn,
+                        type = type, typeMirror = typeMirror, nullable = isNullable(columnElt))
+
                 entity.addProperty(columnDefinition)
             }
         }
@@ -144,6 +145,9 @@ class EntityGraphBuilder(
         return graphs
     }
 
+    private fun isNullable(columnElt: VariableElement) =
+            columnElt.getAnnotation(NotNull::class.java) == null && columnElt.getAnnotation(Nullable::class.java) != null
+    
     private fun TypeMirror.asDeclaredType(): DeclaredType {
         require(this is DeclaredType)
         return this

@@ -19,7 +19,7 @@ data class Customer(
         val name: String,
 
         @Column(name = "age")
-        val age: Long,
+        val age: Long?,
 
         @OneToMany
         @JoinColumn(name = "customer_id")

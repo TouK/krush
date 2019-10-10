@@ -57,7 +57,8 @@ data class PropertyDefinition(
         val name: Name,
         val annotation: Column,
         val type: PropertyType,
-        val typeMirror: TypeMirror
+        val typeMirror: TypeMirror,
+        val nullable: Boolean
 )
 
 enum class IdType {

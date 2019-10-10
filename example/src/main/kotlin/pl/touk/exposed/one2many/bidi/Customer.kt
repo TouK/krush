@@ -20,7 +20,7 @@ data class Customer(
         val name: String,
 
         @Column(name = "age")
-        val age: Long,
+        val age: Long?,
 
         @OneToMany(fetch = FetchType.EAGER, mappedBy = "customer")
         val phones: List<Phone> = emptyList(),
