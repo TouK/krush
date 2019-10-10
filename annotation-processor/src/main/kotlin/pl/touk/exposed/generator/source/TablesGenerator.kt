@@ -126,7 +126,7 @@ class TablesGenerator : SourceGenerator {
 
     private fun createPropertyInitializer(property: PropertyDefinition, propertyName: String) : CodeBlock {
         return when (property.type) {
-            PropertyType.STRING -> CodeBlock.of("varchar(%S, %L)", propertyName, property.annotation.length)
+            PropertyType.STRING -> CodeBlock.of("varchar(%S, %L)", propertyName, property.annotation?.length)
             PropertyType.LONG -> CodeBlock.of("long(%S)", propertyName)
             PropertyType.BOOL -> CodeBlock.of("bool(%S)", propertyName)
             PropertyType.DATE -> CodeBlock.of("date(%S)", propertyName)
