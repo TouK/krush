@@ -13,6 +13,7 @@ import javax.persistence.Table
 @Table(name = "customers")
 data class Customer(
         @Id @GeneratedValue
+        @Column(name = "customerId")
         val id: Long? = null,
 
         @Column(name = "name", length = 100)

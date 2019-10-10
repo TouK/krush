@@ -37,8 +37,12 @@ class EntityGraphBuilder(
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
             graph.computeIfPresent(entityType) { _, entity ->
                 val type = idElt.asType().getIdTypeDefinition()
-                val annotation = idElt.getAnnotation(Column::class.java)
-                entity.copy(id = IdDefinition(idElt.simpleName, type = type, annotation = annotation, typeMirror = idElt.asType()))
+                val columnAnn : Column? = idElt.getAnnotation(Column::class.java)
+                val columnName = columnAnn?.name?.isNotBlank()?.let { typeEnv.elementUtils.getName(columnAnn.name) }
+                        ?: run { idElt.simpleName }
+
+                entity.copy(id = IdDefinition(name = idElt.simpleName, columnName = columnName, type = type,
+                        annotation = columnAnn, typeMirror = idElt.asType()))
             }
         }
 

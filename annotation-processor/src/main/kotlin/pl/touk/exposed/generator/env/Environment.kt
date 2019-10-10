@@ -62,7 +62,7 @@ class EnvironmentBuilder(private val roundEnv: RoundEnvironment, private val pro
             entity.enclosedElements.filter { enclosedEl -> columnPredicate(enclosedEl) }.map { column -> column.toVariableElement() }
 
     private fun columnPredicate(element: Element) =
-            element.kind == ElementKind.FIELD && (element.annotationMirrors.isEmpty() || element.getAnnotation(Column::class.java) != null)
+            element.kind == ElementKind.FIELD && (element.annotationMirrors.isEmpty() || (element.getAnnotation(Id::class.java) == null && element.getAnnotation(Column::class.java) != null))
 
     fun buildTypeEnv() = TypeEnvironment(processingEnv.typeUtils, processingEnv.elementUtils)
 

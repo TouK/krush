@@ -37,6 +37,7 @@ data class EntityDefinition(
 
 data class IdDefinition (
         val name: Name,
+        val columnName: Name,
         val annotation: Column?,
         val type: IdType,
         val typeMirror: TypeMirror,

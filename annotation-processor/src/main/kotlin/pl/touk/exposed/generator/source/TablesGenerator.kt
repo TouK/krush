@@ -53,7 +53,7 @@ class TablesGenerator : SourceGenerator {
                 val columnType = Column::class.asTypeName().parameterizedBy(id.type.asTypeName() ?: id.typeMirror.asTypeName())
                 val idSpec = PropertySpec.builder(name, columnType)
                 val builder = CodeBlock.builder()
-                val initializer = createIdInitializer(id, name)
+                val initializer = createIdInitializer(id)
                 builder.add(initializer)
 
                 if (id.generatedValue) {
@@ -67,7 +67,7 @@ class TablesGenerator : SourceGenerator {
                 val name = column.name.toString()
                 val columnType = Column::class.asTypeName().parameterizedBy(column.type.asTypeName() ?: column.typeMirror.asTypeName())
                 val propSpec = PropertySpec.builder(name, columnType)
-                val initializer = createPropertyInitializer(column, name)
+                val initializer = createPropertyInitializer(column)
 
                 propSpec.initializer(initializer)
                 tableSpec.addProperty(propSpec.build())
@@ -114,24 +114,24 @@ class TablesGenerator : SourceGenerator {
         return fileSpec.build()
     }
 
-    private fun createIdInitializer(id: IdDefinition, idName: String) : CodeBlock {
+    private fun createIdInitializer(id: IdDefinition) : CodeBlock {
         return when (id.type) {
-            IdType.STRING ->  CodeBlock.of("varchar(%S, %L)", idName, id.annotation?.length ?: 255)
-            IdType.LONG -> CodeBlock.of("long(%S)", idName)
-            IdType.INTEGER -> CodeBlock.of("integer(%S)", idName)
-            IdType.UUID -> CodeBlock.of("uuid(%S)", idName)
-            IdType.SHORT -> CodeBlock.of("short(%S)", idName)
+            IdType.STRING ->  CodeBlock.of("varchar(%S, %L)", id.columnName, id.annotation?.length ?: 255)
+            IdType.LONG -> CodeBlock.of("long(%S)", id.columnName)
+            IdType.INTEGER -> CodeBlock.of("integer(%S)", id.columnName)
+            IdType.UUID -> CodeBlock.of("uuid(%S)", id.columnName)
+            IdType.SHORT -> CodeBlock.of("short(%S)", id.columnName)
         }
     }
 
-    private fun createPropertyInitializer(property: PropertyDefinition, propertyName: String) : CodeBlock {
+    private fun createPropertyInitializer(property: PropertyDefinition) : CodeBlock {
         return when (property.type) {
-            PropertyType.STRING -> CodeBlock.of("varchar(%S, %L)", propertyName, property.annotation?.length)
-            PropertyType.LONG -> CodeBlock.of("long(%S)", propertyName)
-            PropertyType.BOOL -> CodeBlock.of("bool(%S)", propertyName)
-            PropertyType.DATE -> CodeBlock.of("date(%S)", propertyName)
-            PropertyType.DATETIME -> CodeBlock.of("datetime(%S)", propertyName)
-            PropertyType.UUID -> CodeBlock.of("uuid(%S)", propertyName)
+            PropertyType.STRING -> CodeBlock.of("varchar(%S, %L)", property.columnName, property.annotation?.length)
+            PropertyType.LONG -> CodeBlock.of("long(%S)", property.columnName)
+            PropertyType.BOOL -> CodeBlock.of("bool(%S)", property.columnName)
+            PropertyType.DATE -> CodeBlock.of("date(%S)", property.columnName)
+            PropertyType.DATETIME -> CodeBlock.of("datetime(%S)", property.columnName)
+            PropertyType.UUID -> CodeBlock.of("uuid(%S)", property.columnName)
         }
     }
 
