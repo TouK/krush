@@ -10,7 +10,6 @@ import javax.persistence.OneToMany
 import javax.persistence.Table
 
 @Entity
-@Table(name = "customers")
 data class Customer(
         @Id @GeneratedValue
         @Column(name = "customerId")
