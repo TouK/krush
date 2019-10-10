@@ -139,13 +139,16 @@ class TablesGenerator : SourceGenerator {
         val columnName = association.joinColumn ?: "${idName}_id"
         val targetTable = "${association.target.simpleName}Table"
 
-        return when (association.idType) {
-            IdType.STRING ->  CodeBlock.of("varchar(%S, %L).references(%L).nullable()", columnName, 255, "$targetTable.id") //todo read length from annotation
-            IdType.LONG -> CodeBlock.of("long(%S).references(%L).nullable()", columnName, "$targetTable.id")
-            IdType.INTEGER -> CodeBlock.of("integer(%S).references(%L).nullable()", idName, "$targetTable.id")
-            IdType.UUID -> CodeBlock.of("uuid(%S).references(%L).nullable()", idName, "$targetTable.id")
-            IdType.SHORT -> CodeBlock.of("short(%S).references(%L).nullable()", idName, "$targetTable.id")
+        val codeBlockBuilder = CodeBlock.builder()
+        when (association.idType) {
+            IdType.STRING -> codeBlockBuilder.add(CodeBlock.of("varchar(%S, %L)", columnName, 255)) //todo read length from annotation
+            IdType.LONG -> codeBlockBuilder.add(CodeBlock.of("long(%S)", columnName))
+            IdType.INTEGER -> codeBlockBuilder.add(CodeBlock.of("integer(%S)", idName))
+            IdType.UUID -> codeBlockBuilder.add(CodeBlock.of("uuid(%S)", idName))
+            IdType.SHORT -> codeBlockBuilder.add(CodeBlock.of("short(%S)", idName))
         }
+
+        return codeBlockBuilder.add(".references(%L).nullable()", "$targetTable.id").build()
     }
 }
 
