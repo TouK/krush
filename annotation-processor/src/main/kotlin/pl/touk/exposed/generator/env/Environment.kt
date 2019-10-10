@@ -50,7 +50,7 @@ class EnvironmentBuilder(private val roundEnv: RoundEnvironment, private val pro
         val entities = roundEnv.getElementsAnnotatedWith(Entity::class.java).toTypeElements()
         val ids = roundEnv.getElementsAnnotatedWith(Id::class.java).toVariableElements()
         val genValues = roundEnv.getElementsAnnotatedWith(GeneratedValue::class.java).toVariableElements()
-        val columns = roundEnv.rootElements.map { el -> toColumnElements(el) }.flatten()
+        val columns = roundEnv.rootElements.map(this::toColumnElements).flatten()
         val oneToMany = roundEnv.getElementsAnnotatedWith(OneToMany::class.java).toVariableElements()
         val manyToOne = roundEnv.getElementsAnnotatedWith(ManyToOne::class.java).toVariableElements()
         val manyToMany = roundEnv.getElementsAnnotatedWith(ManyToMany::class.java).toVariableElements()
@@ -59,7 +59,7 @@ class EnvironmentBuilder(private val roundEnv: RoundEnvironment, private val pro
     }
 
     private fun toColumnElements(entity: Element) =
-            entity.enclosedElements.filter { enclosedEl -> columnPredicate(enclosedEl) }.map { column -> column.toVariableElement() }
+            entity.enclosedElements.filter(this::columnPredicate).map { column -> column.toVariableElement() }
 
     private fun columnPredicate(element: Element) =
             element.kind == ElementKind.FIELD && (element.annotationMirrors.isEmpty() || (element.getAnnotation(Id::class.java) == null && element.getAnnotation(Column::class.java) != null))
