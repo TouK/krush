@@ -7,7 +7,7 @@ data class Customer(
         @Id @GeneratedValue
         val id: Long? = null,
 
-        @Column(name = "name", length = 100)
+        @Column(name = "customerName", length = 100)
         val name: String,
 
         val age: Long,

@@ -52,13 +52,17 @@ class EntityGraphBuilder(
             val entityType = columnElt.enclosingTypeElement()
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
             graph.computeIfPresent(entityType) { _, entity ->
-                val columnAnn = columnElt.getAnnotation(Column::class.java)
+                val columnAnn : Column? = columnElt.getAnnotation(Column::class.java)
+                val name = columnElt.simpleName
+                val columnName = columnAnn?.name?.isNotBlank()?.let { typeEnv.elementUtils.getName(columnAnn.name) }
+                        ?: run { name }
                 // TODO nullable
 //                val isNotNull = columnElt.annotationMirrors.any {
 //                    (it as DeclaredType).asElement().toTypeElement().qualifiedName.contentEquals(NotNull::class.java.canonicalName)
 //                }
                 val type = columnElt.asType().getTypeDefinition()
-                val columnDefinition = PropertyDefinition(name = columnElt.simpleName, annotation = columnAnn, type = type, typeMirror = columnElt.asType())
+                val columnDefinition = PropertyDefinition(name = name, columnName = columnName, annotation = columnAnn,
+                        type = type, typeMirror = columnElt.asType())
                 entity.addProperty(columnDefinition)
             }
         }
