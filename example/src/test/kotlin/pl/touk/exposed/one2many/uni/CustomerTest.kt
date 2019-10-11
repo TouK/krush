@@ -23,9 +23,11 @@ class CustomerTest {
             SchemaUtils.create(CustomerTable, PhoneTable, AddressTable)
 
             // given
-            val customer = Customer(name = "TouK", age = 13).let { customer ->
+            val currentAddress = Address(id = UUID.randomUUID(), city = "Warsaw", street = "Suwak", houseNo = "12/14", apartmentNo = "206")
+
+            val customer = Customer(name = "TouK", age = 13, currentAddress = currentAddress).let { customer ->
                 val customerId = CustomerTable.insert { it.from(customer) }[CustomerTable.id]
-                customer.copy(id = customerId)
+                customer.copy(id = customerId, currentAddress = null)
             }
 
             val phone = Phone(number = "777 888 999").let { phone ->
@@ -33,9 +35,9 @@ class CustomerTest {
                 phone.copy(id = phoneId)
             }
 
-            val address = Address(id = UUID.randomUUID(), city = "Warsaw", street = "Suwak", houseNo = "12/14", apartmentNo = "206").let { address ->
-                AddressTable.insert { it.from(address, customer) }[AddressTable.id]
-                address
+            val address = currentAddress.copy().let { address ->
+                val addressId = AddressTable.insert { it.from(address, customer) }[AddressTable.id]
+                address.copy(id = addressId)
             }
 
             // then

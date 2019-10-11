@@ -6,6 +6,7 @@ import javax.lang.model.element.Name
 import javax.lang.model.element.TypeElement
 import javax.lang.model.type.TypeMirror
 import javax.persistence.Column
+import javax.persistence.Table
 
 data class EntityDefinition(
         val name: Name,
@@ -36,6 +37,7 @@ data class EntityDefinition(
 
 data class IdDefinition (
         val name: Name,
+        val columnName: Name,
         val annotation: Column?,
         val type: IdType,
         val typeMirror: TypeMirror,
@@ -55,7 +57,8 @@ data class AssociationDefinition(
 
 data class PropertyDefinition(
         val name: Name,
-        val annotation: Column,
+        val columnName: Name,
+        val annotation: Column?,
         val type: PropertyType,
         val typeMirror: TypeMirror,
         val nullable: Boolean
@@ -105,4 +108,9 @@ val TypeElement.packageName: String
             return "default"
         }
         return this.qualifiedName.substring(0 until dotIdx)
+    }
+
+val TypeElement.tableName: String
+    get() {
+        return this.getAnnotation(Table::class.java)?.name ?: this.simpleName.asVariable()
     }

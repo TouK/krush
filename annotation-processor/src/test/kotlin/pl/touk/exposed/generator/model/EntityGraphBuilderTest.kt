@@ -3,30 +3,40 @@ package pl.touk.exposed.generator.model
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import pl.touk.exposed.generator.AnnotationProcessorTest
-import pl.touk.exposed.generator.env.AnnotationEnvironment
 
-class EntityGraphBuilderTest : AnnotationProcessorTest() {
+class EntityGraphBuilderTest : AnnotationProcessorTest(), EntityGraphSampleData {
 
     @Test
     fun shouldPutEntityToGraph() {
-        val customerElt = getTypeElement("pl.touk.example.Customer")
+        //given
+        val customerGraphBuilder = customerGraphBuilder(getTypeEnv())
 
-        val annEnv = AnnotationEnvironment(listOf(customerElt), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
+        //when
+        val graphs = customerGraphBuilder.build()
 
-        val graphBuilder = EntityGraphBuilder(getTypeEnv(), annEnv)
-
-        val graphs = graphBuilder.build()
-
+        //then
         assertThat(graphs).containsKey("pl.touk.example")
 
         assertThat(graphs["pl.touk.example"])
-                .containsKey(customerElt)
-                .containsValue(
-                        EntityDefinition(
-                                name = customerElt.simpleName, qualifiedName = customerElt.qualifiedName,
-                                table = "customers", id = null)
-                )
+                .containsKey(customerTestEntity(getTypeEnv()))
+                .containsValue(customerTestEntityDefinition(getTypeEnv()))
     }
 
+    @Test
+    fun shouldHandleColumnNaming() {
+        //given
+        val validColumnMappingGraphBuilder = validTableMappingGraphBuilder(getTypeEnv())
+
+        //when
+        val graphs = validColumnMappingGraphBuilder.build()
+
+        //then
+        assertThat(graphs).containsKey("pl.touk.example")
+
+        assertThat(graphs["pl.touk.example"])
+                .containsKey(customPropertyNameEntity(getTypeEnv()))
+                .containsValue(defaultPropertyNameEntityDefinition(getTypeEnv()))
+                .containsValue(customPropertyNameEntityDefinition(getTypeEnv()))
+    }
 }
 

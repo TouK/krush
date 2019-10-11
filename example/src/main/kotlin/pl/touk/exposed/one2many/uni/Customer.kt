@@ -10,9 +10,9 @@ import javax.persistence.OneToMany
 import javax.persistence.Table
 
 @Entity
-@Table(name = "customers")
 data class Customer(
         @Id @GeneratedValue
+        @Column(name = "customerId")
         val id: Long? = null,
 
         @Column(name = "name", length = 100)
@@ -27,7 +27,10 @@ data class Customer(
 
         @OneToMany
         @JoinColumn(name = "customer_id")
-        val addresses: List<Address> = emptyList()
+        val addresses: List<Address> = emptyList(),
+
+        @Transient
+        val currentAddress: Address? = null
 )
 
 @Entity
