@@ -8,6 +8,7 @@ import pl.touk.exposed.generator.env.toVariableElement
 import pl.touk.exposed.generator.validation.EntityNotMappedException
 import pl.touk.exposed.generator.validation.GeneratedValueWithoutIdException
 import pl.touk.exposed.generator.validation.MissingIdException
+import javax.lang.model.element.VariableElement
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
@@ -38,8 +39,7 @@ class EntityGraphBuilder(
             graph.computeIfPresent(entityType) { _, entity ->
                 val type = idElt.asType().getIdTypeDefinition()
                 val columnAnn : Column? = idElt.getAnnotation(Column::class.java)
-                val columnName = columnAnn?.name?.isNotBlank()?.let { typeEnv.elementUtils.getName(columnAnn.name) }
-                        ?: run { idElt.simpleName }
+                val columnName = getColumnName(columnAnn, idElt)
 
                 entity.copy(id = IdDefinition(name = idElt.simpleName, columnName = columnName, type = type,
                         annotation = columnAnn, typeMirror = idElt.asType()))
@@ -62,8 +62,8 @@ class EntityGraphBuilder(
             graph.computeIfPresent(entityType) { _, entity ->
                 val columnAnn : Column? = columnElt.getAnnotation(Column::class.java)
                 val name = columnElt.simpleName
-                val columnName = columnAnn?.name?.isNotBlank()?.let { typeEnv.elementUtils.getName(columnAnn.name) }
-                        ?: run { name }
+                val columnName = getColumnName(columnAnn, columnElt)
+
                 val typeMirror = entity.id?.typeMirror ?: throw MissingIdException(entity)
                 // TODO nullable
 //                val isNotNull = columnElt.annotationMirrors.any {
@@ -148,6 +148,9 @@ class EntityGraphBuilder(
         }
         return graphs
     }
+
+    private fun getColumnName(columnAnn: Column?, columnElt: VariableElement) =
+            if (columnAnn == null || columnAnn.name.isEmpty()) columnElt.simpleName else typeEnv.elementUtils.getName(columnAnn.name)
 
     private fun TypeMirror.asDeclaredType(): DeclaredType {
         require(this is DeclaredType)
