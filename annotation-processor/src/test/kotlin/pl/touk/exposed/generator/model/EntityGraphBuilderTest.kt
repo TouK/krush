@@ -38,5 +38,21 @@ class EntityGraphBuilderTest : AnnotationProcessorTest(), EntityGraphSampleData 
                 .containsValue(defaultPropertyNameEntityDefinition(getTypeEnv()))
                 .containsValue(customPropertyNameEntityDefinition(getTypeEnv()))
     }
+
+    @Test
+    fun shouldHandleNullableFields() {
+        //given
+        val nullablePropertyGraphBuilder = nullablePropertyGraphBuilder(getTypeEnv())
+
+        //when
+        val graphs = nullablePropertyGraphBuilder.build()
+
+        //then
+        assertThat(graphs).containsKey("pl.touk.example")
+
+        assertThat(graphs["pl.touk.example"])
+                .containsKey(nullablePropertyEntity(getTypeEnv()))
+                .containsValue(nullablePropertyEntityDefinition(getTypeEnv()))
+    }
 }
 

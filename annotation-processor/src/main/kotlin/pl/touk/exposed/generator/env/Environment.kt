@@ -9,7 +9,12 @@ import javax.lang.model.element.VariableElement
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.Elements
 import javax.lang.model.util.Types
-import javax.persistence.*
+import javax.persistence.Entity
+import javax.persistence.GeneratedValue
+import javax.persistence.Id
+import javax.persistence.ManyToMany
+import javax.persistence.ManyToOne
+import javax.persistence.OneToMany
 
 data class TypeEnvironment(
         val typeUtils: Types,
@@ -58,15 +63,29 @@ class EnvironmentBuilder(private val roundEnv: RoundEnvironment, private val pro
         return AnnotationEnvironment(entities, ids, genValues, columns, oneToMany, manyToOne, manyToMany)
     }
 
-    private fun toColumnElements(entity: Element) =
-            entity.enclosedElements.filter(this::columnPredicate).map { column -> column.toVariableElement() }
-
-    private fun columnPredicate(element: Element) =
-            element.kind == ElementKind.FIELD && (element.annotationMirrors.isEmpty() || (element.getAnnotation(Id::class.java) == null && element.getAnnotation(Column::class.java) != null))
+    private fun toColumnElements(entity: Element) = entity.enclosedElements.filter(this::columnPredicate).map(Element::toVariableElement)
 
     fun buildTypeEnv() = TypeEnvironment(processingEnv.typeUtils, processingEnv.elementUtils)
 
+    private fun columnPredicate(element: Element) = (element.kind == ElementKind.FIELD) &&
+            element.annotationMirrors
+                    .map { annotationMirror -> annotationMirror.annotationType.asElement().asType() }
+                    .none {
+                        isAnyType(it, listOf(
+                                "javax.persistence.Id",
+                                "javax.persistence.OneToMany",
+                                "javax.persistence.OneToOne",
+                                "javax.persistence.ManyToOne",
+                                "javax.persistence.ManyToMany",
+                                "javax.persistence.ManyToMany",
+                                "javax.persistence.Transient"
+                        ))
+                    }
+
     private fun Collection<Element>.toTypeElements() = this.map(Element::toTypeElement)
     private fun Collection<Element>.toVariableElements() = this.map(Element::toVariableElement)
+    private fun isAnyType(type: TypeMirror, qualifiedNames: List<String>) =
+            qualifiedNames.any { processingEnv.typeUtils.isSameType(type, processingEnv.elementUtils.getTypeElement(it).asType()) }
+
 
 }

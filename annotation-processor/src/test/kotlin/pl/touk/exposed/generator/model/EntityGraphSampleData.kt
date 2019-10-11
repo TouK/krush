@@ -23,6 +23,10 @@ interface EntityGraphSampleData {
         return getTypeElement("pl.touk.example.CustomPropertyNameEntity", typeEnvironment.elementUtils)
     }
 
+    fun nullablePropertyEntity(typeEnvironment: TypeEnvironment): TypeElement {
+        return getTypeElement("pl.touk.example.NullablePropertyEntity", typeEnvironment.elementUtils)
+    }
+
     fun customerGraphBuilder(typeEnvironment: TypeEnvironment): EntityGraphBuilder {
         val entity = customerTestEntity(typeEnvironment)
 
@@ -85,14 +89,16 @@ interface EntityGraphSampleData {
                                 columnName = typeEnvironment.elementUtils.getName("prop1"),
                                 annotation = prop1.getAnnotation(Column::class.java),
                                 type = PropertyType.STRING,
-                                typeMirror = id.asType()
+                                typeMirror = id.asType(),
+                                nullable = false
                         ),
                         PropertyDefinition(
                                 name = typeEnvironment.elementUtils.getName("prop2"),
                                 columnName = typeEnvironment.elementUtils.getName("prop2"),
                                 annotation = prop2.getAnnotation(Column::class.java),
                                 type = PropertyType.STRING,
-                                typeMirror = id.asType()
+                                typeMirror = id.asType(),
+                                nullable = false
                         )
                 )
         )
@@ -123,10 +129,51 @@ interface EntityGraphSampleData {
                                 columnName = typeEnvironment.elementUtils.getName("prop1_custom"),
                                 annotation = prop1.getAnnotation(Column::class.java),
                                 type = PropertyType.STRING,
-                                typeMirror = id.asType()
+                                typeMirror = id.asType(),
+                                nullable = false
                         )
                 )
         )
+    }
+
+    fun nullablePropertyGraphBuilder(typeEnvironment: TypeEnvironment): EntityGraphBuilder {
+        val entity = nullablePropertyEntity(typeEnvironment)
+        val id = getVariableElement(entity, typeEnvironment.elementUtils,"id")
+        val prop1 = getVariableElement(entity, typeEnvironment.elementUtils,"prop1")
+
+        val annEnv = AnnotationEnvironment(listOf(entity), listOf(id), listOf(id), listOf(prop1),
+                emptyList(), emptyList(), emptyList())
+
+        return EntityGraphBuilder(typeEnvironment, annEnv)
+    }
+
+    fun nullablePropertyEntityDefinition(typeEnvironment: TypeEnvironment): EntityDefinition {
+        val entity = nullablePropertyEntity(typeEnvironment)
+        val id = getVariableElement(entity, typeEnvironment.elementUtils,"id")
+        val prop1 = getVariableElement(entity, typeEnvironment.elementUtils,"prop1")
+
+        return EntityDefinition(
+                name = entity.simpleName, qualifiedName = entity.qualifiedName,
+                table = "nullablePropertyEntity",
+                id = IdDefinition(
+                        name = id.simpleName,
+                        columnName = typeEnvironment.elementUtils.getName("id"),
+                        annotation = id.getAnnotation(Column::class.java),
+                        type = IdType.LONG,
+                        typeMirror = id.asType(),
+                        generatedValue = true
+                ),
+                properties = listOf(
+                        PropertyDefinition(
+                                name = typeEnvironment.elementUtils.getName("prop1"),
+                                columnName = typeEnvironment.elementUtils.getName("prop1"),
+                                annotation = prop1.getAnnotation(Column::class.java),
+                                type = PropertyType.STRING,
+                                typeMirror = id.asType(),
+                                nullable = true
+                        )
+
+                ))
     }
 
     private fun getTypeElement(name: String, elements: Elements): TypeElement = elements.getTypeElement(name)
