@@ -11,22 +11,24 @@ import javax.persistence.OneToMany
 import javax.persistence.Table
 
 @Entity
-@Table(name = "customers")
 data class Customer(
         @Id @GeneratedValue
+        @Column(name = "customerId")
         val id: Long? = null,
 
-        @Column(name = "name", length = 100)
+        @Column(name = "customerName", length = 100)
         val name: String,
 
-        @Column(name = "age")
         val age: Long,
 
         @OneToMany(fetch = FetchType.EAGER, mappedBy = "customer")
         val phones: List<Phone> = emptyList(),
 
         @OneToMany(fetch = FetchType.EAGER, mappedBy = "customer")
-        val addresses: List<Address> = emptyList()
+        val addresses: List<Address> = emptyList(),
+
+        @Transient
+        val currentAddress: Address? = null
 )
 
 @Entity

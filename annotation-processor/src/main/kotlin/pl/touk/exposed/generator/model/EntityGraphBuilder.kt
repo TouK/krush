@@ -8,6 +8,7 @@ import pl.touk.exposed.generator.env.toVariableElement
 import pl.touk.exposed.generator.validation.EntityNotMappedException
 import pl.touk.exposed.generator.validation.GeneratedValueWithoutIdException
 import pl.touk.exposed.generator.validation.MissingIdException
+import javax.lang.model.element.VariableElement
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
@@ -15,7 +16,6 @@ import javax.persistence.Column
 import javax.persistence.JoinColumn
 import javax.persistence.JoinTable
 import javax.persistence.OneToMany
-import javax.persistence.Table
 
 class EntityGraphBuilder(
         private val typeEnv: TypeEnvironment, private val annEnv: AnnotationEnvironment
@@ -26,10 +26,9 @@ class EntityGraphBuilder(
 
         // TODO split
         for (entityElt in annEnv.entities) {
-            val tableAnn = entityElt.getAnnotation(Table::class.java)
             val graph = graphs.getOrDefault(entityElt.packageName, EntityGraph())
             graph[entityElt] = EntityDefinition(
-                    name = entityElt.simpleName, qualifiedName = entityElt.qualifiedName, table = tableAnn.name
+                    name = entityElt.simpleName, qualifiedName = entityElt.qualifiedName, table = entityElt.tableName
             )
             graphs[entityElt.packageName] = graph
         }
@@ -39,8 +38,11 @@ class EntityGraphBuilder(
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
             graph.computeIfPresent(entityType) { _, entity ->
                 val type = idElt.asType().getIdTypeDefinition()
-                val annotation = idElt.getAnnotation(Column::class.java)
-                entity.copy(id = IdDefinition(idElt.simpleName, type = type, annotation = annotation, typeMirror = idElt.asType()))
+                val columnAnn : Column? = idElt.getAnnotation(Column::class.java)
+                val columnName = getColumnName(columnAnn, idElt)
+
+                entity.copy(id = IdDefinition(name = idElt.simpleName, columnName = columnName, type = type,
+                        annotation = columnAnn, typeMirror = idElt.asType()))
             }
         }
 
@@ -58,7 +60,9 @@ class EntityGraphBuilder(
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
 
             graph.computeIfPresent(entityType) { _, entity ->
-                val columnAnn = columnElt.getAnnotation(Column::class.java)
+                val columnAnn : Column? = columnElt.getAnnotation(Column::class.java)
+                val name = columnElt.simpleName
+                val columnName = getColumnName(columnAnn, columnElt)
 
                 val typeMirror = entity.id?.typeMirror ?: throw MissingIdException(entity)
                 // TODO nullable
@@ -66,7 +70,8 @@ class EntityGraphBuilder(
 //                    (it as DeclaredType).asElement().toTypeElement().qualifiedName.contentEquals(NotNull::class.java.canonicalName)
 //                }
                 val type = columnElt.asType().getTypeDefinition()
-                val columnDefinition = PropertyDefinition(name = columnElt.simpleName, annotation = columnAnn, type = type, typeMirror = typeMirror)
+                val columnDefinition = PropertyDefinition(name = name, columnName = columnName, annotation = columnAnn,
+                        type = type, typeMirror = typeMirror)
                 entity.addProperty(columnDefinition)
             }
         }
@@ -144,6 +149,9 @@ class EntityGraphBuilder(
         return graphs
     }
 
+    private fun getColumnName(columnAnn: Column?, columnElt: VariableElement) =
+            if (columnAnn == null || columnAnn.name.isEmpty()) columnElt.simpleName else typeEnv.elementUtils.getName(columnAnn.name)
+
     private fun TypeMirror.asDeclaredType(): DeclaredType {
         require(this is DeclaredType)
         return this
@@ -186,5 +194,4 @@ class EntityGraphBuilder(
     // TODO float/int/long/double
     private fun TypeMirror.isNumeric() = typeEnv.isSubType(this, "java.lang.Number") ||
             kind in listOf(TypeKind.LONG, TypeKind.INT, TypeKind.DOUBLE, TypeKind.FLOAT, TypeKind.SHORT)
-
 }
