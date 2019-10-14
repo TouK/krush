@@ -178,10 +178,10 @@ interface EntityGraphSampleData {
                                 target = targetEntity.toVariableElement().asType().asDeclaredType().asElement().toTypeElement(),
                                 joinColumn = targetEntity.getAnnotation(JoinColumn::class.java).name,
                                 type = AssociationType.ONE_TO_ONE,
-                                targetIdType = IdType.LONG
+                                targetIdType = IdType.LONG,
+                                targetIdName = id.simpleName
                         )
                 )
-
         )
     }
 
@@ -190,22 +190,12 @@ interface EntityGraphSampleData {
 
         val entity = oneToOneTargetEntity(typeEnvironment)
         val id = getVariableElement(entity, elements, "id")
-        val sourceEntity = getVariableElement(entity, elements,"sourceEntity")
 
         return EntityDefinition(
                 name = entity.simpleName,
                 qualifiedName = entity.qualifiedName,
                 table = entity.simpleName.asVariable(),
-                id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
-                associations = listOf(
-                        AssociationDefinition(
-                                name = sourceEntity.simpleName,
-                                target = sourceEntity.toVariableElement().asType().asDeclaredType().asElement().toTypeElement(),
-                                mappedBy = sourceEntity.getAnnotation(OneToOne::class.java).mappedBy,
-                                type = AssociationType.ONE_TO_ONE,
-                                targetIdType = IdType.LONG
-                        )
-                )
+                id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName))
         )
     }
 
