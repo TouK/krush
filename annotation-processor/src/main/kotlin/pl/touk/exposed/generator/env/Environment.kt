@@ -73,8 +73,5 @@ class EnvironmentBuilder(private val roundEnv: RoundEnvironment, private val pro
 
     private fun Collection<Element>.toTypeElements() = this.map(Element::toTypeElement)
     private fun Collection<Element>.toVariableElements() = this.map(Element::toVariableElement)
-    private fun isAnyType(type: TypeMirror, qualifiedNames: List<String>) =
-            qualifiedNames.any { processingEnv.typeUtils.isSameType(type, processingEnv.elementUtils.getTypeElement(it).asType()) }
-
 
 }
