@@ -15,6 +15,7 @@ import javax.persistence.Id
 import javax.persistence.ManyToMany
 import javax.persistence.ManyToOne
 import javax.persistence.OneToMany
+import javax.persistence.OneToOne
 import javax.persistence.Transient
 
 data class TypeEnvironment(
@@ -35,7 +36,8 @@ data class AnnotationEnvironment(
         val columns: List<VariableElement>,
         val oneToMany: List<VariableElement>,
         val manyToOne: List<VariableElement>,
-        val manyToMany: List<VariableElement>
+        val manyToMany: List<VariableElement>,
+        val oneToOne: List<VariableElement>
 )
 
 fun Element.enclosingTypeElement() = this.enclosingElement.toTypeElement()
@@ -59,9 +61,10 @@ class EnvironmentBuilder(private val roundEnv: RoundEnvironment, private val pro
         val oneToMany = roundEnv.getElementsAnnotatedWith(OneToMany::class.java).toVariableElements()
         val manyToOne = roundEnv.getElementsAnnotatedWith(ManyToOne::class.java).toVariableElements()
         val manyToMany = roundEnv.getElementsAnnotatedWith(ManyToMany::class.java).toVariableElements()
-        val columns = (roundEnv.rootElements.asSequence().map(this::toColumnElements).flatten() - (ids + oneToMany + manyToOne + manyToMany)).toList()
+        val oneToOne = roundEnv.getElementsAnnotatedWith(OneToOne::class.java).toVariableElements()
+        val columns = (roundEnv.rootElements.asSequence().map(this::toColumnElements).flatten() - (ids + oneToOne + oneToMany + manyToOne + manyToMany)).toList()
 
-        return AnnotationEnvironment(entities, ids, genValues, columns, oneToMany, manyToOne, manyToMany)
+        return AnnotationEnvironment(entities, ids, genValues, columns, oneToMany, manyToOne, manyToMany, oneToOne)
     }
 
     private fun toColumnElements(entity: Element) = entity.enclosedElements.filter(this::columnPredicate).map(Element::toVariableElement)

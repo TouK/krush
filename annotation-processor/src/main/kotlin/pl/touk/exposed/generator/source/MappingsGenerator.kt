@@ -19,6 +19,7 @@ import pl.touk.exposed.generator.model.asVariable
 import pl.touk.exposed.generator.model.packageName
 import pl.touk.exposed.generator.model.traverse
 import pl.touk.exposed.generator.validation.EntityNotMappedException
+import java.util.*
 import javax.lang.model.element.TypeElement
 
 class MappingsGenerator : SourceGenerator {
@@ -77,10 +78,11 @@ class MappingsGenerator : SourceGenerator {
         val associations = entity.getAssociations(AssociationType.ONE_TO_MANY, AssociationType.MANY_TO_MANY)
         associations.forEach { assoc ->
             val target = graphs[assoc.target.packageName]?.get(assoc.target) ?: throw EntityNotMappedException(assoc.target)
-            func.addStatement("val ${assoc.name} = mutableMapOf<${assoc.idType.asTypeName()}, MutableList<${target.name}>>()" )
+            func.addStatement("val ${assoc.name} = mutableMapOf<${assoc.targetIdType.asTypeName() ?: UUID::class.java.asTypeName()}, MutableList<${target.name}>>()" )
         }
+
         func.addStatement("this.forEach { resultRow ->")
-        func.addStatement("\tval $rootValId = resultRow[${entity.name}Table.id]")
+        func.addStatement("\tval $rootValId = resultRow[${entity.name}Table.${entity.id?.name}]")
         func.addStatement("\tval $rootVal = resultRow.to${entity.name}()")
         func.addStatement("\troots[$rootValId] = $rootVal")
         associations.forEach { assoc ->
@@ -140,11 +142,11 @@ class MappingsGenerator : SourceGenerator {
             "\tthis[$tableName.$name] = $param.$name"
         }
 
-        val assocMappings = entity.getAssociations(AssociationType.MANY_TO_ONE).map { assoc ->
+        val assocMappings = entity.getAssociations(AssociationType.MANY_TO_ONE, AssociationType.ONE_TO_ONE).map { assoc ->
             val name = assoc.name
             val targetParam = assoc.target.simpleName.asVariable()
             if (assoc.mapped) {
-                "\tthis[$tableName.$name] = $param.$name?.id"
+                "\tthis[$tableName.$name] = $param.$name?.${assoc.targetIdName}"
             } else {
                 "\t${targetParam}?.let { this[$tableName.$name] = it.id }"
             }
