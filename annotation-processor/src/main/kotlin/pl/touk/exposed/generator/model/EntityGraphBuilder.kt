@@ -1,5 +1,7 @@
 package pl.touk.exposed.generator.model
 
+import org.jetbrains.annotations.NotNull
+import org.jetbrains.annotations.Nullable
 import pl.touk.exposed.generator.env.AnnotationEnvironment
 import pl.touk.exposed.generator.env.TypeEnvironment
 import pl.touk.exposed.generator.env.enclosingTypeElement
@@ -63,15 +65,10 @@ class EntityGraphBuilder(
                 val columnAnn : Column? = columnElt.getAnnotation(Column::class.java)
                 val name = columnElt.simpleName
                 val columnName = getColumnName(columnAnn, columnElt)
-
                 val typeMirror = entity.id?.typeMirror ?: throw MissingIdException(entity)
-                // TODO nullable
-//                val isNotNull = columnElt.annotationMirrors.any {
-//                    (it as DeclaredType).asElement().toTypeElement().qualifiedName.contentEquals(NotNull::class.java.canonicalName)
-//                }
                 val type = columnElt.asType().getTypeDefinition()
                 val columnDefinition = PropertyDefinition(name = name, columnName = columnName, annotation = columnAnn,
-                        type = type, typeMirror = typeMirror)
+                        type = type, typeMirror = typeMirror, nullable = isNullable(columnElt))
                 entity.addProperty(columnDefinition)
             }
         }
@@ -152,6 +149,9 @@ class EntityGraphBuilder(
     private fun getColumnName(columnAnn: Column?, columnElt: VariableElement) =
             if (columnAnn == null || columnAnn.name.isEmpty()) columnElt.simpleName else typeEnv.elementUtils.getName(columnAnn.name)
 
+    private fun isNullable(columnElt: VariableElement) =
+            columnElt.getAnnotation(NotNull::class.java) == null && columnElt.getAnnotation(Nullable::class.java) != null
+    
     private fun TypeMirror.asDeclaredType(): DeclaredType {
         require(this is DeclaredType)
         return this

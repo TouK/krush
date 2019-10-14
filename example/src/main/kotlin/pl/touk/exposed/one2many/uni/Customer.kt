@@ -8,6 +8,7 @@ import javax.persistence.Id
 import javax.persistence.JoinColumn
 import javax.persistence.OneToMany
 import javax.persistence.Table
+import javax.persistence.Transient
 
 @Entity
 data class Customer(
@@ -18,8 +19,7 @@ data class Customer(
         @Column(name = "name", length = 100)
         val name: String,
 
-        @Column(name = "age")
-        val age: Long,
+        val age: Long?,
 
         @OneToMany
         @JoinColumn(name = "customer_id")

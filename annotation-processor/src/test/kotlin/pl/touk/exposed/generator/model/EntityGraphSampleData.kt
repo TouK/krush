@@ -4,6 +4,7 @@ import pl.touk.exposed.generator.env.AnnotationEnvironment
 import pl.touk.exposed.generator.env.TypeEnvironment
 import pl.touk.exposed.generator.env.toVariableElement
 import javax.lang.model.element.Element
+import javax.lang.model.element.Name
 import javax.lang.model.element.TypeElement
 import javax.lang.model.element.VariableElement
 import javax.lang.model.util.Elements
@@ -21,6 +22,10 @@ interface EntityGraphSampleData {
 
     fun customPropertyNameEntity(typeEnvironment: TypeEnvironment): TypeElement {
         return getTypeElement("pl.touk.example.CustomPropertyNameEntity", typeEnvironment.elementUtils)
+    }
+
+    fun nullablePropertyEntity(typeEnvironment: TypeEnvironment): TypeElement {
+        return getTypeElement("pl.touk.example.NullablePropertyEntity", typeEnvironment.elementUtils)
     }
 
     fun customerGraphBuilder(typeEnvironment: TypeEnvironment): EntityGraphBuilder {
@@ -71,29 +76,10 @@ interface EntityGraphSampleData {
                 name = entity.simpleName,
                 qualifiedName = entity.qualifiedName,
                 table = entity.simpleName.asVariable(),
-                id = IdDefinition(
-                        name = id.simpleName,
-                        columnName = typeEnvironment.elementUtils.getName("id"),
-                        annotation = id.getAnnotation(Column::class.java),
-                        type = IdType.LONG,
-                        typeMirror = id.asType(),
-                        generatedValue = true
-                ),
+                id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
                 properties = listOf(
-                        PropertyDefinition(
-                                name = typeEnvironment.elementUtils.getName("prop1"),
-                                columnName = typeEnvironment.elementUtils.getName("prop1"),
-                                annotation = prop1.getAnnotation(Column::class.java),
-                                type = PropertyType.STRING,
-                                typeMirror = id.asType()
-                        ),
-                        PropertyDefinition(
-                                name = typeEnvironment.elementUtils.getName("prop2"),
-                                columnName = typeEnvironment.elementUtils.getName("prop2"),
-                                annotation = prop2.getAnnotation(Column::class.java),
-                                type = PropertyType.STRING,
-                                typeMirror = id.asType()
-                        )
+                        stringPropertyDefinition(typeEnvironment, prop1, id, "prop1", false),
+                        stringPropertyDefinition(typeEnvironment, prop2, id, "prop2", false)
                 )
         )
     }
@@ -109,23 +95,57 @@ interface EntityGraphSampleData {
                 name = entity.simpleName,
                 qualifiedName = entity.qualifiedName,
                 table = "entity",
-                id = IdDefinition(
-                        name = id.simpleName,
-                        columnName = typeEnvironment.elementUtils.getName("test_id"),
-                        annotation = id.getAnnotation(Column::class.java),
-                        type = IdType.LONG,
-                        typeMirror = id.asType(),
-                        generatedValue = true
-                ),
+                id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.getAnnotation(Column::class.java).name)),
                 properties = listOf(
-                        PropertyDefinition(
-                                name = typeEnvironment.elementUtils.getName("prop1"),
-                                columnName = typeEnvironment.elementUtils.getName("prop1_custom"),
-                                annotation = prop1.getAnnotation(Column::class.java),
-                                type = PropertyType.STRING,
-                                typeMirror = id.asType()
-                        )
+                        stringPropertyDefinition(typeEnvironment, prop1, id, "prop1_custom", false)
                 )
+        )
+    }
+
+    fun nullablePropertyGraphBuilder(typeEnvironment: TypeEnvironment): EntityGraphBuilder {
+        val entity = nullablePropertyEntity(typeEnvironment)
+        val id = getVariableElement(entity, typeEnvironment.elementUtils,"id")
+        val prop1 = getVariableElement(entity, typeEnvironment.elementUtils,"prop1")
+
+        val annEnv = AnnotationEnvironment(listOf(entity), listOf(id), listOf(id), listOf(prop1),
+                emptyList(), emptyList(), emptyList())
+
+        return EntityGraphBuilder(typeEnvironment, annEnv)
+    }
+
+    fun nullablePropertyEntityDefinition(typeEnvironment: TypeEnvironment): EntityDefinition {
+        val entity = nullablePropertyEntity(typeEnvironment)
+        val id = getVariableElement(entity, typeEnvironment.elementUtils,"id")
+        val prop1 = getVariableElement(entity, typeEnvironment.elementUtils,"prop1")
+
+        return EntityDefinition(
+                name = entity.simpleName, qualifiedName = entity.qualifiedName,
+                table = "nullablePropertyEntity",
+                id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
+                properties = listOf(
+                        stringPropertyDefinition(typeEnvironment, prop1, id, "prop1", true)
+                ))
+    }
+
+    private fun autoGenIdDefinition(id: VariableElement, name: Name): IdDefinition {
+        return IdDefinition(
+                name = id.simpleName,
+                columnName = name,
+                annotation = id.getAnnotation(Column::class.java),
+                type = IdType.LONG,
+                typeMirror = id.asType(),
+                generatedValue = true
+        )
+    }
+
+    private fun stringPropertyDefinition(typeEnvironment: TypeEnvironment, property: VariableElement, id: VariableElement, columnName: String, nullable: Boolean): PropertyDefinition {
+        return PropertyDefinition(
+                name = typeEnvironment.elementUtils.getName(property.simpleName),
+                columnName = typeEnvironment.elementUtils.getName(columnName),
+                annotation = property.getAnnotation(Column::class.java),
+                type = PropertyType.STRING,
+                typeMirror = id.asType(),
+                nullable = nullable
         )
     }
 

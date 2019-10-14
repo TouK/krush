@@ -9,6 +9,7 @@ import javax.persistence.JoinColumn
 import javax.persistence.ManyToOne
 import javax.persistence.OneToMany
 import javax.persistence.Table
+import javax.persistence.Transient
 
 @Entity
 data class Customer(
@@ -19,7 +20,7 @@ data class Customer(
         @Column(name = "customerName", length = 100)
         val name: String,
 
-        val age: Long,
+        val age: Long?,
 
         @OneToMany(fetch = FetchType.EAGER, mappedBy = "customer")
         val phones: List<Phone> = emptyList(),

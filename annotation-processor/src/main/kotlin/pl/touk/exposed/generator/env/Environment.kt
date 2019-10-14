@@ -9,7 +9,13 @@ import javax.lang.model.element.VariableElement
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.Elements
 import javax.lang.model.util.Types
-import javax.persistence.*
+import javax.persistence.Entity
+import javax.persistence.GeneratedValue
+import javax.persistence.Id
+import javax.persistence.ManyToMany
+import javax.persistence.ManyToOne
+import javax.persistence.OneToMany
+import javax.persistence.Transient
 
 data class TypeEnvironment(
         val typeUtils: Types,
@@ -50,21 +56,20 @@ class EnvironmentBuilder(private val roundEnv: RoundEnvironment, private val pro
         val entities = roundEnv.getElementsAnnotatedWith(Entity::class.java).toTypeElements()
         val ids = roundEnv.getElementsAnnotatedWith(Id::class.java).toVariableElements()
         val genValues = roundEnv.getElementsAnnotatedWith(GeneratedValue::class.java).toVariableElements()
-        val columns = roundEnv.rootElements.map(this::toColumnElements).flatten()
         val oneToMany = roundEnv.getElementsAnnotatedWith(OneToMany::class.java).toVariableElements()
         val manyToOne = roundEnv.getElementsAnnotatedWith(ManyToOne::class.java).toVariableElements()
         val manyToMany = roundEnv.getElementsAnnotatedWith(ManyToMany::class.java).toVariableElements()
+        val columns = (roundEnv.rootElements.asSequence().map(this::toColumnElements).flatten() - (ids + oneToMany + manyToOne + manyToMany)).toList()
 
         return AnnotationEnvironment(entities, ids, genValues, columns, oneToMany, manyToOne, manyToMany)
     }
 
-    private fun toColumnElements(entity: Element) =
-            entity.enclosedElements.filter(this::columnPredicate).map { column -> column.toVariableElement() }
-
-    private fun columnPredicate(element: Element) =
-            element.kind == ElementKind.FIELD && (element.annotationMirrors.isEmpty() || (element.getAnnotation(Id::class.java) == null && element.getAnnotation(Column::class.java) != null))
+    private fun toColumnElements(entity: Element) = entity.enclosedElements.filter(this::columnPredicate).map(Element::toVariableElement)
 
     fun buildTypeEnv() = TypeEnvironment(processingEnv.typeUtils, processingEnv.elementUtils)
+
+    private fun columnPredicate(element: Element) =
+            element.kind == ElementKind.FIELD && element.getAnnotation(Transient::class.java) == null
 
     private fun Collection<Element>.toTypeElements() = this.map(Element::toTypeElement)
     private fun Collection<Element>.toVariableElements() = this.map(Element::toVariableElement)

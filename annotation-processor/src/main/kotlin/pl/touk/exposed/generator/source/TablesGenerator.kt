@@ -65,7 +65,7 @@ class TablesGenerator : SourceGenerator {
 
             entity.properties.forEach { column ->
                 val name = column.name.toString()
-                val columnType = Column::class.asTypeName().parameterizedBy(column.type.asTypeName() ?: column.typeMirror.asTypeName())
+                val columnType = Column::class.asTypeName().parameterizedBy(column.type.asTypeName()?.copy(nullable =  column.nullable) ?: column.typeMirror.asTypeName())
                 val propSpec = PropertySpec.builder(name, columnType)
                 val initializer = createPropertyInitializer(column)
 
@@ -125,14 +125,22 @@ class TablesGenerator : SourceGenerator {
     }
 
     private fun createPropertyInitializer(property: PropertyDefinition) : CodeBlock {
-        return when (property.type) {
-            PropertyType.STRING -> CodeBlock.of("varchar(%S, %L)", property.columnName, property.annotation?.length)
-            PropertyType.LONG -> CodeBlock.of("long(%S)", property.columnName)
-            PropertyType.BOOL -> CodeBlock.of("bool(%S)", property.columnName)
-            PropertyType.DATE -> CodeBlock.of("date(%S)", property.columnName)
-            PropertyType.DATETIME -> CodeBlock.of("datetime(%S)", property.columnName)
-            PropertyType.UUID -> CodeBlock.of("uuid(%S)", property.columnName)
+        val codeBlockBuilder = CodeBlock.builder()
+
+        when (property.type) {
+            PropertyType.STRING -> codeBlockBuilder.add(CodeBlock.of("varchar(%S, %L)", property.columnName, property.annotation?.length))
+            PropertyType.LONG -> codeBlockBuilder.add(CodeBlock.of("long(%S)", property.columnName))
+            PropertyType.BOOL -> codeBlockBuilder.add(CodeBlock.of("bool(%S)", property.columnName))
+            PropertyType.DATE -> codeBlockBuilder.add(CodeBlock.of("date(%S)", property.columnName))
+            PropertyType.DATETIME -> codeBlockBuilder.add(CodeBlock.of("datetime(%S)", property.columnName))
+            PropertyType.UUID -> codeBlockBuilder.add(CodeBlock.of("uuid(%S)", property.columnName))
         }
+
+        if (property.nullable) {
+            codeBlockBuilder.add(".nullable()")
+        }
+
+        return codeBlockBuilder.build()
     }
 
     private fun createAssociationInitializer(association: AssociationDefinition, idName: String) : CodeBlock {
