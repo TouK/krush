@@ -26,7 +26,6 @@ import pl.touk.exposed.generator.model.asObject
 import pl.touk.exposed.generator.model.asVariable
 import pl.touk.exposed.generator.model.packageName
 import pl.touk.exposed.generator.model.traverse
-import java.util.UUID
 
 class TablesGenerator : SourceGenerator {
 
@@ -76,11 +75,11 @@ class TablesGenerator : SourceGenerator {
             entity.getAssociations(AssociationType.MANY_TO_ONE).forEach { assoc ->
                 val name = assoc.name.toString()
 
-                val columnType = assoc.targetId.type.asTypeName()
+                val columnType = assoc.targetId.type.asTypeName() ?: assoc.targetId.typeMirror.asTypeName()
                 CodeBlock.builder()
                 val initializer = createAssociationInitializer(assoc, name)
                 tableSpec.addProperty(
-                        PropertySpec.builder(name, Column::class.asClassName().parameterizedBy(columnType?.copy(nullable = true) ?: UUID::class.java.asTypeName()))
+                        PropertySpec.builder(name, Column::class.asClassName().parameterizedBy(columnType.copy(nullable = true)))
                                 .initializer(initializer)
                                 .build()
                 )
@@ -89,11 +88,11 @@ class TablesGenerator : SourceGenerator {
             entity.getAssociations(AssociationType.ONE_TO_ONE).filter {it.mapped}.forEach {assoc ->
                 val name = assoc.name.toString()
 
-                val columnType = assoc.targetId.type.asTypeName()
+                val columnType = assoc.targetId.type.asTypeName() ?: assoc.targetId.typeMirror.asTypeName()
                 CodeBlock.builder()
                 val initializer = createAssociationInitializer(assoc, name)
                 tableSpec.addProperty(
-                        PropertySpec.builder(name, Column::class.asClassName().parameterizedBy(columnType?.copy(nullable = true) ?: UUID::class.java.asTypeName()))
+                        PropertySpec.builder(name, Column::class.asClassName().parameterizedBy(columnType.copy(nullable = true)))
                                 .initializer(initializer)
                                 .build()
                 )
