@@ -178,8 +178,7 @@ interface EntityGraphSampleData {
                                 target = targetEntity.toVariableElement().asType().asDeclaredType().asElement().toTypeElement(),
                                 joinColumn = targetEntity.getAnnotation(JoinColumn::class.java).name,
                                 type = AssociationType.ONE_TO_ONE,
-                                targetIdType = IdType.LONG,
-                                targetIdName = id.simpleName,
+                                targetId = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
                                 mapped = true
                         )
                 )
@@ -203,8 +202,7 @@ interface EntityGraphSampleData {
                                 name = sourceEntity.simpleName,
                                 target = sourceEntity.toVariableElement().asType().asDeclaredType().asElement().toTypeElement(),
                                 type = AssociationType.ONE_TO_ONE,
-                                targetIdType = IdType.LONG,
-                                targetIdName = id.simpleName,
+                                targetId = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
                                 mapped = false,
                                 mappedBy = sourceEntity.getAnnotation(OneToOne::class.java).mappedBy
                         )

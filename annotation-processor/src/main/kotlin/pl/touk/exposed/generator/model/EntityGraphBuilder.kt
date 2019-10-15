@@ -86,12 +86,9 @@ class EntityGraphBuilder(
 
                 val associationDef = AssociationDefinition(
                         name = oneToOne.simpleName, type = AssociationType.ONE_TO_ONE, mapped = mappedBy.isNullOrEmpty(),
-                        mappedBy = mappedBy, target = target, joinColumn = join?.name, targetIdType = parentEntityId.type,
-                        targetIdName = parentEntityId.name
+                        mappedBy = mappedBy, target = target, joinColumn = join?.name, targetId = parentEntityId
                 )
                 entity.addAssociation(associationDef)
-
-
             }
         }
 
@@ -106,8 +103,7 @@ class EntityGraphBuilder(
                 val parentEntityId = graphs.entityId(target)
                 val associationDef = AssociationDefinition(
                         name = oneToMany.simpleName, type = AssociationType.ONE_TO_MANY,
-                        target = target, mappedBy = otmAnn.mappedBy, targetIdType = idType,
-                        targetIdName = parentEntityId.name
+                        target = target, mappedBy = otmAnn.mappedBy, targetId = parentEntityId
                 )
                 entity.addAssociation(associationDef)
             }
@@ -124,8 +120,7 @@ class EntityGraphBuilder(
                 val parentEntityId = graphs.entityId(target)
                 val associationDef = AssociationDefinition(
                         name = manyToOne.simpleName, type = AssociationType.MANY_TO_ONE,
-                        target = target, joinColumn = join.name, targetIdType = idType,
-                        targetIdName = parentEntityId.name
+                        target = target, joinColumn = join.name, targetId = parentEntityId
                 )
                 entity.addAssociation(associationDef)
             }
@@ -142,8 +137,7 @@ class EntityGraphBuilder(
                 val parentEntityId = graphs.entityId(entityType)
                 val associationDef = AssociationDefinition(
                         name = manyToMany.simpleName, type = AssociationType.MANY_TO_MANY,
-                        target = target, joinTable = joinTableAnn.name, targetIdType = idType,
-                        targetIdName = parentEntityId.name
+                        target = target, joinTable = joinTableAnn.name, targetId = parentEntityId
                 )
                 entity.addAssociation(associationDef)
             }
@@ -165,7 +159,7 @@ class EntityGraphBuilder(
                     val associationDef = AssociationDefinition(
                             name = entityType.simpleName, type = AssociationType.MANY_TO_ONE,
                             target = entityType, joinColumn = joinColumnAnn.name, mapped = false,
-                            targetIdType = parentEntityId.type, targetIdName = parentEntityId.name
+                            targetId = parentEntityId
                     )
                     entity.addAssociation(associationDef)
                 }

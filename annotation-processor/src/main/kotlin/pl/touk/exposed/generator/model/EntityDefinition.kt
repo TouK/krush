@@ -52,8 +52,7 @@ data class AssociationDefinition(
         val joinColumn: String? = null,
         val joinTable: String? = null,
         val type: AssociationType,
-        val targetIdType: IdType,
-        val targetIdName: Name
+        val targetId: IdDefinition
 )
 
 data class PropertyDefinition(

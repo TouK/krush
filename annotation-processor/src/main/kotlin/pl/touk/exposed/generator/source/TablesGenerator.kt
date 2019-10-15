@@ -76,7 +76,7 @@ class TablesGenerator : SourceGenerator {
             entity.getAssociations(AssociationType.MANY_TO_ONE).forEach { assoc ->
                 val name = assoc.name.toString()
 
-                val columnType = assoc.targetIdType.asTypeName()
+                val columnType = assoc.targetId.type.asTypeName()
                 CodeBlock.builder()
                 val initializer = createAssociationInitializer(assoc, name)
                 tableSpec.addProperty(
@@ -89,7 +89,7 @@ class TablesGenerator : SourceGenerator {
             entity.getAssociations(AssociationType.ONE_TO_ONE).filter {it.mapped}.forEach {assoc ->
                 val name = assoc.name.toString()
 
-                val columnType = assoc.targetIdType.asTypeName()
+                val columnType = assoc.targetId.type.asTypeName()
                 CodeBlock.builder()
                 val initializer = createAssociationInitializer(assoc, name)
                 tableSpec.addProperty(
@@ -157,11 +157,11 @@ class TablesGenerator : SourceGenerator {
     }
 
     private fun createAssociationInitializer(association: AssociationDefinition, idName: String) : CodeBlock {
-        val columnName = association.joinColumn ?: "${idName}_${association.targetIdName}"
+        val columnName = association.joinColumn ?: "${idName}_${association.targetId.name.asVariable()}"
         val targetTable = "${association.target.simpleName}Table"
 
         val codeBlockBuilder = CodeBlock.builder()
-        when (association.targetIdType) {
+        when (association.targetId.type) {
             IdType.STRING -> codeBlockBuilder.add(CodeBlock.of("varchar(%S, %L)", columnName, 255)) //todo read length from annotation
             IdType.LONG -> codeBlockBuilder.add(CodeBlock.of("long(%S)", columnName))
             IdType.INTEGER -> codeBlockBuilder.add(CodeBlock.of("integer(%S)", columnName))
@@ -169,7 +169,7 @@ class TablesGenerator : SourceGenerator {
             IdType.SHORT -> codeBlockBuilder.add(CodeBlock.of("short(%S)", columnName))
         }
 
-        return codeBlockBuilder.add(".references(%L).nullable()", "$targetTable.${association.targetIdName}").build()
+        return codeBlockBuilder.add(".references(%L).nullable()", "$targetTable.${association.targetId.name.asVariable()}").build()
     }
 }
 
