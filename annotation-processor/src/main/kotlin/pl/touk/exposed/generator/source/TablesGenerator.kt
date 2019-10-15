@@ -86,7 +86,7 @@ class TablesGenerator : SourceGenerator {
                 )
             }
 
-            entity.getAssociations(AssociationType.ONE_TO_ONE).forEach {assoc ->
+            entity.getAssociations(AssociationType.ONE_TO_ONE).filter {it.mapped}.forEach {assoc ->
                 val name = assoc.name.toString()
 
                 val columnType = assoc.targetIdType.asTypeName()

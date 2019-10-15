@@ -10,6 +10,10 @@ import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.statements.UpdateBuilder
 import pl.touk.exposed.generator.model.AssociationDefinition
 import pl.touk.exposed.generator.model.AssociationType
+import pl.touk.exposed.generator.model.AssociationType.MANY_TO_MANY
+import pl.touk.exposed.generator.model.AssociationType.MANY_TO_ONE
+import pl.touk.exposed.generator.model.AssociationType.ONE_TO_MANY
+import pl.touk.exposed.generator.model.AssociationType.ONE_TO_ONE
 import pl.touk.exposed.generator.model.EntityDefinition
 import pl.touk.exposed.generator.model.EntityGraph
 import pl.touk.exposed.generator.model.EntityGraphs
@@ -43,7 +47,7 @@ class MappingsGenerator : SourceGenerator {
             fileSpec.addFunction(buildToEntityFunc(entityType, entity))
             fileSpec.addFunction(buildToEntityListFunc(entityType, entity, graphs))
             fileSpec.addFunction(buildFromEntityFunc(entityType, entity))
-            entity.getAssociations(AssociationType.MANY_TO_MANY).forEach { assoc ->
+            entity.getAssociations(MANY_TO_MANY).forEach { assoc ->
                 fileSpec.addFunction(buildFromManyToManyFunc(entityType, entity, assoc))
             }
         }
@@ -56,11 +60,17 @@ class MappingsGenerator : SourceGenerator {
                 .receiver(ResultRow::class.java)
                 .returns(entityType.asType().asTypeName())
 
-        val propsMappings = entity.getPropertyAndIdNames().joinToString(",\n") { name ->
+        val propsMappings = entity.getPropertyAndIdNames().map { name ->
             "\t$name = this[${entity.name}Table.${name}]"
         }
 
-        func.addStatement("return %T(\n$propsMappings\n)", entityType.asType().asTypeName())
+        val oneToOneMappings = entity.getAssociations(ONE_TO_ONE).filter { !it.mapped }.map {
+            "\t${it.name.asVariable()} = this.to${it.target.simpleName}()"
+        }
+
+        val mapping = (propsMappings + oneToOneMappings).joinToString(",\n")
+
+        func.addStatement("return %T(\n$mapping\n)", entityType.asType().asTypeName())
 
         return func.build()
     }
@@ -75,7 +85,7 @@ class MappingsGenerator : SourceGenerator {
         val rootKey = entity.id?.type?.asTypeName() ?: entity.id?.typeMirror?.asTypeName()
 
         func.addStatement("val roots = mutableMapOf<$rootKey, ${entity.name}>()")
-        val associations = entity.getAssociations(AssociationType.ONE_TO_MANY, AssociationType.MANY_TO_MANY)
+        val associations = entity.getAssociations(ONE_TO_MANY, MANY_TO_MANY)
         associations.forEach { assoc ->
             val target = graphs[assoc.target.packageName]?.get(assoc.target) ?: throw EntityNotMappedException(assoc.target)
             func.addStatement("val ${assoc.name} = mutableMapOf<${assoc.targetIdType.asTypeName() ?: UUID::class.java.asTypeName()}, MutableList<${target.name}>>()" )
@@ -142,7 +152,7 @@ class MappingsGenerator : SourceGenerator {
             "\tthis[$tableName.$name] = $param.$name"
         }
 
-        val assocMappings = entity.getAssociations(AssociationType.MANY_TO_ONE, AssociationType.ONE_TO_ONE).map { assoc ->
+        val assocMappings = entity.getAssociations(MANY_TO_ONE).map { assoc ->
             val name = assoc.name
             val targetParam = assoc.target.simpleName.asVariable()
             if (assoc.mapped) {
@@ -152,7 +162,12 @@ class MappingsGenerator : SourceGenerator {
             }
         }
 
-        (listOf(idMapping) + propsMappings + assocMappings).forEach {
+        val oneToOneMappings = entity.getAssociations(ONE_TO_ONE).filter { it.mapped }.map { assoc ->
+            val name = assoc.name
+            "\tthis[$tableName.$name] = $param.$name?.${assoc.targetIdName}"
+        }
+
+        (listOf(idMapping) + propsMappings + assocMappings + oneToOneMappings).forEach {
             func.addStatement(it)
         }
 

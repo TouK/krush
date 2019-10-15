@@ -79,21 +79,17 @@ class EntityGraphBuilder(
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
 
             graph.computeIfPresent(entityType) { _, entity ->
-                val join : JoinColumn? = oneToOne.getAnnotation(JoinColumn::class.java)
+                val join: JoinColumn? = oneToOne.getAnnotation(JoinColumn::class.java)
                 val target = oneToOne.toVariableElement().asType().asDeclaredType().asElement().toTypeElement()
                 val parentEntityId = graphs.entityId(target)
                 val mappedBy: String? = oneToOne.getAnnotation(OneToOne::class.java)?.mappedBy?.ifBlank { null }
 
-                if (mappedBy != null) {
-                    entity
-                } else{
-                    val associationDef = AssociationDefinition(
-                            name = oneToOne.simpleName, type = AssociationType.ONE_TO_ONE,
-                            mappedBy = mappedBy, target = target, joinColumn = join?.name, targetIdType = parentEntityId.type,
-                            targetIdName = parentEntityId.name
-                    )
-                    entity.addAssociation(associationDef)
-                }
+                val associationDef = AssociationDefinition(
+                        name = oneToOne.simpleName, type = AssociationType.ONE_TO_ONE, mapped = mappedBy.isNullOrEmpty(),
+                        mappedBy = mappedBy, target = target, joinColumn = join?.name, targetIdType = parentEntityId.type,
+                        targetIdName = parentEntityId.name
+                )
+                entity.addAssociation(associationDef)
 
 
             }

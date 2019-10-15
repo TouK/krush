@@ -66,14 +66,11 @@ class EntityGraphBuilderTest : AnnotationProcessorTest(), EntityGraphSampleData 
         //then
         assertThat(graphs).containsKey("pl.touk.example")
 
-        val oneToOneSourceEntityDefinition = oneToOneSourceEntityDefinition(getTypeEnv())
-        val oneToOneTargetEntityDefinition = oneToOneTargetEntityDefinition(getTypeEnv())
-
         assertThat(graphs["pl.touk.example"])
                 .containsKey(oneToOneSourceEntity(getTypeEnv()))
-                .containsValue(oneToOneSourceEntityDefinition)
+                .containsValue(oneToOneSourceEntityDefinition(getTypeEnv()))
                 .containsKey(oneToOneTargetEntity(getTypeEnv()))
-                .containsValue(oneToOneTargetEntityDefinition)
+                .containsValue(oneToOneTargetEntityDefinition(getTypeEnv()))
     }
 }
 
