@@ -54,5 +54,23 @@ class EntityGraphBuilderTest : AnnotationProcessorTest(), EntityGraphSampleData 
                 .containsKey(nullablePropertyEntity(getTypeEnv()))
                 .containsValue(nullablePropertyEntityDefinition(getTypeEnv()))
     }
+
+    @Test
+    fun shouldHandleOneToOneMapping() {
+        //given
+        val oneToOneGraphBuilder = oneToOneGraphBuilder(getTypeEnv())
+
+        //when
+        val graphs = oneToOneGraphBuilder.build()
+
+        //then
+        assertThat(graphs).containsKey("pl.touk.example")
+
+        assertThat(graphs["pl.touk.example"])
+                .containsKey(oneToOneSourceEntity(getTypeEnv()))
+                .containsValue(oneToOneSourceEntityDefinition(getTypeEnv()))
+                .containsKey(oneToOneTargetEntity(getTypeEnv()))
+                .containsValue(oneToOneTargetEntityDefinition(getTypeEnv()))
+    }
 }
 

@@ -26,7 +26,6 @@ import pl.touk.exposed.generator.model.asObject
 import pl.touk.exposed.generator.model.asVariable
 import pl.touk.exposed.generator.model.packageName
 import pl.touk.exposed.generator.model.traverse
-import java.util.UUID
 
 class TablesGenerator : SourceGenerator {
 
@@ -76,11 +75,24 @@ class TablesGenerator : SourceGenerator {
             entity.getAssociations(AssociationType.MANY_TO_ONE).forEach { assoc ->
                 val name = assoc.name.toString()
 
-                val columnType = assoc.idType.asTypeName()
+                val columnType = assoc.targetId.type.asTypeName() ?: assoc.targetId.typeMirror.asTypeName()
                 CodeBlock.builder()
                 val initializer = createAssociationInitializer(assoc, name)
                 tableSpec.addProperty(
-                        PropertySpec.builder(name, Column::class.asClassName().parameterizedBy(columnType?.copy(nullable = true) ?: UUID::class.java.asTypeName()))
+                        PropertySpec.builder(name, Column::class.asClassName().parameterizedBy(columnType.copy(nullable = true)))
+                                .initializer(initializer)
+                                .build()
+                )
+            }
+
+            entity.getAssociations(AssociationType.ONE_TO_ONE).filter {it.mapped}.forEach {assoc ->
+                val name = assoc.name.toString()
+
+                val columnType = assoc.targetId.type.asTypeName() ?: assoc.targetId.typeMirror.asTypeName()
+                CodeBlock.builder()
+                val initializer = createAssociationInitializer(assoc, name)
+                tableSpec.addProperty(
+                        PropertySpec.builder(name, Column::class.asClassName().parameterizedBy(columnType.copy(nullable = true)))
                                 .initializer(initializer)
                                 .build()
                 )
@@ -144,19 +156,19 @@ class TablesGenerator : SourceGenerator {
     }
 
     private fun createAssociationInitializer(association: AssociationDefinition, idName: String) : CodeBlock {
-        val columnName = association.joinColumn ?: "${idName}_id"
+        val columnName = association.joinColumn ?: "${idName}_${association.targetId.name.asVariable()}"
         val targetTable = "${association.target.simpleName}Table"
 
         val codeBlockBuilder = CodeBlock.builder()
-        when (association.idType) {
+        when (association.targetId.type) {
             IdType.STRING -> codeBlockBuilder.add(CodeBlock.of("varchar(%S, %L)", columnName, 255)) //todo read length from annotation
             IdType.LONG -> codeBlockBuilder.add(CodeBlock.of("long(%S)", columnName))
-            IdType.INTEGER -> codeBlockBuilder.add(CodeBlock.of("integer(%S)", idName))
-            IdType.UUID -> codeBlockBuilder.add(CodeBlock.of("uuid(%S)", idName))
-            IdType.SHORT -> codeBlockBuilder.add(CodeBlock.of("short(%S)", idName))
+            IdType.INTEGER -> codeBlockBuilder.add(CodeBlock.of("integer(%S)", columnName))
+            IdType.UUID -> codeBlockBuilder.add(CodeBlock.of("uuid(%S)", columnName))
+            IdType.SHORT -> codeBlockBuilder.add(CodeBlock.of("short(%S)", columnName))
         }
 
-        return codeBlockBuilder.add(".references(%L).nullable()", "$targetTable.id").build()
+        return codeBlockBuilder.add(".references(%L).nullable()", "$targetTable.${association.targetId.name.asVariable()}").build()
     }
 }
 

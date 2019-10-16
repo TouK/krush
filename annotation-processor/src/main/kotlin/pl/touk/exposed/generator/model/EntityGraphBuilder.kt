@@ -18,6 +18,7 @@ import javax.persistence.Column
 import javax.persistence.JoinColumn
 import javax.persistence.JoinTable
 import javax.persistence.OneToMany
+import javax.persistence.OneToOne
 
 class EntityGraphBuilder(
         private val typeEnv: TypeEnvironment, private val annEnv: AnnotationEnvironment
@@ -73,6 +74,24 @@ class EntityGraphBuilder(
             }
         }
 
+        for (oneToOne in annEnv.oneToOne) {
+            val entityType = oneToOne.enclosingTypeElement()
+            val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
+
+            graph.computeIfPresent(entityType) { _, entity ->
+                val join: JoinColumn? = oneToOne.getAnnotation(JoinColumn::class.java)
+                val target = oneToOne.toVariableElement().asType().asDeclaredType().asElement().toTypeElement()
+                val parentEntityId = graphs.entityId(target)
+                val mappedBy: String? = oneToOne.getAnnotation(OneToOne::class.java)?.mappedBy?.ifBlank { null }
+
+                val associationDef = AssociationDefinition(
+                        name = oneToOne.simpleName, type = AssociationType.ONE_TO_ONE, mapped = mappedBy.isNullOrEmpty(),
+                        mappedBy = mappedBy, target = target, joinColumn = join?.name, targetId = parentEntityId
+                )
+                entity.addAssociation(associationDef)
+            }
+        }
+
         for (oneToMany in annEnv.oneToMany) {
             val entityType = oneToMany.enclosingTypeElement()
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
@@ -81,9 +100,10 @@ class EntityGraphBuilder(
 
             graph.computeIfPresent(entityType) { _, entity ->
                 val idType = entity.id?.type ?: throw MissingIdException(entity)
+                val parentEntityId = graphs.entityId(target)
                 val associationDef = AssociationDefinition(
                         name = oneToMany.simpleName, type = AssociationType.ONE_TO_MANY,
-                        target = target, mappedBy = otmAnn.mappedBy, idType = idType
+                        target = target, mappedBy = otmAnn.mappedBy, targetId = parentEntityId
                 )
                 entity.addAssociation(associationDef)
             }
@@ -97,9 +117,10 @@ class EntityGraphBuilder(
                 val join = manyToOne.getAnnotation(JoinColumn::class.java)
                 val target = manyToOne.toVariableElement().asType().asDeclaredType().asElement().toTypeElement()
                 val idType = entity.id?.type ?: throw MissingIdException(entity)
+                val parentEntityId = graphs.entityId(target)
                 val associationDef = AssociationDefinition(
                         name = manyToOne.simpleName, type = AssociationType.MANY_TO_ONE,
-                        target = target, joinColumn = join.name, idType = idType
+                        target = target, joinColumn = join.name, targetId = parentEntityId
                 )
                 entity.addAssociation(associationDef)
             }
@@ -113,9 +134,10 @@ class EntityGraphBuilder(
 
             graph.computeIfPresent(entityType) { _, entity ->
                 val idType = entity.id?.type ?: throw MissingIdException(entity)
+                val parentEntityId = graphs.entityId(entityType)
                 val associationDef = AssociationDefinition(
                         name = manyToMany.simpleName, type = AssociationType.MANY_TO_MANY,
-                        target = target, joinTable = joinTableAnn.name, idType = idType
+                        target = target, joinTable = joinTableAnn.name, targetId = parentEntityId
                 )
                 entity.addAssociation(associationDef)
             }
@@ -137,7 +159,7 @@ class EntityGraphBuilder(
                     val associationDef = AssociationDefinition(
                             name = entityType.simpleName, type = AssociationType.MANY_TO_ONE,
                             target = entityType, joinColumn = joinColumnAnn.name, mapped = false,
-                            idType = parentEntityId.type
+                            targetId = parentEntityId
                     )
                     entity.addAssociation(associationDef)
                 }
