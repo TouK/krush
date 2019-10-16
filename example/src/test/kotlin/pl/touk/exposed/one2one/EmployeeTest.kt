@@ -29,7 +29,7 @@ class EmployeeTest {
 
             val employeeInfo = EmployeeInfo(login = "admin", employee = employee).let { employeeInfo ->
                 EmployeeInfoTable.insert { it.from(employeeInfo) }
-                employeeInfo.copy(employee = null)
+                employeeInfo
             }
 
             //when

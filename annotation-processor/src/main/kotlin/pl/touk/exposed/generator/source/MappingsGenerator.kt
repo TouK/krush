@@ -22,7 +22,6 @@ import pl.touk.exposed.generator.model.asVariable
 import pl.touk.exposed.generator.model.packageName
 import pl.touk.exposed.generator.model.traverse
 import pl.touk.exposed.generator.validation.EntityNotMappedException
-import java.util.*
 import javax.lang.model.element.TypeElement
 
 class MappingsGenerator : SourceGenerator {
@@ -63,11 +62,7 @@ class MappingsGenerator : SourceGenerator {
             "\t$name = this[${entity.name}Table.${name}]"
         }
 
-        val oneToOneMappings = entity.getAssociations(ONE_TO_ONE).filter { !it.mapped }.map {
-            "\t${it.name.asVariable()} = this.to${it.target.simpleName}()"
-        }
-
-        val mapping = (propsMappings + oneToOneMappings).joinToString(",\n")
+        val mapping = (propsMappings).joinToString(",\n")
 
         func.addStatement("return %T(\n$mapping\n)", entityType.asType().asTypeName())
 
@@ -80,14 +75,19 @@ class MappingsGenerator : SourceGenerator {
                 .returns(List::class.asClassName().parameterizedBy(entityType.asType().asTypeName()))
 
         val rootVal = entity.name.asVariable()
+        val rootIdName = entity.id?.name?.asVariable()
         val rootValId = "${rootVal}Id"
         val rootKey = entity.id?.type?.asTypeName() ?: entity.id?.typeMirror?.asTypeName()
 
         func.addStatement("val roots = mutableMapOf<$rootKey, ${entity.name}>()")
-        val associations = entity.getAssociations(ONE_TO_MANY, MANY_TO_MANY)
+        val associations = entity.getAssociations(ONE_TO_ONE, ONE_TO_MANY, MANY_TO_MANY)
         associations.forEach { assoc ->
             val target = graphs[assoc.target.packageName]?.get(assoc.target) ?: throw EntityNotMappedException(assoc.target)
-            func.addStatement("val ${assoc.name} = mutableMapOf<${entity.id?.type?.asTypeName() ?: UUID::class.java.asTypeName()}, MutableList<${target.name}>>()" )
+            val entityTypeName = entity.id?.type?.asTypeName() ?: entity.id?.typeMirror?.asTypeName()
+            val associationMapName = "${entity.name.asVariable()}_${assoc.name}"
+            val associationMapValueType = if (assoc.type in listOf(ONE_TO_MANY, MANY_TO_MANY)) "MutableList<${target.name}>" else "${target.name}"
+
+            func.addStatement("val $associationMapName = mutableMapOf<${entityTypeName}, $associationMapValueType>()" )
         }
 
         func.addStatement("this.forEach { resultRow ->")
@@ -98,26 +98,44 @@ class MappingsGenerator : SourceGenerator {
             val target = graphs[assoc.target.packageName]?.get(assoc.target) ?: throw EntityNotMappedException(assoc.target)
             val targetVal = target.name.asVariable()
             val collName = "${assoc.name}_$rootVal"
-            func.addStatement("\t\tresultRow.getOrNull(${target.idColumn})?.let {")
-            // val phonesOfCustomer = phones.getOrDefault(customerId, mutableListOf())
-            func.addStatement("\t\tval $collName = ${assoc.name}.getOrDefault($rootValId, mutableListOf())")
-            val isBidirectional = target.associations.find { it.target == entityType }?.mapped ?: false
-            // val phone = resultRow.toPhone().copy(customer = customer)
-            func.addStatement("\t\tval $targetVal = resultRow.to${target.name}()")
-            if (isBidirectional) {
-                func.addStatement("\t\t\t.copy($rootVal = $rootVal)")
+            val associationMapName = "${entity.name.asVariable()}_${assoc.name}"
+
+            when (assoc.type) {
+                ONE_TO_MANY, MANY_TO_MANY -> {
+                    func.addStatement("\t\tresultRow.getOrNull(${target.idColumn})?.let {")
+                    // val phonesOfCustomer = phones.getOrDefault(customerId, mutableListOf())
+                    func.addStatement("\t\tval $collName = $associationMapName.getOrDefault($rootValId, mutableListOf())")
+                    val isBidirectional = target.associations.find { it.target == entityType }?.mapped ?: false
+                    // val phone = resultRow.toPhone().copy(customer = customer)
+                    func.addStatement("\t\tval $targetVal = resultRow.to${target.name}()")
+                    if (isBidirectional) {
+                        func.addStatement("\t\t\t.copy($rootVal = $rootVal)")
+                    }
+                    func.addStatement("\t\t$collName.add($targetVal)")
+                    // phones[customerId] = phonesOfCustomer
+                    func.addStatement("\t\t$associationMapName[$rootValId] = $collName")
+                    func.addStatement("\t}")
+                }
+
+                ONE_TO_ONE -> {
+                    func.addStatement("\t\tval ${assoc.name.asVariable()} = resultRow.to${target.name}().copy($rootVal = $rootVal)")
+                    func.addStatement("\t\t$associationMapName[${rootValId}] =  ${assoc.name.asVariable()}")
+                }
+
+                else -> {}
             }
-            func.addStatement("\t\t$collName.add($targetVal)")
-            // phones[customerId] = phonesOfCustomer
-            func.addStatement("\t\t${assoc.name}[$rootValId] = $collName")
-            func.addStatement("\t}")
         }
         func.addStatement("}")
         func.addStatement("return roots.mapValues { (_, $rootVal) ->")
         func.addStatement("\t${rootVal}.copy(")
         associations.forEachIndexed { idx, assoc ->
             val sep = if (idx == associations.lastIndex) "" else ","
-            func.addStatement("\t\t${assoc.name} = ${assoc.name}[$rootVal.id]?.toList() ?: emptyList()$sep")
+            val associationMapName = "${entity.name.asVariable()}_${assoc.name}"
+            val value = "$associationMapName[$rootVal.$rootIdName]"
+            if ((assoc.type in listOf(ONE_TO_MANY, MANY_TO_MANY))) value.plus("?.toList() ?: emptyList()")
+
+            func.addStatement("\t\t${assoc.name} = $value$sep")
+
         }
         func.addStatement("\t)")
         func.addStatement("}.values.toList()")
