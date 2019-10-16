@@ -131,8 +131,11 @@ class MappingsGenerator : SourceGenerator {
         associations.forEachIndexed { idx, assoc ->
             val sep = if (idx == associations.lastIndex) "" else ","
             val associationMapName = "${entity.name.asVariable()}_${assoc.name}"
-            val value = "$associationMapName[$rootVal.$rootIdName]"
-            if ((assoc.type in listOf(ONE_TO_MANY, MANY_TO_MANY))) value.plus("?.toList() ?: emptyList()")
+            val value = if (assoc.type in listOf(ONE_TO_MANY, MANY_TO_MANY)) {
+                "$associationMapName[$rootVal.$rootIdName]?.toList() ?: emptyList()"
+            } else {
+                "$associationMapName[$rootVal.$rootIdName]"
+            }
 
             func.addStatement("\t\t${assoc.name} = $value$sep")
 
