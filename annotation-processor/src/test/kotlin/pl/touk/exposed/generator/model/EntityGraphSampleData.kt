@@ -227,7 +227,7 @@ interface EntityGraphSampleData {
                 columnName = typeEnvironment.elementUtils.getName(columnName),
                 annotation = property.getAnnotation(Column::class.java),
                 type = PropertyType.STRING,
-                typeMirror = id.asType(),
+                typeMirror = property.asType(),
                 nullable = nullable
         )
     }
