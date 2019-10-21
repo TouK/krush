@@ -104,21 +104,5 @@ class EntityGraphBuilderTest : AnnotationProcessorTest(), EntityGraphSampleData 
                 .containsKey(datePropertyEntity(getTypeEnv()))
                 .containsValue(datePropertyEntityDefinition(getTypeEnv()))
     }
-
-//    @Test
-//    fun shouldHandleCharacterPropertyTypes() {
-//        //given
-//        val characterPropertyEntity = characterPropertyEntity(getTypeEnv())
-//
-//        //when
-//        val graphs = characterPropertyGraphBuilder.build()
-//
-//        //then
-//        assertThat(graphs).containsKey("pl.touk.example")
-//
-//        assertThat(graphs["pl.touk.example"])
-//                .containsKey(characterPropertyEntity(getTypeEnv()))
-//                .containsValue(characterPropertyEntityDefinition(getTypeEnv()))
-//    }
 }
 

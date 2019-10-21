@@ -217,7 +217,7 @@ class EntityGraphBuilder(
             isDouble() -> PropertyType.DOUBLE
             isBigDecimal() -> PropertyType.BIG_DECIMAL
             isUUID() -> PropertyType.UUID
-            idDateTime() -> PropertyType.DATE_TIME
+            isDateTime() -> PropertyType.DATE_TIME
             else -> TODO()
         }
     }
@@ -259,7 +259,7 @@ class EntityGraphBuilder(
 
     private fun TypeMirror.isUUID() = typeEnv.isSameType(this, "java.util.UUID")
 
-    private fun TypeMirror.idDateTime() = typeEnv.isSameType(this, "org.joda.time.DateTime")
+    private fun TypeMirror.isDateTime() = typeEnv.isSameType(this, "org.joda.time.DateTime")
 
     private fun VariableElement.annotationMirror(className: String): AnnotationMirror? {
         for (mirror in this.annotationMirrors) {

@@ -1,6 +1,7 @@
 package pl.touk.exposed.types
 
 import org.joda.time.DateTime
+import java.util.*
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
 import javax.persistence.Id
@@ -12,5 +13,7 @@ data class Event(
     @GeneratedValue
     val id: Long? = null,
 
-    val eventTime: DateTime
+    val eventTime: DateTime,
+
+    val externalId: UUID
 )
