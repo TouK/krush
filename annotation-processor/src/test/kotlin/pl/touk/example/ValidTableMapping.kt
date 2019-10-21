@@ -7,6 +7,7 @@ import javax.persistence.Id
 import javax.persistence.JoinColumn
 import javax.persistence.OneToOne
 import javax.persistence.Table
+import javax.print.attribute.IntegerSyntax
 
 @Entity
 data class DefaultPropertyNameEntity(
@@ -60,4 +61,16 @@ data class OneToOneTargetEntity (
 
         @OneToOne(mappedBy = "targetEntity")
         val sourceEntity: OneToOneSourceEntity
+)
+
+@Entity
+data class NumericPropertyEntity (
+        @Id @GeneratedValue
+        val id: Long,
+
+        val prop1: Long,
+        val prop2: Int,
+        val prop3: Short,
+        val prop4: Float,
+        val prop5: Double
 )

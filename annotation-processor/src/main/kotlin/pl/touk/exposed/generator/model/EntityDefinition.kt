@@ -69,7 +69,7 @@ enum class IdType {
 }
 
 enum class PropertyType {
-    STRING, BOOL, LONG, DATE, DATETIME, UUID
+    STRING, BOOL, LONG, INTEGER, SHORT, FLOAT, DOUBLE, DATE, DATETIME, UUID
 }
 
 enum class AssociationType {

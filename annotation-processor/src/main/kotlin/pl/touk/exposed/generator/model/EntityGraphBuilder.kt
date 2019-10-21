@@ -10,6 +10,7 @@ import pl.touk.exposed.generator.env.toVariableElement
 import pl.touk.exposed.generator.validation.EntityNotMappedException
 import pl.touk.exposed.generator.validation.GeneratedValueWithoutIdException
 import pl.touk.exposed.generator.validation.MissingIdException
+import java.util.*
 import javax.lang.model.element.VariableElement
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind
@@ -66,7 +67,7 @@ class EntityGraphBuilder(
                 val columnAnn : Column? = columnElt.getAnnotation(Column::class.java)
                 val name = columnElt.simpleName
                 val columnName = getColumnName(columnAnn, columnElt)
-                val typeMirror = entity.id?.typeMirror ?: throw MissingIdException(entity)
+                val typeMirror = columnElt.asType()
                 val type = columnElt.asType().getTypeDefinition()
                 val columnDefinition = PropertyDefinition(name = name, columnName = columnName, annotation = columnAnn,
                         type = type, typeMirror = typeMirror, nullable = isNullable(columnElt))
@@ -187,7 +188,12 @@ class EntityGraphBuilder(
         return when {
             isString() -> PropertyType.STRING
             isBoolean() -> PropertyType.BOOL
-            isNumeric() -> PropertyType.LONG
+            isLong() -> PropertyType.LONG
+            isInteger() -> PropertyType.INTEGER
+            isShort() -> PropertyType.SHORT
+            isFloat() -> PropertyType.FLOAT
+            isDouble() -> PropertyType.DOUBLE
+            isUUID() -> PropertyType.UUID
             else -> TODO()
         }
     }
@@ -205,15 +211,20 @@ class EntityGraphBuilder(
 
     private fun TypeMirror.isString() = typeEnv.isSameType(this, "java.lang.String")
 
-    private fun TypeMirror.isInteger() = typeEnv.isSameType(this, "java.lang.Integer")
+    private fun TypeMirror.isLong() = typeEnv.isSameType(this, "java.lang.Long") || kind == TypeKind.LONG
 
-    private fun TypeMirror.isShort() = typeEnv.isSameType(this, "java.lang.Short")
+    private fun TypeMirror.isInteger() = typeEnv.isSameType(this, "java.lang.Integer") || kind == TypeKind.INT
+
+    private fun TypeMirror.isShort() = typeEnv.isSameType(this, "java.lang.Short") || kind == TypeKind.SHORT
+
+    private fun TypeMirror.isFloat() = typeEnv.isSameType(this, "java.lang.Float") || kind == TypeKind.FLOAT
+
+    private fun TypeMirror.isDouble() = typeEnv.isSameType(this, "java.lang.Double") || kind == TypeKind.DOUBLE
 
     private fun TypeMirror.isBoolean() = typeEnv.isSameType(this, "java.lang.Boolean") || kind == TypeKind.BOOLEAN
 
     private fun TypeMirror.isUUID() = typeEnv.isSameType(this, "java.util.UUID")
 
-    // TODO float/int/long/double
-    private fun TypeMirror.isNumeric() = typeEnv.isSubType(this, "java.lang.Number") ||
+    private fun TypeMirror.isNumeric() = typeEnv.isSubType(this, Number::class.java.canonicalName) ||
             kind in listOf(TypeKind.LONG, TypeKind.INT, TypeKind.DOUBLE, TypeKind.FLOAT, TypeKind.SHORT)
 }

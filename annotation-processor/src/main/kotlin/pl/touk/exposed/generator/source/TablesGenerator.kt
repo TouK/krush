@@ -2,10 +2,14 @@ package pl.touk.exposed.generator.source
 
 import com.squareup.kotlinpoet.BOOLEAN
 import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.DOUBLE
+import com.squareup.kotlinpoet.FLOAT
 import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.INT
 import com.squareup.kotlinpoet.LONG
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.SHORT
 import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
@@ -146,6 +150,10 @@ class TablesGenerator : SourceGenerator {
             PropertyType.DATE -> codeBlockBuilder.add(CodeBlock.of("date(%S)", property.columnName))
             PropertyType.DATETIME -> codeBlockBuilder.add(CodeBlock.of("datetime(%S)", property.columnName))
             PropertyType.UUID -> codeBlockBuilder.add(CodeBlock.of("uuid(%S)", property.columnName))
+            PropertyType.INTEGER -> codeBlockBuilder.add(CodeBlock.of("integer(%S)", property.columnName))
+            PropertyType.SHORT -> codeBlockBuilder.add(CodeBlock.of("short(%S)", property.columnName))
+            PropertyType.FLOAT -> codeBlockBuilder.add(CodeBlock.of("float(%S)", property.columnName))
+            PropertyType.DOUBLE -> codeBlockBuilder.add(CodeBlock.of("double(%S)", property.columnName))
         }
 
         if (property.nullable) {
@@ -177,6 +185,10 @@ private fun PropertyType.asTypeName(): TypeName? {
         PropertyType.STRING -> STRING
         PropertyType.LONG -> LONG
         PropertyType.BOOL -> BOOLEAN
+        PropertyType.INTEGER -> INT
+        PropertyType.SHORT -> SHORT
+        PropertyType.FLOAT -> FLOAT
+        PropertyType.DOUBLE -> DOUBLE
         else -> null
     }
 }
