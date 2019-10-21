@@ -7,6 +7,8 @@ dependencies {
     compile "org.jetbrains.exposed:exposed:$exposed_version"
     compile 'org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.0.Final'
 
+    compile project(":runtime")
+
     compile project(":annotation-processor")
     kapt project(":annotation-processor")
 

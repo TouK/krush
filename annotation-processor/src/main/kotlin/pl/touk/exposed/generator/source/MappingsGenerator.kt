@@ -87,7 +87,7 @@ class MappingsGenerator : SourceGenerator {
             val associationMapName = "${entity.name.asVariable()}_${assoc.name}"
             val associationMapValueType = if (assoc.type in listOf(ONE_TO_MANY, MANY_TO_MANY)) "MutableList<${target.name}>" else "${target.name}"
 
-            func.addStatement("val $associationMapName = mutableMapOf<${entityTypeName}, $associationMapValueType>()" )
+            func.addStatement("val $associationMapName = mutableMapOf<${entityTypeName}, $associationMapValueType>()")
         }
 
         func.addStatement("this.forEach { resultRow ->")

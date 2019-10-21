@@ -15,6 +15,7 @@ data class EntityDefinition(
         val id: IdDefinition? = null,
         val properties: List<PropertyDefinition> = emptyList(),
         val associations: List<AssociationDefinition> = emptyList()
+
 ) {
     fun addProperty(column: PropertyDefinition) = this.copy(properties = this.properties + column)
 
@@ -61,7 +62,13 @@ data class PropertyDefinition(
         val annotation: Column?,
         val type: PropertyType,
         val typeMirror: TypeMirror,
-        val nullable: Boolean
+        val nullable: Boolean,
+        val converter: ConverterDefinition? = null
+)
+
+data class ConverterDefinition(
+        val name: String,
+        val typeWrapper: TypeWrapperTargetType
 )
 
 enum class IdType {
@@ -69,11 +76,15 @@ enum class IdType {
 }
 
 enum class PropertyType {
-    STRING, BOOL, LONG, DATE, DATETIME, UUID
+    STRING, BOOL, LONG, DATE, DATETIME, UUID, TYPE_WRAPPER
 }
 
 enum class AssociationType {
     ONE_TO_ONE, ONE_TO_MANY, MANY_TO_ONE, MANY_TO_MANY
+}
+
+enum class TypeWrapperTargetType {
+    STRING, LONG //TODO implement more wrappers
 }
 
 typealias EntityGraphs = MutableMap<String, EntityGraph>

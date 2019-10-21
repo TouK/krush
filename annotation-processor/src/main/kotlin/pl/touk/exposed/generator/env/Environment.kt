@@ -71,8 +71,8 @@ class EnvironmentBuilder(private val roundEnv: RoundEnvironment, private val pro
 
     fun buildTypeEnv() = TypeEnvironment(processingEnv.typeUtils, processingEnv.elementUtils)
 
-    private fun columnPredicate(element: Element) =
-            element.kind == ElementKind.FIELD && element.getAnnotation(Transient::class.java) == null
+    private fun columnPredicate(element: Element) = element.kind == ElementKind.FIELD &&
+            element.enclosingElement.getAnnotation(Entity::class.java) != null && element.getAnnotation(Transient::class.java) == null
 
     private fun Collection<Element>.toTypeElements() = this.map(Element::toTypeElement)
     private fun Collection<Element>.toVariableElements() = this.map(Element::toVariableElement)
