@@ -28,8 +28,8 @@ class AuthorConverter : Converter<Author, String> {
     }
 
     override fun convertToEntityAttribute(dbData: String): Author {
-        val split = dbData.split(" ")
-        return Author(split[0], split[1])
+        val (name, surname) = dbData.split(" ")
+        return Author(name, surname)
     }
 }
 

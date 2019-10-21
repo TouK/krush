@@ -68,8 +68,6 @@ data class PropertyDefinition(
 
 data class ConverterDefinition(
         val name: String,
-//        val databaseType: TypeMirror,
-//        val entityType: TypeMirror,
         val typeWrapper: TypeWrapperTargetType
 )
 

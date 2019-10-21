@@ -178,24 +178,19 @@ class EntityGraphBuilder(
     private fun getConverterDefinition(columnElt: VariableElement): ConverterDefinition? {
         val converterType = columnElt.annotationMirror(Convert::class.java.canonicalName)?.valueType("value")
 
-        return when (converterType) {
-            null -> null
-            else -> {
-                val converterTypeArguments = converterType.toTypeElement()
-                        .interfaces
-                        .find { it.asDeclaredType().asElement().toTypeElement().qualifiedName.asVariable() == Converter::class.qualifiedName }
-                        ?.asDeclaredType()
-                        ?.typeArguments
+        return converterType?.let {
+            val converterTypeArguments = converterType.toTypeElement()
+                    .interfaces
+                    .find { it.asDeclaredType().asElement().toTypeElement().qualifiedName.asVariable() == Converter::class.qualifiedName }
+                    ?.asDeclaredType()
+                    ?.typeArguments
 
-                if (converterTypeArguments?.size != 2) return null //TODO handle
+            if (converterTypeArguments?.size != 2) return null //TODO handle
 
-//                val entityType = converterTypeArguments[0]
-                val databaseType = converterTypeArguments[1]
+            val databaseType = converterTypeArguments[1]
+            val typeWrapper = databaseType.getTypeDefinition().typeWrapper() ?: throw TypeConverterNotSupportedException(databaseType.getTypeDefinition())
 
-                val typeWrapper = databaseType.getTypeDefinition().typeWrapper() ?: throw TypeConverterNotSupportedException(databaseType.getTypeDefinition())
-
-                return ConverterDefinition(name = converterType.qualifiedName.asVariable(), typeWrapper = typeWrapper)
-            }
+            return ConverterDefinition(name = converterType.qualifiedName.asVariable(), typeWrapper = typeWrapper)
         }
     }
 

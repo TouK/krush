@@ -173,7 +173,8 @@ class TablesGenerator : SourceGenerator {
         val codeBlockBuilder = CodeBlock.builder()
 
         val codeBlock = if (property.converter != null) {
-            CodeBlock.of("${(property.typeMirror as DeclaredType).asElement().simpleName.toString().decapitalize()}(%S)", property.name)
+            val convertFunc = (property.typeMirror as DeclaredType).asElement().simpleName.toString().decapitalize()
+            CodeBlock.of("%L(%S)", convertFunc, property.name)
         } else when (property.type) {
             PropertyType.STRING -> CodeBlock.of("varchar(%S, %L)", property.columnName, property.annotation?.length ?: 255)
             PropertyType.LONG -> CodeBlock.of("long(%S)", property.columnName)
