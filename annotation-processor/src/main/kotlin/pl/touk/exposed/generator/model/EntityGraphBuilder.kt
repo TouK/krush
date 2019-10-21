@@ -2,6 +2,8 @@ package pl.touk.exposed.generator.model
 
 import org.jetbrains.annotations.NotNull
 import org.jetbrains.annotations.Nullable
+import pl.touk.exposed.Convert
+import pl.touk.exposed.Converter
 import pl.touk.exposed.generator.env.AnnotationEnvironment
 import pl.touk.exposed.generator.env.TypeEnvironment
 import pl.touk.exposed.generator.env.enclosingTypeElement
@@ -9,7 +11,10 @@ import pl.touk.exposed.generator.env.toTypeElement
 import pl.touk.exposed.generator.env.toVariableElement
 import pl.touk.exposed.generator.validation.EntityNotMappedException
 import pl.touk.exposed.generator.validation.GeneratedValueWithoutIdException
-import pl.touk.exposed.generator.validation.MissingIdException
+import pl.touk.exposed.generator.validation.TypeConverterNotSupportedException
+import javax.lang.model.element.AnnotationMirror
+import javax.lang.model.element.AnnotationValue
+import javax.lang.model.element.TypeElement
 import javax.lang.model.element.VariableElement
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind
@@ -40,8 +45,9 @@ class EntityGraphBuilder(
             val entityType = idElt.enclosingTypeElement()
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
             graph.computeIfPresent(entityType) { _, entity ->
+
                 val type = idElt.asType().getIdTypeDefinition()
-                val columnAnn : Column? = idElt.getAnnotation(Column::class.java)
+                val columnAnn: Column? = idElt.getAnnotation(Column::class.java)
                 val columnName = getColumnName(columnAnn, idElt)
 
                 entity.copy(id = IdDefinition(name = idElt.simpleName, columnName = columnName, type = type,
@@ -61,15 +67,16 @@ class EntityGraphBuilder(
         for (columnElt in annEnv.columns) {
             val entityType = columnElt.enclosingTypeElement()
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
+            val converter = getConverterDefinition(columnElt)
 
             graph.computeIfPresent(entityType) { _, entity ->
-                val columnAnn : Column? = columnElt.getAnnotation(Column::class.java)
+                val columnAnn: Column? = columnElt.getAnnotation(Column::class.java)
                 val name = columnElt.simpleName
                 val columnName = getColumnName(columnAnn, columnElt)
                 val typeMirror = columnElt.asType()
-                val type = columnElt.asType().getTypeDefinition()
+                val type = if (converter != null) PropertyType.TYPE_WRAPPER else columnElt.asType().getTypeDefinition()
                 val columnDefinition = PropertyDefinition(name = name, columnName = columnName, annotation = columnAnn,
-                        type = type, typeMirror = typeMirror, nullable = isNullable(columnElt))
+                        type = type, typeMirror = typeMirror, nullable = isNullable(columnElt), converter = converter)
                 entity.addProperty(columnDefinition)
             }
         }
@@ -99,7 +106,6 @@ class EntityGraphBuilder(
             val target = oneToMany.asType().getTypeArgument().asElement().toTypeElement()
 
             graph.computeIfPresent(entityType) { _, entity ->
-                val idType = entity.id?.type ?: throw MissingIdException(entity)
                 val parentEntityId = graphs.entityId(target)
                 val associationDef = AssociationDefinition(
                         name = oneToMany.simpleName, type = AssociationType.ONE_TO_MANY,
@@ -116,7 +122,6 @@ class EntityGraphBuilder(
             graph.computeIfPresent(entityType) { _, entity ->
                 val join = manyToOne.getAnnotation(JoinColumn::class.java)
                 val target = manyToOne.toVariableElement().asType().asDeclaredType().asElement().toTypeElement()
-                val idType = entity.id?.type ?: throw MissingIdException(entity)
                 val parentEntityId = graphs.entityId(target)
                 val associationDef = AssociationDefinition(
                         name = manyToOne.simpleName, type = AssociationType.MANY_TO_ONE,
@@ -133,7 +138,6 @@ class EntityGraphBuilder(
             val target = manyToMany.asType().getTypeArgument().asElement().toTypeElement()
 
             graph.computeIfPresent(entityType) { _, entity ->
-                val idType = entity.id?.type ?: throw MissingIdException(entity)
                 val parentEntityId = graphs.entityId(entityType)
                 val associationDef = AssociationDefinition(
                         name = manyToMany.simpleName, type = AssociationType.MANY_TO_MANY,
@@ -171,9 +175,28 @@ class EntityGraphBuilder(
     private fun getColumnName(columnAnn: Column?, columnElt: VariableElement) =
             if (columnAnn == null || columnAnn.name.isEmpty()) columnElt.simpleName else typeEnv.elementUtils.getName(columnAnn.name)
 
+    private fun getConverterDefinition(columnElt: VariableElement): ConverterDefinition? {
+        val converterType = columnElt.annotationMirror(Convert::class.java.canonicalName)?.valueType("value")
+
+        return converterType?.let {
+            val converterTypeArguments = converterType.toTypeElement()
+                    .interfaces
+                    .find { it.asDeclaredType().asElement().toTypeElement().qualifiedName.asVariable() == Converter::class.qualifiedName }
+                    ?.asDeclaredType()
+                    ?.typeArguments
+
+            if (converterTypeArguments?.size != 2) return null //TODO handle
+
+            val databaseType = converterTypeArguments[1]
+            val typeWrapper = databaseType.getTypeDefinition().typeWrapper() ?: throw TypeConverterNotSupportedException(databaseType.getTypeDefinition())
+
+            return ConverterDefinition(name = converterType.qualifiedName.asVariable(), typeWrapper = typeWrapper)
+        }
+    }
+
     private fun isNullable(columnElt: VariableElement) =
             columnElt.getAnnotation(NotNull::class.java) == null && columnElt.getAnnotation(Nullable::class.java) != null
-    
+
     private fun TypeMirror.asDeclaredType(): DeclaredType {
         require(this is DeclaredType)
         return this
@@ -210,6 +233,14 @@ class EntityGraphBuilder(
         }
     }
 
+    private fun PropertyType.typeWrapper(): TypeWrapperTargetType? {
+        return when(this) {
+            PropertyType.STRING -> TypeWrapperTargetType.STRING
+            PropertyType.LONG ->  TypeWrapperTargetType.LONG
+            else -> null
+        }
+    }
+
     private fun TypeMirror.isString() = typeEnv.isSameType(this, "java.lang.String")
 
     private fun TypeMirror.isLong() = typeEnv.isSameType(this, "java.lang.Long") || kind == TypeKind.LONG
@@ -229,6 +260,32 @@ class EntityGraphBuilder(
     private fun TypeMirror.isUUID() = typeEnv.isSameType(this, "java.util.UUID")
 
     private fun TypeMirror.idDateTime() = typeEnv.isSameType(this, "org.joda.time.DateTime")
+
+    private fun VariableElement.annotationMirror(className: String): AnnotationMirror? {
+        for (mirror in this.annotationMirrors) {
+            if (typeEnv.isSameType(mirror.annotationType, className)) {
+                return mirror
+            }
+        }
+        return null
+    }
+
+    private fun AnnotationMirror.valueType(valueName: String): TypeElement? {
+        val annotationValue = this.value(valueName) ?: return null
+
+        val value = annotationValue.value as TypeMirror
+        return typeEnv.typeUtils.asElement(value) as TypeElement
+    }
+
+    private fun AnnotationMirror.value(valueName: String): AnnotationValue? {
+        for (entry in this.elementValues.entries) {
+            if (entry.key.simpleName.toString() == valueName) {
+                return entry.value
+            }
+        }
+
+        return null
+    }
 
     private fun TypeMirror.isNumeric() = typeEnv.isSubType(this, Number::class.java.canonicalName) ||
             kind in listOf(TypeKind.LONG, TypeKind.INT, TypeKind.DOUBLE, TypeKind.FLOAT, TypeKind.SHORT)
