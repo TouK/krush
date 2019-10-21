@@ -147,13 +147,13 @@ class TablesGenerator : SourceGenerator {
             PropertyType.STRING -> codeBlockBuilder.add(CodeBlock.of("varchar(%S, %L)", property.columnName, property.annotation?.length))
             PropertyType.LONG -> codeBlockBuilder.add(CodeBlock.of("long(%S)", property.columnName))
             PropertyType.BOOL -> codeBlockBuilder.add(CodeBlock.of("bool(%S)", property.columnName))
-            PropertyType.DATE -> codeBlockBuilder.add(CodeBlock.of("date(%S)", property.columnName))
-            PropertyType.DATETIME -> codeBlockBuilder.add(CodeBlock.of("datetime(%S)", property.columnName))
+            PropertyType.DATE_TIME -> codeBlockBuilder.add(CodeBlock.of("datetime(%S)", property.columnName))
             PropertyType.UUID -> codeBlockBuilder.add(CodeBlock.of("uuid(%S)", property.columnName))
             PropertyType.INTEGER -> codeBlockBuilder.add(CodeBlock.of("integer(%S)", property.columnName))
             PropertyType.SHORT -> codeBlockBuilder.add(CodeBlock.of("short(%S)", property.columnName))
             PropertyType.FLOAT -> codeBlockBuilder.add(CodeBlock.of("float(%S)", property.columnName))
             PropertyType.DOUBLE -> codeBlockBuilder.add(CodeBlock.of("double(%S)", property.columnName))
+            PropertyType.BIG_DECIMAL -> codeBlockBuilder.add(CodeBlock.of("decimal(%S, %L, %L)", property.columnName, property.annotation?.precision ?: 0, property.annotation?.scale ?: 0))
         }
 
         if (property.nullable) {

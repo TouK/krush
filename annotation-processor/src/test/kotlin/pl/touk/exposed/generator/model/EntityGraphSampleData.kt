@@ -267,6 +267,38 @@ interface EntityGraphSampleData {
         )
     }
 
+    fun datePropertyGraphBuilder(typeEnvironment: TypeEnvironment): EntityGraphBuilder {
+        val elements = typeEnvironment.elementUtils
+
+        val datePropertyEntity = datePropertyEntity(typeEnvironment)
+        val datePropertyEntityId = getVariableElement(datePropertyEntity, elements, "id")
+        val dateTime = getVariableElement(datePropertyEntity, typeEnvironment.elementUtils,"dateTime")
+
+        val annEnv = AnnotationEnvironment(listOf(datePropertyEntity), listOf(datePropertyEntityId),
+                listOf(datePropertyEntityId), listOf(dateTime), emptyList(), emptyList(),
+                emptyList(), emptyList())
+
+        return EntityGraphBuilder(typeEnvironment, annEnv)
+    }
+
+    fun datePropertyEntityDefinition(typeEnvironment: TypeEnvironment): EntityDefinition {
+        val elements = typeEnvironment.elementUtils
+
+        val entity = datePropertyEntity(typeEnvironment)
+        val id = getVariableElement(entity, elements, "id")
+        val dateTime = getVariableElement(entity, typeEnvironment.elementUtils,"dateTime")
+
+        return EntityDefinition(
+                name = entity.simpleName,
+                qualifiedName = entity.qualifiedName,
+                table = entity.simpleName.asVariable(),
+                id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
+                properties = listOf(
+                        propertyDefinition(typeEnvironment, dateTime, "dateTime", DATE_TIME, false)
+                )
+        )
+    }
+
     private fun autoGenIdDefinition(id: VariableElement, name: Name): IdDefinition {
         return IdDefinition(
                 name = id.simpleName,

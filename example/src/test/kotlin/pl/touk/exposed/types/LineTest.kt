@@ -8,8 +8,10 @@ import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Before
 import org.junit.Test
+import java.math.BigDecimal
+import java.math.RoundingMode
 
-class PointTest {
+class LineTest {
 
     @Before
     fun connect() {
@@ -17,21 +19,21 @@ class PointTest {
     }
 
     @Test
-    fun shouldHandleOneToOne() {
+    fun shouldHandleNumericTypes() {
         transaction {
-            SchemaUtils.create(PointTable)
+            SchemaUtils.create(LineTable)
 
             // given
-            val point = Point(x1 = 100, y1 = 50, z1 = 0, x2 = -50.4f, y2 = 20.00004).let { point ->
-                val id = PointTable.insert { it.from(point) }[PointTable.id]
-                point.copy(id = id)
+            val line = Line(x1 = 100, y1 = 50, z1 = 0, x2 = -50.4f, y2 = 20.00004, z2 = BigDecimal(111.111).setScale(3, RoundingMode.HALF_UP)).let { line ->
+                val id = LineTable.insert { it.from(line) }[LineTable.id]
+                line.copy(id = id)
             }
 
             //when
-            val points = (PointTable).selectAll().toPointList()
+            val lines = (LineTable).selectAll().toLineList()
 
             //then
-            Assertions.assertThat(points).containsOnly(point)
+            Assertions.assertThat(lines).containsOnly(line)
         }
     }
 }

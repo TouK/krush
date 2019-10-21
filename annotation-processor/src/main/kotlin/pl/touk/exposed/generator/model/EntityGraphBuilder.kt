@@ -10,7 +10,6 @@ import pl.touk.exposed.generator.env.toVariableElement
 import pl.touk.exposed.generator.validation.EntityNotMappedException
 import pl.touk.exposed.generator.validation.GeneratedValueWithoutIdException
 import pl.touk.exposed.generator.validation.MissingIdException
-import java.util.*
 import javax.lang.model.element.VariableElement
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind
@@ -193,7 +192,9 @@ class EntityGraphBuilder(
             isShort() -> PropertyType.SHORT
             isFloat() -> PropertyType.FLOAT
             isDouble() -> PropertyType.DOUBLE
+            isBigDecimal() -> PropertyType.BIG_DECIMAL
             isUUID() -> PropertyType.UUID
+            idDateTime() -> PropertyType.DATE_TIME
             else -> TODO()
         }
     }
@@ -221,9 +222,13 @@ class EntityGraphBuilder(
 
     private fun TypeMirror.isDouble() = typeEnv.isSameType(this, "java.lang.Double") || kind == TypeKind.DOUBLE
 
+    private fun TypeMirror.isBigDecimal() = typeEnv.isSameType(this, "java.math.BigDecimal")
+
     private fun TypeMirror.isBoolean() = typeEnv.isSameType(this, "java.lang.Boolean") || kind == TypeKind.BOOLEAN
 
     private fun TypeMirror.isUUID() = typeEnv.isSameType(this, "java.util.UUID")
+
+    private fun TypeMirror.idDateTime() = typeEnv.isSameType(this, "org.joda.time.DateTime")
 
     private fun TypeMirror.isNumeric() = typeEnv.isSubType(this, Number::class.java.canonicalName) ||
             kind in listOf(TypeKind.LONG, TypeKind.INT, TypeKind.DOUBLE, TypeKind.FLOAT, TypeKind.SHORT)

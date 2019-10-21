@@ -1,5 +1,6 @@
 package pl.touk.example
 
+import org.joda.time.DateTime
 import javax.persistence.Column
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
@@ -7,7 +8,6 @@ import javax.persistence.Id
 import javax.persistence.JoinColumn
 import javax.persistence.OneToOne
 import javax.persistence.Table
-import javax.print.attribute.IntegerSyntax
 
 @Entity
 data class DefaultPropertyNameEntity(
@@ -73,4 +73,12 @@ data class NumericPropertyEntity (
         val prop3: Short,
         val prop4: Float,
         val prop5: Double
+)
+
+@Entity
+data class DatePropertyEntity (
+        @Id @GeneratedValue
+        val id: Long,
+
+        val dateTime: DateTime
 )
