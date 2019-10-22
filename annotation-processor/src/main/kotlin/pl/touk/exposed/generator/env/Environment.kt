@@ -10,7 +10,6 @@ import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.Elements
 import javax.lang.model.util.Types
 import javax.persistence.Entity
-import javax.persistence.GeneratedValue
 import javax.persistence.Id
 import javax.persistence.ManyToMany
 import javax.persistence.ManyToOne
@@ -32,7 +31,6 @@ data class TypeEnvironment(
 data class AnnotationEnvironment(
         val entities: List<TypeElement>,
         val ids: List<VariableElement>,
-        val genValues: List<VariableElement>,
         val columns: List<VariableElement>,
         val oneToMany: List<VariableElement>,
         val manyToOne: List<VariableElement>,
@@ -57,14 +55,13 @@ class EnvironmentBuilder(private val roundEnv: RoundEnvironment, private val pro
     fun buildAnnotationEnv(): AnnotationEnvironment {
         val entities = roundEnv.getElementsAnnotatedWith(Entity::class.java).toTypeElements()
         val ids = roundEnv.getElementsAnnotatedWith(Id::class.java).toVariableElements()
-        val genValues = roundEnv.getElementsAnnotatedWith(GeneratedValue::class.java).toVariableElements()
         val oneToMany = roundEnv.getElementsAnnotatedWith(OneToMany::class.java).toVariableElements()
         val manyToOne = roundEnv.getElementsAnnotatedWith(ManyToOne::class.java).toVariableElements()
         val manyToMany = roundEnv.getElementsAnnotatedWith(ManyToMany::class.java).toVariableElements()
         val oneToOne = roundEnv.getElementsAnnotatedWith(OneToOne::class.java).toVariableElements()
         val columns = (roundEnv.rootElements.asSequence().map(this::toColumnElements).flatten() - (ids + oneToOne + oneToMany + manyToOne + manyToMany)).toList()
 
-        return AnnotationEnvironment(entities, ids, genValues, columns, oneToMany, manyToOne, manyToMany, oneToOne)
+        return AnnotationEnvironment(entities, ids, columns, oneToMany, manyToOne, manyToMany, oneToOne)
     }
 
     private fun toColumnElements(entity: Element) = entity.enclosedElements.filter(this::columnPredicate).map(Element::toVariableElement)

@@ -44,7 +44,7 @@ interface EntityGraphSampleData {
     fun customerGraphBuilder(typeEnvironment: TypeEnvironment): EntityGraphBuilder {
         val entity = customerTestEntity(typeEnvironment)
 
-        val annEnv = AnnotationEnvironment(listOf(entity), emptyList(), emptyList(), emptyList(), emptyList(),
+        val annEnv = AnnotationEnvironment(listOf(entity), emptyList(), emptyList(), emptyList(),
                 emptyList(), emptyList(), emptyList())
 
         return EntityGraphBuilder(typeEnvironment, annEnv)
@@ -70,11 +70,12 @@ interface EntityGraphSampleData {
         val customPropertyNameEntityId = getVariableElement(customPropertyNameEntity, elements, "id")
         val customPropertyNameEntityProp1 = getVariableElement(customPropertyNameEntity, elements, "prop1")
 
-        val annEnv = AnnotationEnvironment(listOf(defaultPropertyNameEntity, customPropertyNameEntity),
-                listOf(customPropertyNameEntityId, defaultPropertyNameEntityId),
-                listOf(customPropertyNameEntityId, defaultPropertyNameEntityId),
-                listOf(defaultPropertyNameEntityProp1, defaultPropertyNameEntityProp2, customPropertyNameEntityProp1),
-                emptyList(), emptyList(), emptyList(), emptyList())
+        val annEnv = AnnotationEnvironment(
+                entities = listOf(defaultPropertyNameEntity, customPropertyNameEntity),
+                ids = listOf(customPropertyNameEntityId, defaultPropertyNameEntityId),
+                columns = listOf(defaultPropertyNameEntityProp1, defaultPropertyNameEntityProp2, customPropertyNameEntityProp1),
+                oneToMany = emptyList(), oneToOne = emptyList(), manyToOne = emptyList(), manyToMany = emptyList()
+        )
         return EntityGraphBuilder(typeEnvironment, annEnv)
     }
 
@@ -121,8 +122,11 @@ interface EntityGraphSampleData {
         val id = getVariableElement(entity, typeEnvironment.elementUtils,"id")
         val prop1 = getVariableElement(entity, typeEnvironment.elementUtils,"prop1")
 
-        val annEnv = AnnotationEnvironment(listOf(entity), listOf(id), listOf(id), listOf(prop1),
-                emptyList(), emptyList(), emptyList(), emptyList())
+        val annEnv = AnnotationEnvironment(
+                entities = listOf(entity),
+                ids = listOf(id), columns = listOf(prop1),
+                oneToMany = emptyList(), oneToOne = emptyList(), manyToMany = emptyList(), manyToOne = emptyList()
+        )
 
         return EntityGraphBuilder(typeEnvironment, annEnv)
     }
@@ -152,10 +156,13 @@ interface EntityGraphSampleData {
         val targetEntityId = getVariableElement(targetEntity, elements, "id")
         val targetEntitySource = getVariableElement(targetEntity, elements, "sourceEntity")
 
-        val annEnv = AnnotationEnvironment(listOf(targetEntity, sourceEntity),
-                listOf(sourceEntityId, targetEntityId),
-                listOf(sourceEntityId, targetEntityId),
-                emptyList(), emptyList(), emptyList(), emptyList(), listOf(sourceEntityTarget, targetEntitySource))
+        val annEnv = AnnotationEnvironment(
+                entities = listOf(targetEntity, sourceEntity),
+                ids = listOf(sourceEntityId, targetEntityId),
+                columns = emptyList(),
+                oneToOne = listOf(sourceEntityTarget, targetEntitySource),
+                oneToMany = emptyList(), manyToOne = emptyList(), manyToMany = emptyList()
+        )
 
         return EntityGraphBuilder(typeEnvironment, annEnv)
     }
