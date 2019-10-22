@@ -5,7 +5,6 @@ import org.jetbrains.exposed.sql.ColumnType
 import org.jetbrains.exposed.sql.DateColumnType
 import org.jetbrains.exposed.sql.Table
 import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -47,7 +46,7 @@ abstract class ColumnTypeWithTimestampLiteral(private val original: ColumnType) 
 
 class ZonedDateTimeColumnTypeWithTimestampLiteral : ColumnTypeWithTimestampLiteral(ZonedDateTimeColumnType())
 
-private fun ZonedDateTime.toDateTime() = DateTime(toInstant().toEpochMilli(), DateTimeZone.forID(zone.id))
+private fun ZonedDateTime.toDateTime() = DateTime(toInstant().toEpochMilli())
 
 private fun LocalDateTime.toDateTime() = atZone(ZoneId.systemDefault()).toDateTime()
 

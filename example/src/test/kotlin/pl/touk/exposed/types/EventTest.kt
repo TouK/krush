@@ -12,9 +12,7 @@ import org.junit.Test
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneId
 import java.time.ZoneId.systemDefault
-import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID.randomUUID
 
@@ -31,10 +29,10 @@ class EventTest {
             SchemaUtils.create(EventTable)
 
             // given
-            val clock = Clock.fixed(Instant.parse("2019-10-22T09:00:00.000Z"), ZoneId.of("Europe/Warsaw"))
+            val clock = Clock.fixed(Instant.parse("2019-10-22T09:00:00.000Z"), systemDefault())
 
             val event = Event(
-                    eventTime = DateTime.parse("2019-10-22T09:00"), processTime = LocalDateTime.now(systemDefault()),
+                    eventTime = DateTime.parse("2019-10-22T09:00"), processTime = LocalDateTime.now(clock),
                     createTime = ZonedDateTime.now(clock), externalId = randomUUID()).let { event ->
                 val id = EventTable.insert { it.from(event) }[EventTable.id]
                 event.copy(id = id)
