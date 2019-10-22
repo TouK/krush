@@ -89,6 +89,8 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
             isBigDecimal() -> PropertyType.BIG_DECIMAL
             isUUID() -> PropertyType.UUID
             isDateTime() -> PropertyType.DATE_TIME
+            isLocalDateTime() -> PropertyType.LOCAL_DATA_TIME
+            isZonedDateTime() -> PropertyType.ZONED_DATE_TIME
             else -> TODO()
         }
     }
@@ -123,6 +125,10 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
     private fun TypeMirror.isUUID() = typeEnv.isSameType(this, "java.util.UUID")
 
     private fun TypeMirror.isDateTime() = typeEnv.isSameType(this, "org.joda.time.DateTime")
+
+    private fun TypeMirror.isLocalDateTime() = typeEnv.isSameType(this, "java.time.LocalDateTime")
+
+    private fun TypeMirror.isZonedDateTime() = typeEnv.isSameType(this, "java.time.ZonedDateTime")
 
     // TODO float/int/long/double
     private fun TypeMirror.isNumeric() = typeEnv.isSubType(this, "java.lang.Number") ||

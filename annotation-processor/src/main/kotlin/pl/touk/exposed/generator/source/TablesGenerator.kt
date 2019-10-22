@@ -40,7 +40,7 @@ class TablesGenerator : SourceGenerator {
     override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String): FileSpec {
         val fileSpec = FileSpec.builder(packageName, fileName = "tables")
                 .addImport("org.jetbrains.exposed.sql", "Table")
-                .addImport("pl.touk.exposed", "stringWrapper", "longWrapper")
+                .addImport("pl.touk.exposed", "stringWrapper", "longWrapper", "localDateTime", "zonedDateTime")
 
                         graph.allAssociations().forEach { entity ->
             if (entity.packageName != packageName) {
@@ -190,6 +190,8 @@ class TablesGenerator : SourceGenerator {
             PropertyType.FLOAT -> CodeBlock.of("float(%S)", property.columnName)
             PropertyType.DOUBLE -> CodeBlock.of("double(%S)", property.columnName)
             PropertyType.BIG_DECIMAL -> CodeBlock.of("decimal(%S, %L, %L)", property.columnName, property.annotation?.precision ?: 0, property.annotation?.scale ?: 0)
+            PropertyType.LOCAL_DATA_TIME -> CodeBlock.of("localDateTime(%S)", property.columnName)
+            PropertyType.ZONED_DATE_TIME -> CodeBlock.of("zonedDateTime(%S)", property.columnName)
             else -> TODO()
         }
 

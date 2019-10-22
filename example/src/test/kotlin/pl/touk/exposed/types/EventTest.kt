@@ -9,6 +9,13 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.joda.time.DateTime
 import org.junit.Before
 import org.junit.Test
+import java.time.Clock
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZoneId.systemDefault
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.util.UUID.randomUUID
 
 class EventTest {
@@ -24,7 +31,11 @@ class EventTest {
             SchemaUtils.create(EventTable)
 
             // given
-            val event = Event(eventTime = DateTime.parse("2010-06-30T01:20"), externalId = randomUUID()).let { event ->
+            val clock = Clock.fixed(Instant.parse("2019-10-22T09:00:00.000Z"), ZoneId.of("Europe/Warsaw"))
+
+            val event = Event(
+                    eventTime = DateTime.parse("2019-10-22T09:00"), processTime = LocalDateTime.now(systemDefault()),
+                    createTime = ZonedDateTime.now(clock), externalId = randomUUID()).let { event ->
                 val id = EventTable.insert { it.from(event) }[EventTable.id]
                 event.copy(id = id)
             }

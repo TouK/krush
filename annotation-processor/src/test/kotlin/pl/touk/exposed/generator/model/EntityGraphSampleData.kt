@@ -235,14 +235,14 @@ interface EntityGraphSampleData {
 
         val numericPropertyEntity = numericPropertyEntity(typeEnvironment)
         val numericPropertyEntityId = getVariableElement(numericPropertyEntity, elements, "id")
-        val prop1 = getVariableElement(numericPropertyEntity, typeEnvironment.elementUtils,"prop1")
-        val prop2 = getVariableElement(numericPropertyEntity, typeEnvironment.elementUtils,"prop2")
-        val prop3 = getVariableElement(numericPropertyEntity, typeEnvironment.elementUtils,"prop3")
-        val prop4 = getVariableElement(numericPropertyEntity, typeEnvironment.elementUtils,"prop4")
-        val prop5 = getVariableElement(numericPropertyEntity, typeEnvironment.elementUtils,"prop5")
+        val long = getVariableElement(numericPropertyEntity, typeEnvironment.elementUtils,"long")
+        val int = getVariableElement(numericPropertyEntity, typeEnvironment.elementUtils,"int")
+        val short = getVariableElement(numericPropertyEntity, typeEnvironment.elementUtils,"short")
+        val float = getVariableElement(numericPropertyEntity, typeEnvironment.elementUtils,"float")
+        val double = getVariableElement(numericPropertyEntity, typeEnvironment.elementUtils,"double")
 
         val annEnv = AnnotationEnvironment(entities =  listOf(numericPropertyEntity), ids = listOf(numericPropertyEntityId),
-                columns = listOf(prop1, prop2, prop3, prop4, prop5), oneToMany = emptyList(), manyToOne = emptyList(),
+                columns = listOf(long, int, short, float, double), oneToMany = emptyList(), manyToOne = emptyList(),
                 manyToMany =  emptyList(), oneToOne = emptyList())
 
         return EntityGraphBuilder(typeEnvironment, annEnv)
@@ -253,11 +253,11 @@ interface EntityGraphSampleData {
 
         val entity = numericPropertyEntity(typeEnvironment)
         val id = getVariableElement(entity, elements, "id")
-        val prop1 = getVariableElement(entity, typeEnvironment.elementUtils,"prop1")
-        val prop2 = getVariableElement(entity, typeEnvironment.elementUtils,"prop2")
-        val prop3 = getVariableElement(entity, typeEnvironment.elementUtils,"prop3")
-        val prop4 = getVariableElement(entity, typeEnvironment.elementUtils,"prop4")
-        val prop5 = getVariableElement(entity, typeEnvironment.elementUtils,"prop5")
+        val long = getVariableElement(entity, typeEnvironment.elementUtils,"long")
+        val int = getVariableElement(entity, typeEnvironment.elementUtils,"int")
+        val short = getVariableElement(entity, typeEnvironment.elementUtils,"short")
+        val float = getVariableElement(entity, typeEnvironment.elementUtils,"float")
+        val double = getVariableElement(entity, typeEnvironment.elementUtils,"double")
 
         return EntityDefinition(
                 name = entity.simpleName,
@@ -265,11 +265,11 @@ interface EntityGraphSampleData {
                 table = entity.simpleName.asVariable(),
                 id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
                 properties = listOf(
-                        propertyDefinition(typeEnvironment, prop1, "prop1", LONG, false),
-                        propertyDefinition(typeEnvironment, prop2, "prop2", INTEGER, false),
-                        propertyDefinition(typeEnvironment, prop3, "prop3", SHORT, false),
-                        propertyDefinition(typeEnvironment, prop4, "prop4", FLOAT, false),
-                        propertyDefinition(typeEnvironment, prop5, "prop5", DOUBLE, false)
+                        propertyDefinition(typeEnvironment, long, "long", LONG, false),
+                        propertyDefinition(typeEnvironment, int, "int", INTEGER, false),
+                        propertyDefinition(typeEnvironment, short, "short", SHORT, false),
+                        propertyDefinition(typeEnvironment, float, "float", FLOAT, false),
+                        propertyDefinition(typeEnvironment, double, "double", DOUBLE, false)
                 )
         )
     }
@@ -280,9 +280,11 @@ interface EntityGraphSampleData {
         val datePropertyEntity = datePropertyEntity(typeEnvironment)
         val datePropertyEntityId = getVariableElement(datePropertyEntity, elements, "id")
         val dateTime = getVariableElement(datePropertyEntity, typeEnvironment.elementUtils,"dateTime")
+        val localDateTime = getVariableElement(datePropertyEntity, typeEnvironment.elementUtils,"localDateTime")
+        val zonedDateTime = getVariableElement(datePropertyEntity, typeEnvironment.elementUtils,"zonedDateTime")
 
         val annEnv = AnnotationEnvironment(entities =  listOf(datePropertyEntity), ids = listOf(datePropertyEntityId),
-                columns = listOf(dateTime), oneToMany = emptyList(), manyToOne = emptyList(),
+                columns = listOf(dateTime, localDateTime, zonedDateTime), oneToMany = emptyList(), manyToOne = emptyList(),
                 manyToMany =  emptyList(), oneToOne = emptyList())
 
         return EntityGraphBuilder(typeEnvironment, annEnv)
@@ -294,6 +296,8 @@ interface EntityGraphSampleData {
         val entity = datePropertyEntity(typeEnvironment)
         val id = getVariableElement(entity, elements, "id")
         val dateTime = getVariableElement(entity, typeEnvironment.elementUtils,"dateTime")
+        val localDateTime = getVariableElement(entity, typeEnvironment.elementUtils,"localDateTime")
+        val zonedDateTime = getVariableElement(entity, typeEnvironment.elementUtils,"zonedDateTime")
 
         return EntityDefinition(
                 name = entity.simpleName,
@@ -301,7 +305,9 @@ interface EntityGraphSampleData {
                 table = entity.simpleName.asVariable(),
                 id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
                 properties = listOf(
-                        propertyDefinition(typeEnvironment, dateTime, "dateTime", DATE_TIME, false)
+                        propertyDefinition(typeEnvironment, dateTime, "dateTime", DATE_TIME, false),
+                        propertyDefinition(typeEnvironment, localDateTime, "localDateTime", LOCAL_DATA_TIME, false),
+                        propertyDefinition(typeEnvironment, zonedDateTime, "zonedDateTime", ZONED_DATE_TIME, false)
                 )
         )
     }
