@@ -81,7 +81,16 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
         return when {
             isString() -> PropertyType.STRING
             isBoolean() -> PropertyType.BOOL
-            isNumeric() -> PropertyType.LONG
+            isLong() -> PropertyType.LONG
+            isInteger() -> PropertyType.INTEGER
+            isShort() -> PropertyType.SHORT
+            isFloat() -> PropertyType.FLOAT
+            isDouble() -> PropertyType.DOUBLE
+            isBigDecimal() -> PropertyType.BIG_DECIMAL
+            isUUID() -> PropertyType.UUID
+            isDateTime() -> PropertyType.DATE_TIME
+            isLocalDateTime() -> PropertyType.LOCAL_DATA_TIME
+            isZonedDateTime() -> PropertyType.ZONED_DATE_TIME
             else -> TODO()
         }
     }
@@ -99,13 +108,27 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
 
     private fun TypeMirror.isString() = typeEnv.isSameType(this, "java.lang.String")
 
-    private fun TypeMirror.isInteger() = typeEnv.isSameType(this, "java.lang.Integer")
+    private fun TypeMirror.isLong() = typeEnv.isSameType(this, "java.lang.Long") || kind == TypeKind.LONG
 
-    private fun TypeMirror.isShort() = typeEnv.isSameType(this, "java.lang.Short")
+    private fun TypeMirror.isInteger() = typeEnv.isSameType(this, "java.lang.Integer") || kind == TypeKind.INT
+
+    private fun TypeMirror.isShort() = typeEnv.isSameType(this, "java.lang.Short") || kind == TypeKind.SHORT
+
+    private fun TypeMirror.isFloat() = typeEnv.isSameType(this, "java.lang.Float") || kind == TypeKind.FLOAT
+
+    private fun TypeMirror.isDouble() = typeEnv.isSameType(this, "java.lang.Double") || kind == TypeKind.DOUBLE
+
+    private fun TypeMirror.isBigDecimal() = typeEnv.isSameType(this, "java.math.BigDecimal")
 
     private fun TypeMirror.isBoolean() = typeEnv.isSameType(this, "java.lang.Boolean") || kind == TypeKind.BOOLEAN
 
     private fun TypeMirror.isUUID() = typeEnv.isSameType(this, "java.util.UUID")
+
+    private fun TypeMirror.isDateTime() = typeEnv.isSameType(this, "org.joda.time.DateTime")
+
+    private fun TypeMirror.isLocalDateTime() = typeEnv.isSameType(this, "java.time.LocalDateTime")
+
+    private fun TypeMirror.isZonedDateTime() = typeEnv.isSameType(this, "java.time.ZonedDateTime")
 
     // TODO float/int/long/double
     private fun TypeMirror.isNumeric() = typeEnv.isSubType(this, "java.lang.Number") ||

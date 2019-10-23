@@ -72,5 +72,37 @@ class EntityGraphBuilderTest : AnnotationProcessorTest(), EntityGraphSampleData 
                 .containsKey(oneToOneTargetEntity(getTypeEnv()))
                 .containsValue(oneToOneTargetEntityDefinition(getTypeEnv()))
     }
+
+    @Test
+    fun shouldHandleNumericPropertyTypes() {
+        //given
+        val numericPropertyGraphBuilder = numericPropertyGraphBuilder(getTypeEnv())
+
+        //when
+        val graphs = numericPropertyGraphBuilder.build()
+
+        //then
+        assertThat(graphs).containsKey("pl.touk.example")
+
+        assertThat(graphs["pl.touk.example"])
+                .containsKey(numericPropertyEntity(getTypeEnv()))
+                .containsValue(numericPropertyEntityDefinition(getTypeEnv()))
+    }
+
+    @Test
+    fun shouldHandleDatePropertyTypes() {
+        //given
+        val datePropertyGraphBuilder = datePropertyGraphBuilder(getTypeEnv())
+
+        //when
+        val graphs = datePropertyGraphBuilder.build()
+
+        //then
+        assertThat(graphs).containsKey("pl.touk.example")
+
+        assertThat(graphs["pl.touk.example"])
+                .containsKey(datePropertyEntity(getTypeEnv()))
+                .containsValue(datePropertyEntityDefinition(getTypeEnv()))
+    }
 }
 

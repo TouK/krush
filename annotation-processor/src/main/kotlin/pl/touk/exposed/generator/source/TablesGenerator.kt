@@ -2,11 +2,15 @@ package pl.touk.exposed.generator.source
 
 import com.squareup.kotlinpoet.BOOLEAN
 import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.DOUBLE
+import com.squareup.kotlinpoet.FLOAT
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.INT
 import com.squareup.kotlinpoet.LONG
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.SHORT
 import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
@@ -36,7 +40,7 @@ class TablesGenerator : SourceGenerator {
     override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String): FileSpec {
         val fileSpec = FileSpec.builder(packageName, fileName = "tables")
                 .addImport("org.jetbrains.exposed.sql", "Table")
-                .addImport("pl.touk.exposed", "stringWrapper", "longWrapper")
+                .addImport("pl.touk.exposed", "stringWrapper", "longWrapper", "localDateTime", "zonedDateTime")
 
                         graph.allAssociations().forEach { entity ->
             if (entity.packageName != packageName) {
@@ -179,9 +183,15 @@ class TablesGenerator : SourceGenerator {
             PropertyType.STRING -> CodeBlock.of("varchar(%S, %L)", property.columnName, property.annotation?.length ?: 255)
             PropertyType.LONG -> CodeBlock.of("long(%S)", property.columnName)
             PropertyType.BOOL -> CodeBlock.of("bool(%S)", property.columnName)
-            PropertyType.DATE -> CodeBlock.of("date(%S)", property.columnName)
-            PropertyType.DATETIME -> CodeBlock.of("datetime(%S)", property.columnName)
+            PropertyType.DATE_TIME -> CodeBlock.of("datetime(%S)", property.columnName)
             PropertyType.UUID -> CodeBlock.of("uuid(%S)", property.columnName)
+            PropertyType.INTEGER -> CodeBlock.of("integer(%S)", property.columnName)
+            PropertyType.SHORT -> CodeBlock.of("short(%S)", property.columnName)
+            PropertyType.FLOAT -> CodeBlock.of("float(%S)", property.columnName)
+            PropertyType.DOUBLE -> CodeBlock.of("double(%S)", property.columnName)
+            PropertyType.BIG_DECIMAL -> CodeBlock.of("decimal(%S, %L, %L)", property.columnName, property.annotation?.precision ?: 0, property.annotation?.scale ?: 0)
+            PropertyType.LOCAL_DATA_TIME -> CodeBlock.of("localDateTime(%S)", property.columnName)
+            PropertyType.ZONED_DATE_TIME -> CodeBlock.of("zonedDateTime(%S)", property.columnName)
             else -> TODO()
         }
 
@@ -216,6 +226,10 @@ private fun PropertyType.asTypeName(): TypeName? {
         PropertyType.STRING -> STRING
         PropertyType.LONG -> LONG
         PropertyType.BOOL -> BOOLEAN
+        PropertyType.INTEGER -> INT
+        PropertyType.SHORT -> SHORT
+        PropertyType.FLOAT -> FLOAT
+        PropertyType.DOUBLE -> DOUBLE
         else -> null
     }
 }

@@ -1,5 +1,8 @@
 package pl.touk.example
 
+import org.joda.time.DateTime
+import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import javax.persistence.Column
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
@@ -42,7 +45,7 @@ data class NullablePropertyEntity(
 )
 
 @Entity
-data class OneToOneSourceEntity (
+data class OneToOneSourceEntity(
 
         @Id @GeneratedValue
         val id: Long,
@@ -53,11 +56,35 @@ data class OneToOneSourceEntity (
 )
 
 @Entity
-data class OneToOneTargetEntity (
+data class OneToOneTargetEntity(
 
         @Id @GeneratedValue
         val id: Long,
 
         @OneToOne(mappedBy = "targetEntity")
         val sourceEntity: OneToOneSourceEntity
+)
+
+@Entity
+data class NumericPropertyEntity(
+
+        @Id @GeneratedValue
+        val id: Long,
+
+        val long: Long,
+        val int: Int,
+        val short: Short,
+        val float: Float,
+        val double: Double
+)
+
+@Entity
+data class DatePropertyEntity(
+
+        @Id @GeneratedValue
+        val id: Long,
+
+        val dateTime: DateTime,
+        val localDateTime: LocalDateTime,
+        val zonedDateTime: ZonedDateTime
 )

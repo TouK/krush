@@ -4,6 +4,7 @@ import pl.touk.exposed.generator.env.AnnotationEnvironment
 import pl.touk.exposed.generator.env.TypeEnvironment
 import pl.touk.exposed.generator.env.toTypeElement
 import pl.touk.exposed.generator.env.toVariableElement
+import pl.touk.exposed.generator.model.PropertyType.*
 import javax.lang.model.element.Element
 import javax.lang.model.element.Name
 import javax.lang.model.element.TypeElement
@@ -39,6 +40,18 @@ interface EntityGraphSampleData {
 
     fun nullablePropertyEntity(typeEnvironment: TypeEnvironment): TypeElement {
         return getTypeElement("pl.touk.example.NullablePropertyEntity", typeEnvironment.elementUtils)
+    }
+
+    fun numericPropertyEntity(typeEnvironment: TypeEnvironment): TypeElement {
+        return getTypeElement("pl.touk.example.NumericPropertyEntity", typeEnvironment.elementUtils)
+    }
+
+    fun datePropertyEntity(typeEnvironment: TypeEnvironment): TypeElement {
+        return getTypeElement("pl.touk.example.DatePropertyEntity", typeEnvironment.elementUtils)
+    }
+
+    fun characterPropertyEntity(typeEnvironment: TypeEnvironment): TypeElement {
+        return getTypeElement("pl.touk.example.CharacterPropertyEntity", typeEnvironment.elementUtils)
     }
 
     fun customerGraphBuilder(typeEnvironment: TypeEnvironment): EntityGraphBuilder {
@@ -93,8 +106,8 @@ interface EntityGraphSampleData {
                 table = entity.simpleName.asVariable(),
                 id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
                 properties = listOf(
-                        stringPropertyDefinition(typeEnvironment, prop1, id, "prop1", false),
-                        stringPropertyDefinition(typeEnvironment, prop2, id, "prop2", false)
+                        propertyDefinition(typeEnvironment, prop1, "prop1", STRING, false),
+                        propertyDefinition(typeEnvironment, prop2, "prop2", STRING, false)
                 )
         )
     }
@@ -112,7 +125,7 @@ interface EntityGraphSampleData {
                 table = "entity",
                 id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.getAnnotation(Column::class.java).name)),
                 properties = listOf(
-                        stringPropertyDefinition(typeEnvironment, prop1, id, "prop1_custom", false)
+                        propertyDefinition(typeEnvironment, prop1, "prop1_custom", STRING, false)
                 )
         )
     }
@@ -141,7 +154,7 @@ interface EntityGraphSampleData {
                 table = "nullablePropertyEntity",
                 id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
                 properties = listOf(
-                        stringPropertyDefinition(typeEnvironment, prop1, id, "prop1", true)
+                        propertyDefinition(typeEnvironment, prop1,"prop1", STRING, true)
                 ))
     }
 
@@ -217,6 +230,88 @@ interface EntityGraphSampleData {
         )
     }
 
+    fun numericPropertyGraphBuilder(typeEnvironment: TypeEnvironment): EntityGraphBuilder {
+        val elements = typeEnvironment.elementUtils
+
+        val numericPropertyEntity = numericPropertyEntity(typeEnvironment)
+        val numericPropertyEntityId = getVariableElement(numericPropertyEntity, elements, "id")
+        val long = getVariableElement(numericPropertyEntity, typeEnvironment.elementUtils,"long")
+        val int = getVariableElement(numericPropertyEntity, typeEnvironment.elementUtils,"int")
+        val short = getVariableElement(numericPropertyEntity, typeEnvironment.elementUtils,"short")
+        val float = getVariableElement(numericPropertyEntity, typeEnvironment.elementUtils,"float")
+        val double = getVariableElement(numericPropertyEntity, typeEnvironment.elementUtils,"double")
+
+        val annEnv = AnnotationEnvironment(entities =  listOf(numericPropertyEntity), ids = listOf(numericPropertyEntityId),
+                columns = listOf(long, int, short, float, double), oneToMany = emptyList(), manyToOne = emptyList(),
+                manyToMany =  emptyList(), oneToOne = emptyList())
+
+        return EntityGraphBuilder(typeEnvironment, annEnv)
+    }
+
+    fun numericPropertyEntityDefinition(typeEnvironment: TypeEnvironment): EntityDefinition {
+        val elements = typeEnvironment.elementUtils
+
+        val entity = numericPropertyEntity(typeEnvironment)
+        val id = getVariableElement(entity, elements, "id")
+        val long = getVariableElement(entity, typeEnvironment.elementUtils,"long")
+        val int = getVariableElement(entity, typeEnvironment.elementUtils,"int")
+        val short = getVariableElement(entity, typeEnvironment.elementUtils,"short")
+        val float = getVariableElement(entity, typeEnvironment.elementUtils,"float")
+        val double = getVariableElement(entity, typeEnvironment.elementUtils,"double")
+
+        return EntityDefinition(
+                name = entity.simpleName,
+                qualifiedName = entity.qualifiedName,
+                table = entity.simpleName.asVariable(),
+                id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
+                properties = listOf(
+                        propertyDefinition(typeEnvironment, long, "long", LONG, false),
+                        propertyDefinition(typeEnvironment, int, "int", INTEGER, false),
+                        propertyDefinition(typeEnvironment, short, "short", SHORT, false),
+                        propertyDefinition(typeEnvironment, float, "float", FLOAT, false),
+                        propertyDefinition(typeEnvironment, double, "double", DOUBLE, false)
+                )
+        )
+    }
+
+    fun datePropertyGraphBuilder(typeEnvironment: TypeEnvironment): EntityGraphBuilder {
+        val elements = typeEnvironment.elementUtils
+
+        val datePropertyEntity = datePropertyEntity(typeEnvironment)
+        val datePropertyEntityId = getVariableElement(datePropertyEntity, elements, "id")
+        val dateTime = getVariableElement(datePropertyEntity, typeEnvironment.elementUtils,"dateTime")
+        val localDateTime = getVariableElement(datePropertyEntity, typeEnvironment.elementUtils,"localDateTime")
+        val zonedDateTime = getVariableElement(datePropertyEntity, typeEnvironment.elementUtils,"zonedDateTime")
+
+        val annEnv = AnnotationEnvironment(entities =  listOf(datePropertyEntity), ids = listOf(datePropertyEntityId),
+                columns = listOf(dateTime, localDateTime, zonedDateTime), oneToMany = emptyList(), manyToOne = emptyList(),
+                manyToMany =  emptyList(), oneToOne = emptyList())
+
+        return EntityGraphBuilder(typeEnvironment, annEnv)
+    }
+
+    fun datePropertyEntityDefinition(typeEnvironment: TypeEnvironment): EntityDefinition {
+        val elements = typeEnvironment.elementUtils
+
+        val entity = datePropertyEntity(typeEnvironment)
+        val id = getVariableElement(entity, elements, "id")
+        val dateTime = getVariableElement(entity, typeEnvironment.elementUtils,"dateTime")
+        val localDateTime = getVariableElement(entity, typeEnvironment.elementUtils,"localDateTime")
+        val zonedDateTime = getVariableElement(entity, typeEnvironment.elementUtils,"zonedDateTime")
+
+        return EntityDefinition(
+                name = entity.simpleName,
+                qualifiedName = entity.qualifiedName,
+                table = entity.simpleName.asVariable(),
+                id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
+                properties = listOf(
+                        propertyDefinition(typeEnvironment, dateTime, "dateTime", DATE_TIME, false),
+                        propertyDefinition(typeEnvironment, localDateTime, "localDateTime", LOCAL_DATA_TIME, false),
+                        propertyDefinition(typeEnvironment, zonedDateTime, "zonedDateTime", ZONED_DATE_TIME, false)
+                )
+        )
+    }
+
     private fun autoGenIdDefinition(id: VariableElement, name: Name): IdDefinition {
         return IdDefinition(
                 name = id.simpleName,
@@ -228,12 +323,12 @@ interface EntityGraphSampleData {
         )
     }
 
-    private fun stringPropertyDefinition(typeEnvironment: TypeEnvironment, property: VariableElement, id: VariableElement, columnName: String, nullable: Boolean): PropertyDefinition {
+    private fun propertyDefinition(typeEnvironment: TypeEnvironment, property: VariableElement, columnName: String, propertyType: PropertyType, nullable: Boolean): PropertyDefinition {
         return PropertyDefinition(
                 name = typeEnvironment.elementUtils.getName(property.simpleName),
                 columnName = typeEnvironment.elementUtils.getName(columnName),
                 annotation = property.getAnnotation(Column::class.java),
-                type = PropertyType.STRING,
+                type = propertyType,
                 typeMirror = property.asType(),
                 nullable = nullable
         )
