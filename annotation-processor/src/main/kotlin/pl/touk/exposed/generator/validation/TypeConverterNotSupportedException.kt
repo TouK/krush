@@ -1,6 +1,6 @@
 package pl.touk.exposed.generator.validation
 
-import pl.touk.exposed.generator.model.PropertyType
+import pl.touk.exposed.generator.model.Type
 
-class TypeConverterNotSupportedException(type: PropertyType) :
-        RuntimeException("Unsupported conversion to $type")
+class TypeConverterNotSupportedException(type: Type) :
+        RuntimeException("Unsupported property type $type")

@@ -77,13 +77,13 @@ class MappingsGenerator : SourceGenerator {
         val rootVal = entity.name.asVariable()
         val rootIdName = entity.id?.name?.asVariable()
         val rootValId = "${rootVal}Id"
-        val rootKey = entity.id?.type?.asTypeName() ?: entity.id?.typeMirror?.asTypeName()
+        val rootKey = entity.id?.asTypeName()
 
         func.addStatement("val roots = mutableMapOf<$rootKey, ${entity.name}>()")
         val associations = entity.getAssociations(ONE_TO_ONE, ONE_TO_MANY, MANY_TO_MANY)
         associations.forEach { assoc ->
             val target = graphs[assoc.target.packageName]?.get(assoc.target) ?: throw EntityNotMappedException(assoc.target)
-            val entityTypeName = entity.id?.type?.asTypeName() ?: entity.id?.typeMirror?.asTypeName()
+            val entityTypeName = entity.id?.asTypeName()
             val associationMapName = "${entity.name.asVariable()}_${assoc.name}"
             val associationMapValueType = if (assoc.type in listOf(ONE_TO_MANY, MANY_TO_MANY)) "MutableList<${target.name}>" else "${target.name}"
 

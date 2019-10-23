@@ -1,5 +1,6 @@
 package pl.touk.exposed.generator
 
+import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import pl.touk.exposed.generator.env.EnvironmentBuilder
 import pl.touk.exposed.generator.model.EntityGraphBuilder
 import pl.touk.exposed.generator.source.MappingsGenerator
@@ -14,6 +15,7 @@ import javax.lang.model.SourceVersion
 import javax.lang.model.element.TypeElement
 import javax.tools.Diagnostic.Kind.ERROR
 
+@KotlinPoetMetadataPreview
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 @SupportedAnnotationTypes("javax.persistence.*")
 @SupportedOptions(ExposedAnnotationProcessor.KAPT_KOTLIN_GENERATED_OPTION_NAME)

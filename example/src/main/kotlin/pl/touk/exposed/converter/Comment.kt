@@ -10,7 +10,8 @@ import javax.persistence.Id
 data class Comment(
 
         @Id @GeneratedValue
-        val id: Long? = null,
+        @Convert(value = IdConverter::class)
+        val id: String? = null,
 
         @Convert(value = AuthorConverter::class)
         val author: Author
@@ -33,3 +34,14 @@ class AuthorConverter : Converter<Author, String> {
     }
 }
 
+class IdConverter : Converter<String, Long> {
+
+    override fun convertToDatabaseColumn(attribute: String): Long {
+        return attribute.toLong()
+    }
+
+    override fun convertToEntityAttribute(dbData: Long): String {
+        return dbData.toString()
+    }
+
+}

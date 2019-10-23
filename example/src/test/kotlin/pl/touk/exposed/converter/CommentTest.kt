@@ -17,10 +17,9 @@ class CommentTest {
     }
 
     @Test
-    fun shouldHandleIdConverter() {
+    fun shouldHandlePropertyConverter() {
         transaction {
             SchemaUtils.create(CommentTable)
-            val commentIdConverter = AuthorConverter()
 
             // given
             val comment = Comment(author = Author("John", "Smith")).let { comment ->

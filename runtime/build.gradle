@@ -3,5 +3,6 @@ apply plugin: 'kotlin'
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
-    compile "org.jetbrains.exposed:exposed:$exposed_version"
+    compile "org.jetbrains.exposed:exposed-jdbc:$exposed_version"
+    compile "org.jetbrains.exposed:exposed-jodatime:$exposed_version"
 }

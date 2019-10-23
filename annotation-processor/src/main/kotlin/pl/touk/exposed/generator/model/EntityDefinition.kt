@@ -4,7 +4,6 @@ import pl.touk.exposed.generator.validation.EntityNotMappedException
 import pl.touk.exposed.generator.validation.MissingIdException
 import javax.lang.model.element.Name
 import javax.lang.model.element.TypeElement
-import javax.lang.model.type.TypeMirror
 import javax.persistence.Column
 import javax.persistence.Table
 
@@ -40,9 +39,9 @@ data class IdDefinition (
         val name: Name,
         val columnName: Name,
         val annotation: Column?,
-        val type: IdType,
-        val typeMirror: TypeMirror,
-        val generatedValue: Boolean = false
+        val type: Type,
+        val generatedValue: Boolean = false,
+        val converter: ConverterDefinition? = null
 )
 
 data class AssociationDefinition(
@@ -60,25 +59,20 @@ data class PropertyDefinition(
         val name: Name,
         val columnName: Name,
         val annotation: Column?,
-        val type: PropertyType,
-        val typeMirror: TypeMirror,
+        val type: Type,
         val nullable: Boolean,
         val converter: ConverterDefinition? = null
 )
 
 data class ConverterDefinition(
         val name: String,
-        val typeWrapper: TypeWrapperTargetType
+        val targetType: Type
 )
 
-enum class IdType {
-    STRING, LONG, INTEGER, SHORT, UUID
-}
-
-enum class PropertyType {
-    STRING, BOOL, LONG, INTEGER, SHORT, FLOAT, DOUBLE, BIG_DECIMAL, DATE_TIME, LOCAL_DATA_TIME, ZONED_DATE_TIME, UUID,
-    TYPE_WRAPPER
-}
+data class Type(
+        val packageName: String,
+        val simpleName: String
+)
 
 enum class AssociationType {
     ONE_TO_ONE, ONE_TO_MANY, MANY_TO_ONE, MANY_TO_MANY

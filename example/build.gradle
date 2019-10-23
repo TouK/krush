@@ -4,8 +4,10 @@ apply plugin: 'kotlin-kapt'
 dependencies {
 	compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
-    compile "org.jetbrains.exposed:exposed:$exposed_version"
+    compile "org.jetbrains.exposed:exposed-jdbc:$exposed_version"
     compile 'org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.0.Final'
+
+    implementation("com.h2database:h2:1.4.199")
 
     compile project(":runtime")
 
@@ -16,4 +18,5 @@ dependencies {
     testCompile 'com.google.testing.compile:compile-testing:0.18'
     testCompile 'org.assertj:assertj-core:3.13.2'
     testRuntime 'ch.qos.logback:logback-classic:1.2.3'
+
 }
