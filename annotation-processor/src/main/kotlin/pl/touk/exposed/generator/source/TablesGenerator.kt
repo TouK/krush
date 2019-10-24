@@ -22,6 +22,7 @@ import org.jetbrains.exposed.sql.Table
 import pl.touk.exposed.generator.model.AssociationDefinition
 import pl.touk.exposed.generator.model.AssociationType
 import pl.touk.exposed.generator.model.ConverterDefinition
+import pl.touk.exposed.generator.model.EntityDefinition
 import pl.touk.exposed.generator.model.EntityGraph
 import pl.touk.exposed.generator.model.EntityGraphs
 import pl.touk.exposed.generator.model.IdDefinition
@@ -35,6 +36,7 @@ import pl.touk.exposed.generator.model.traverse
 import pl.touk.exposed.generator.validation.IdTypeNotSupportedException
 import pl.touk.exposed.generator.validation.PropertyTypeNotSupportedExpcetion
 import pl.touk.exposed.generator.validation.TypeConverterNotSupportedException
+import javax.lang.model.element.Name
 
 class TablesGenerator : SourceGenerator {
 
@@ -57,35 +59,37 @@ class TablesGenerator : SourceGenerator {
                     .addSuperclassConstructorParameter(CodeBlock.of("%S", entity.table))
 
             entity.id?.let { id ->
-                val name = id.name.toString()
+                val name = id.name
                 val typeName = ClassName(id.type.packageName, id.type.simpleName)
 
                 val type = Column::class.asTypeName().parameterizedBy(typeName)
-                val idSpec = PropertySpec.builder(name, type)
+                val idSpec = PropertySpec.builder(name.asVariable(), type)
                 val builder = CodeBlock.builder()
-                val initializer = createIdInitializer(id)
+                val initializer = createIdInitializer(id, entity)
                 builder.add(initializer)
 
                 idSpec.initializer(builder.build())
                 tableSpec.addProperty(idSpec.build())
 
                 id.converter?.let {
-                    createConverterFunc(name, typeName, it, fileSpec)
+                    val converterName: String = getConverterFuncName(entityName = entity.name, propertyName = id.name)
+                    createConverterFunc(converterName, typeName, it, fileSpec)
                 }
             }
 
             entity.properties.forEach { column ->
-                val name = column.name.toString()
+                val name = column.name
                 val type = column.asTypeName().copy(nullable =  column.nullable)
                 val columnType = Column::class.asTypeName().parameterizedBy(type)
-                val propSpec = PropertySpec.builder(name, columnType)
-                val initializer = createPropertyInitializer(column)
+                val propSpec = PropertySpec.builder(name.asVariable(), columnType)
+                val initializer = createPropertyInitializer(column, entity)
 
                 propSpec.initializer(initializer)
                 tableSpec.addProperty(propSpec.build())
 
                 column.converter?.let {
-                    createConverterFunc(name, type, it, fileSpec)
+                    val converterName: String = getConverterFuncName(entityName = entity.name, propertyName = column.name)
+                    createConverterFunc(converterName, type, it, fileSpec)
                 }
             }
 
@@ -159,11 +163,11 @@ class TablesGenerator : SourceGenerator {
         return fileSpec.addFunction(converterSpec)
     }
 
-    private fun createIdInitializer(id: IdDefinition) : CodeBlock {
+    private fun createIdInitializer(id: IdDefinition, entity: EntityDefinition) : CodeBlock {
         val codeBlockBuilder = CodeBlock.builder()
 
         val codeBlock = if (id.converter != null) {
-            CodeBlock.of("%L(%S)", id.name, id.name)
+            getConverterPropInitializer(entityName = entity.name, propertyName = id.name, columnName = id.columnName.asVariable())
         } else when (id.asTypeName()) {
             STRING -> CodeBlock.of("varchar(%S, %L)", id.columnName, id.annotation?.length ?: 255)
             LONG -> CodeBlock.of("long(%S)", id.columnName)
@@ -183,12 +187,11 @@ class TablesGenerator : SourceGenerator {
         return codeBlockBuilder.build()
     }
 
-    private fun createPropertyInitializer(property: PropertyDefinition) : CodeBlock {
+    private fun createPropertyInitializer(property: PropertyDefinition, entity: EntityDefinition) : CodeBlock {
         val codeBlockBuilder = CodeBlock.builder()
 
         val codeBlock = if (property.converter != null) {
-            val convertFunc = property.name.toString()
-            CodeBlock.of("%L(%S)", convertFunc, property.name)
+            getConverterPropInitializer(entityName = entity.name, propertyName = property.name, columnName = property.columnName.asVariable())
         } else when (property.asTypeName()) {
             STRING -> CodeBlock.of("varchar(%S, %L)", property.columnName, property.annotation?.length ?: 255)
             LONG -> CodeBlock.of("long(%S)", property.columnName)
@@ -221,7 +224,7 @@ class TablesGenerator : SourceGenerator {
         val codeBlockBuilder = CodeBlock.builder()
 
         val codeBlock = if (association.targetId.converter != null) {
-            CodeBlock.of("%L(%S)", association.targetId.name, association.targetId.name)
+            getConverterPropInitializer(association.target.simpleName, association.targetId.name, columnName)
         } else when (association.targetId.asTypeName()) {
             STRING -> CodeBlock.of("varchar(%S, %L)", columnName, 255) //todo read length from annotation
             LONG -> CodeBlock.of("long(%S)", columnName)
@@ -248,6 +251,14 @@ fun PropertyDefinition.asTypeName(): TypeName {
 fun Type.asClassName(): ClassName {
     return ClassName(this.packageName, this.simpleName)
 }
+
+private fun getConverterPropInitializer(entityName: Name, propertyName: Name, columnName: String): CodeBlock {
+    val convertFunc = getConverterFuncName(entityName, propertyName)
+    return CodeBlock.of("%L(%S)", convertFunc, columnName)
+}
+
+private fun getConverterFuncName(entityName: Name, propertyName: Name) =
+        entityName.asVariable().decapitalize().plus("_$propertyName")
 
 @JvmField val BIG_DECIMAL = ClassName("java.math", "BigDecimal")
 @JvmField val LOCAL_DATE_TIME =  ClassName("java.time", "LocalDateTime")

@@ -23,8 +23,8 @@ class ThreadTest {
 
             // given
             val thread = Thread(name = "Test thread").let {thread ->
-                val threadId = ThreadTable.insert { it.from(thread) }[ThreadTable.threadId]
-                thread.copy(threadId = threadId)
+                val threadId = ThreadTable.insert { it.from(thread) }[ThreadTable.id]
+                thread.copy(id = threadId)
             }
 
             val comment = Comment(author = Author("John", "Smith"), thread = thread).let { comment ->

@@ -15,7 +15,7 @@ data class Thread(
 
         @Id @GeneratedValue
         @Convert(value = ThreadConverter::class)
-        val threadId: ThreadId = ThreadId.New,
+        val id: ThreadId = ThreadId.New,
 
         val name: String,
 
