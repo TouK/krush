@@ -2,14 +2,13 @@ apply plugin: 'kotlin'
 apply plugin: 'kotlin-kapt'
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    compile "com.squareup:kotlinpoet:$kotlinpoet_version"
-    compile "com.squareup:kotlinpoet-metadata:$kotlinpoet_version"
+    api "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    api "com.squareup:kotlinpoet:$kotlinpoet_version"
+    api "com.squareup:kotlinpoet-metadata:$kotlinpoet_version"
 
-    compile "org.jetbrains.exposed:exposed-jdbc:$exposed_version"
-    compile 'org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.0.Final'
+    api 'org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.0.Final'
 
-    compile project(":runtime")
+    api project(":runtime")
 
     testCompile 'com.google.testing.compile:compile-testing:0.18'
     testCompile 'org.assertj:assertj-core:3.13.2'
