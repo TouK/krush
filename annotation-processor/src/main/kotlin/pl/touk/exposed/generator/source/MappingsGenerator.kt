@@ -102,7 +102,7 @@ class MappingsGenerator : SourceGenerator {
 
             when (assoc.type) {
                 ONE_TO_MANY, MANY_TO_MANY -> {
-                    func.addStatement("\t\tresultRow.getOrNull(${target.idColumn})?.let {")
+                    func.addStatement("\tresultRow.getOrNull(${target.idColumn})?.let {")
                     // val phonesOfCustomer = phones.getOrDefault(customerId, mutableListOf())
                     func.addStatement("\t\tval $collName = $associationMapName.getOrDefault($rootValId, mutableListOf())")
                     val isBidirectional = target.associations.find { it.target == entityType }?.mapped ?: false

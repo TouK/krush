@@ -43,7 +43,7 @@ class TablesGenerator : SourceGenerator {
                 .addImport("org.jetbrains.exposed.sql", "Table", "datetime")
                 .addImport("pl.touk.exposed", "stringWrapper", "longWrapper", "localDateTime", "zonedDateTime")
 
-                        graph.allAssociations().forEach { entity ->
+        graph.allAssociations().forEach { entity ->
             if (entity.packageName != packageName) {
                 fileSpec.addImport(entity.packageName, "${entity.simpleName}Table")
             }
@@ -219,13 +219,19 @@ class TablesGenerator : SourceGenerator {
         val targetTable = "${association.target.simpleName}Table"
 
         val codeBlockBuilder = CodeBlock.builder()
-        when (association.targetId.asTypeName()) {
-            STRING -> codeBlockBuilder.add(CodeBlock.of("varchar(%S, %L)", columnName, 255)) //todo read length from annotation
-            LONG -> codeBlockBuilder.add(CodeBlock.of("long(%S)", columnName))
-            INT -> codeBlockBuilder.add(CodeBlock.of("integer(%S)", columnName))
-            UUID -> codeBlockBuilder.add(CodeBlock.of("uuid(%S)", columnName))
-            SHORT -> codeBlockBuilder.add(CodeBlock.of("short(%S)", columnName))
+
+        val codeBlock = if (association.targetId.converter != null) {
+            CodeBlock.of("%L(%S)", association.targetId.name, association.targetId.name)
+        } else when (association.targetId.asTypeName()) {
+            STRING -> CodeBlock.of("varchar(%S, %L)", columnName, 255) //todo read length from annotation
+            LONG -> CodeBlock.of("long(%S)", columnName)
+            INT -> CodeBlock.of("integer(%S)", columnName)
+            UUID -> CodeBlock.of("uuid(%S)", columnName)
+            SHORT -> CodeBlock.of("short(%S)", columnName)
+            else -> null
         }
+
+        codeBlock?.let { codeBlockBuilder.add(it) }
 
         return codeBlockBuilder.add(".references(%L).nullable()", "$targetTable.${association.targetId.name.asVariable()}").build()
     }
