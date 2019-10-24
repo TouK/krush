@@ -107,8 +107,8 @@ interface EntityGraphSampleData {
                 table = entity.simpleName.asVariable(),
                 id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
                 properties = listOf(
-                        propertyDefinition(typeEnvironment, prop1, "prop1", Type("kotlin", "String"), false),
-                        propertyDefinition(typeEnvironment, prop2, "prop2", Type("kotlin", "String"), false)
+                        propertyDefinition(typeEnvironment, prop1, "prop1", STRING, false),
+                        propertyDefinition(typeEnvironment, prop2, "prop2", STRING, false)
                 )
         )
     }
@@ -126,7 +126,7 @@ interface EntityGraphSampleData {
                 table = "entity",
                 id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.getAnnotation(Column::class.java).name)),
                 properties = listOf(
-                        propertyDefinition(typeEnvironment, prop1, "prop1_custom", Type("kotlin", "String"), false)
+                        propertyDefinition(typeEnvironment, prop1, "prop1_custom", STRING, false)
                 )
         )
     }
@@ -155,7 +155,7 @@ interface EntityGraphSampleData {
                 table = "nullablePropertyEntity",
                 id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
                 properties = listOf(
-                        propertyDefinition(typeEnvironment, prop1,"prop1", Type("kotlin", "String"), true)
+                        propertyDefinition(typeEnvironment, prop1,"prop1", STRING, true)
                 ))
     }
 
@@ -266,11 +266,11 @@ interface EntityGraphSampleData {
                 table = entity.simpleName.asVariable(),
                 id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
                 properties = listOf(
-                        propertyDefinition(typeEnvironment, long, "long", Type("kotlin", "Long"), false),
-                        propertyDefinition(typeEnvironment, int, "int", Type("kotlin", "Int"), false),
-                        propertyDefinition(typeEnvironment, short, "short", Type("kotlin", "Short"), false),
-                        propertyDefinition(typeEnvironment, float, "float", Type("kotlin", "Float"), false),
-                        propertyDefinition(typeEnvironment, double, "double", Type("kotlin", "Double"), false)
+                        propertyDefinition(typeEnvironment, long, "long", LONG, false),
+                        propertyDefinition(typeEnvironment, int, "int", INT, false),
+                        propertyDefinition(typeEnvironment, short, "short", SHORT, false),
+                        propertyDefinition(typeEnvironment, float, "float", FLOAT, false),
+                        propertyDefinition(typeEnvironment, double, "double", DOUBLE, false)
                 )
         )
     }
@@ -306,9 +306,9 @@ interface EntityGraphSampleData {
                 table = entity.simpleName.asVariable(),
                 id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
                 properties = listOf(
-                        propertyDefinition(typeEnvironment, dateTime, "dateTime", Type("org.joda.time", "DateTime"), false),
-                        propertyDefinition(typeEnvironment, localDateTime, "localDateTime", Type("java.time", "LocalDateTime"), false),
-                        propertyDefinition(typeEnvironment, zonedDateTime, "zonedDateTime", Type("java.time", "ZonedDateTime"), false)
+                        propertyDefinition(typeEnvironment, dateTime, "dateTime", DATE_TIME, false),
+                        propertyDefinition(typeEnvironment, localDateTime, "localDateTime", LOCAL_DATE_TIME, false),
+                        propertyDefinition(typeEnvironment, zonedDateTime, "zonedDateTime", ZONED_DATE_TIME, false)
                 )
         )
     }
@@ -318,7 +318,7 @@ interface EntityGraphSampleData {
                 name = id.simpleName,
                 columnName = name,
                 annotation = id.getAnnotation(Column::class.java),
-                type = Type("kotlin", "Long"),
+                type = LONG,
                 generatedValue = true
         )
     }
@@ -346,3 +346,13 @@ interface EntityGraphSampleData {
         return this
     }
 }
+
+@JvmField val STRING = Type("kotlin", "String")
+@JvmField val LONG = Type("kotlin", "Long")
+@JvmField val INT = Type("kotlin", "Int")
+@JvmField val SHORT = Type("kotlin", "Short")
+@JvmField val FLOAT = Type("kotlin", "Float")
+@JvmField val DOUBLE = Type("kotlin", "Double")
+@JvmField val DATE_TIME = Type("org.joda.time", "DateTime")
+@JvmField val LOCAL_DATE_TIME = Type("java.time", "LocalDateTime")
+@JvmField val ZONED_DATE_TIME = Type("java.time", "ZonedDateTime")
