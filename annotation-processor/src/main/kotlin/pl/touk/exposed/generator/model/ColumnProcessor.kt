@@ -55,6 +55,8 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
                 entity.addProperty(columnDefinition)
             }
 
+    //TODO handle @AttributeOverride
+    //TODO handle multiple @Embedded with same type
     private fun processEmbeddedColumns(graphs: EntityGraphs) {
         for (element in annEnv.embedded) { // @Entity User(@Embedded Address element)
             val embeddableType =  (element.asType() as DeclaredType).asElement().toTypeElement() // Address
