@@ -1,5 +1,6 @@
 package pl.touk.exposed.generator.model
 
+import com.squareup.kotlinpoet.metadata.ImmutableKmType
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import com.squareup.kotlinpoet.metadata.toImmutableKmClass
 import kotlinx.metadata.KmClassifier
@@ -10,6 +11,7 @@ import pl.touk.exposed.Converter
 import pl.touk.exposed.generator.env.AnnotationEnvironment
 import pl.touk.exposed.generator.env.TypeEnvironment
 import pl.touk.exposed.generator.env.toTypeElement
+import pl.touk.exposed.generator.validation.ConverterTypeNotFoundException
 import pl.touk.exposed.generator.validation.ElementTypeNotFoundException
 import javax.lang.model.element.AnnotationMirror
 import javax.lang.model.element.AnnotationValue
@@ -33,7 +35,7 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
         val name = columnElt.simpleName
         val columnName = getColumnName(columnAnn, columnElt)
         val converter = getConverterDefinition(columnElt)
-        val type = columnElt.toType() ?: throw ElementTypeNotFoundException(columnElt)
+        val type = columnElt.toModelType() ?: throw ElementTypeNotFoundException(columnElt)
         val columnDefinition = PropertyDefinition(name = name, columnName = columnName, annotation = columnAnn,
                 type = type, nullable = isNullable(columnElt), converter = converter)
         entity.addProperty(columnDefinition)
@@ -46,7 +48,7 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
                 val converter = getConverterDefinition(idElt)
                 val genValAnn : GeneratedValue? = idElt.getAnnotation(GeneratedValue::class.java)
                 val generatedValue = genValAnn?.let { true } ?: false
-                val type = idElt.toType() ?: throw ElementTypeNotFoundException(idElt)
+                val type = idElt.toModelType() ?: throw ElementTypeNotFoundException(idElt)
 
                 val idDef = IdDefinition(
                         name = idElt.simpleName, columnName = columnName, converter = converter,
@@ -65,11 +67,9 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
         val converterType = columnElt.annotationMirror(Convert::class.java.canonicalName)?.valueType("value")
 
         return converterType?.let {
-            val databaseType = (converterType.toTypeElement().toImmutableKmClass().functions
+            val databaseType = converterType.toTypeElement().toImmutableKmClass().functions
                     .find { it.name == Converter<*,*>::convertToDatabaseColumn.name }
-                    ?.returnType?.classifier as KmClassifier.Class?)
-                    ?.name?.split("/")
-                    ?.let { Type(it.dropLast(1).joinToString(separator = "."), it.last()) } ?: throw IllegalStateException()
+                    ?.returnType?.toModelType() ?: throw ConverterTypeNotFoundException(converterType)
 
             return ConverterDefinition(name = converterType.qualifiedName.asVariable(), targetType = databaseType)
         }
@@ -100,13 +100,15 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
         return null
     }
 
-    private fun VariableElement.toType(): Type? {
-        val classifierName = (this.enclosingElement.toTypeElement().toImmutableKmClass().properties
+    private fun VariableElement.toModelType(): Type? {
+        return this.enclosingElement.toTypeElement().toImmutableKmClass().properties
                 .find { it.name == this.simpleName.toString() }
                 ?.returnType
-                ?.classifier as KmClassifier.Class?)
-                ?.name
+                ?.toModelType()
+    }
 
-        return classifierName?.split("/")?.let { Type(it.dropLast(1).joinToString(separator = "."), it.last()) }
+    private fun ImmutableKmType.toModelType(): Type? {
+        return (this.classifier as KmClassifier.Class).name
+                .split("/").let { Type(it.dropLast(1).joinToString(separator = "."), it.last()) }
     }
 }

@@ -347,12 +347,15 @@ interface EntityGraphSampleData {
     }
 }
 
-@JvmField val STRING = Type("kotlin", "String")
-@JvmField val LONG = Type("kotlin", "Long")
-@JvmField val INT = Type("kotlin", "Int")
-@JvmField val SHORT = Type("kotlin", "Short")
-@JvmField val FLOAT = Type("kotlin", "Float")
-@JvmField val DOUBLE = Type("kotlin", "Double")
-@JvmField val DATE_TIME = Type("org.joda.time", "DateTime")
-@JvmField val LOCAL_DATE_TIME = Type("java.time", "LocalDateTime")
-@JvmField val ZONED_DATE_TIME = Type("java.time", "ZonedDateTime")
+private const val KOTLIN_PKG = "kotlin"
+private const val JODA_TIME_PKG = "org.joda.time"
+private const val JAVA_TIME_PKG = "java.time"
+@JvmField val STRING = Type(KOTLIN_PKG, "String")
+@JvmField val LONG = Type(KOTLIN_PKG, "Long")
+@JvmField val INT = Type(KOTLIN_PKG, "Int")
+@JvmField val SHORT = Type(KOTLIN_PKG, "Short")
+@JvmField val FLOAT = Type(KOTLIN_PKG, "Float")
+@JvmField val DOUBLE = Type(KOTLIN_PKG, "Double")
+@JvmField val DATE_TIME = Type(JODA_TIME_PKG, "DateTime")
+@JvmField val LOCAL_DATE_TIME = Type(JAVA_TIME_PKG, "LocalDateTime")
+@JvmField val ZONED_DATE_TIME = Type(JAVA_TIME_PKG, "ZonedDateTime")
