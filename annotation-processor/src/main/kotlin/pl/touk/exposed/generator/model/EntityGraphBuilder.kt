@@ -1,9 +1,11 @@
 package pl.touk.exposed.generator.model
 
+import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import pl.touk.exposed.generator.env.AnnotationEnvironment
 import pl.touk.exposed.generator.env.TypeEnvironment
 import javax.lang.model.element.TypeElement
 
+@KotlinPoetMetadataPreview
 class EntityGraphBuilder(
         typeEnv: TypeEnvironment, private val annEnv: AnnotationEnvironment
 ) {

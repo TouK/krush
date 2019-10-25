@@ -9,7 +9,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Before
 import org.junit.Test
 
-class CommentTest {
+class ThreadTest {
 
     @Before
     fun connect() {
@@ -17,22 +17,28 @@ class CommentTest {
     }
 
     @Test
-    fun shouldHandleIdConverter() {
+    fun shouldHandlePropertyConverter() {
         transaction {
-            SchemaUtils.create(CommentTable)
-            val commentIdConverter = AuthorConverter()
+            SchemaUtils.create(CommentTable, ThreadTable)
 
             // given
-            val comment = Comment(author = Author("John", "Smith")).let { comment ->
+            val thread = Thread(name = "Test thread").let {thread ->
+                val threadId = ThreadTable.insert { it.from(thread) }[ThreadTable.id]
+                thread.copy(id = threadId)
+            }
+
+            val comment = Comment(author = Author("John", "Smith"), thread = thread).let { comment ->
                 val commentId = CommentTable.insert { it.from(comment) }[CommentTable.id]
                 comment.copy(id = commentId)
             }
 
             // when
-            val selectedComments = CommentTable.selectAll().toCommentList()
+            val selectedThreads = (ThreadTable leftJoin CommentTable).selectAll().toThreadList()
+
+            val fullThread = thread.copy(comments = listOf(comment))
 
             // then
-            Assertions.assertThat(selectedComments).containsOnly(comment)
+            Assertions.assertThat(selectedThreads).containsOnly(fullThread)
         }
     }
 }

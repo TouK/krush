@@ -1,7 +1,10 @@
 apply plugin: 'kotlin'
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    api "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
-    compile "org.jetbrains.exposed:exposed:$exposed_version"
+    api "org.jetbrains.exposed:exposed-jdbc:$exposed_version"
+    api "org.jetbrains.exposed:exposed-jodatime:$exposed_version"
+    api "org.jetbrains.exposed:exposed-core:$exposed_version"
+    api "joda-time:joda-time:2.10.2"
 }

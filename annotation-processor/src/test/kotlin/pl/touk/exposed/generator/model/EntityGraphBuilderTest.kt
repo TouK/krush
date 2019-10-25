@@ -1,9 +1,11 @@
 package pl.touk.exposed.generator.model
 
+import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import pl.touk.exposed.generator.AnnotationProcessorTest
 
+@KotlinPoetMetadataPreview
 class EntityGraphBuilderTest : AnnotationProcessorTest(), EntityGraphSampleData {
 
     @Test

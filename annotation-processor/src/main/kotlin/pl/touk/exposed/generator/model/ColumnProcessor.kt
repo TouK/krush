@@ -1,5 +1,9 @@
 package pl.touk.exposed.generator.model
 
+import com.squareup.kotlinpoet.metadata.ImmutableKmType
+import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
+import com.squareup.kotlinpoet.metadata.toImmutableKmClass
+import kotlinx.metadata.KmClassifier
 import org.jetbrains.annotations.NotNull
 import org.jetbrains.annotations.Nullable
 import pl.touk.exposed.Convert
@@ -7,16 +11,17 @@ import pl.touk.exposed.Converter
 import pl.touk.exposed.generator.env.AnnotationEnvironment
 import pl.touk.exposed.generator.env.TypeEnvironment
 import pl.touk.exposed.generator.env.toTypeElement
-import pl.touk.exposed.generator.validation.TypeConverterNotSupportedException
+import pl.touk.exposed.generator.validation.ConverterTypeNotFoundException
+import pl.touk.exposed.generator.validation.ElementTypeNotFoundException
 import javax.lang.model.element.AnnotationMirror
 import javax.lang.model.element.AnnotationValue
 import javax.lang.model.element.TypeElement
 import javax.lang.model.element.VariableElement
-import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
 import javax.persistence.Column
 import javax.persistence.GeneratedValue
 
+@KotlinPoetMetadataPreview
 class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv: AnnotationEnvironment) : ElementProcessor {
 
     override fun process(graphs: EntityGraphs) {
@@ -30,24 +35,24 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
         val name = columnElt.simpleName
         val columnName = getColumnName(columnAnn, columnElt)
         val converter = getConverterDefinition(columnElt)
-        val typeMirror = columnElt.asType()
-        val type = if (converter != null) PropertyType.TYPE_WRAPPER else columnElt.asType().getTypeDefinition()
+        val type = columnElt.toModelType() ?: throw ElementTypeNotFoundException(columnElt)
         val columnDefinition = PropertyDefinition(name = name, columnName = columnName, annotation = columnAnn,
-                type = type, typeMirror = typeMirror, nullable = isNullable(columnElt), converter = converter)
+                type = type, nullable = isNullable(columnElt), converter = converter)
         entity.addProperty(columnDefinition)
     }
 
     private fun processIds(graphs: EntityGraphs) =
             processElements(annEnv.ids, graphs) { entity, idElt ->
-                val type = idElt.asType().getIdTypeDefinition()
                 val columnAnn: Column? = idElt.getAnnotation(Column::class.java)
                 val columnName = getColumnName(columnAnn, idElt)
+                val converter = getConverterDefinition(idElt)
                 val genValAnn : GeneratedValue? = idElt.getAnnotation(GeneratedValue::class.java)
                 val generatedValue = genValAnn?.let { true } ?: false
+                val type = idElt.toModelType() ?: throw ElementTypeNotFoundException(idElt)
 
                 val idDef = IdDefinition(
-                        name = idElt.simpleName, columnName = columnName, type = type,
-                        annotation = columnAnn, typeMirror = idElt.asType(), generatedValue = generatedValue
+                        name = idElt.simpleName, columnName = columnName, converter = converter,
+                        annotation = columnAnn, type = type, generatedValue = generatedValue
                 )
                 entity.copy(id = idDef)
             }
@@ -62,77 +67,13 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
         val converterType = columnElt.annotationMirror(Convert::class.java.canonicalName)?.valueType("value")
 
         return converterType?.let {
-            val converterTypeArguments = converterType.toTypeElement()
-                    .interfaces
-                    .find { it.asDeclaredType().asElement().toTypeElement().qualifiedName.asVariable() == Converter::class.qualifiedName }
-                    ?.asDeclaredType()
-                    ?.typeArguments
+            val databaseType = converterType.toTypeElement().toImmutableKmClass().functions
+                    .find { it.name == Converter<*,*>::convertToDatabaseColumn.name }
+                    ?.returnType?.toModelType() ?: throw ConverterTypeNotFoundException(converterType)
 
-            if (converterTypeArguments?.size != 2) return null //TODO handle
-
-            val databaseType = converterTypeArguments[1]
-            val typeWrapper = databaseType.getTypeDefinition().typeWrapper() ?: throw TypeConverterNotSupportedException(databaseType.getTypeDefinition())
-
-            return ConverterDefinition(name = converterType.qualifiedName.asVariable(), typeWrapper = typeWrapper)
+            return ConverterDefinition(name = converterType.qualifiedName.asVariable(), targetType = databaseType)
         }
     }
-
-    private fun TypeMirror.getTypeDefinition(): PropertyType {
-        return when {
-            isString() -> PropertyType.STRING
-            isBoolean() -> PropertyType.BOOL
-            isLong() -> PropertyType.LONG
-            isInteger() -> PropertyType.INTEGER
-            isShort() -> PropertyType.SHORT
-            isFloat() -> PropertyType.FLOAT
-            isDouble() -> PropertyType.DOUBLE
-            isBigDecimal() -> PropertyType.BIG_DECIMAL
-            isUUID() -> PropertyType.UUID
-            isDateTime() -> PropertyType.DATE_TIME
-            isLocalDateTime() -> PropertyType.LOCAL_DATA_TIME
-            isZonedDateTime() -> PropertyType.ZONED_DATE_TIME
-            else -> TODO()
-        }
-    }
-
-    private fun TypeMirror.getIdTypeDefinition(): IdType {
-        return when {
-            isUUID() -> IdType.UUID
-            isString() -> IdType.STRING
-            isInteger() -> IdType.INTEGER
-            isShort() -> IdType.SHORT
-            isNumeric() -> IdType.LONG
-            else -> TODO()
-        }
-    }
-
-    private fun TypeMirror.isString() = typeEnv.isSameType(this, "java.lang.String")
-
-    private fun TypeMirror.isLong() = typeEnv.isSameType(this, "java.lang.Long") || kind == TypeKind.LONG
-
-    private fun TypeMirror.isInteger() = typeEnv.isSameType(this, "java.lang.Integer") || kind == TypeKind.INT
-
-    private fun TypeMirror.isShort() = typeEnv.isSameType(this, "java.lang.Short") || kind == TypeKind.SHORT
-
-    private fun TypeMirror.isFloat() = typeEnv.isSameType(this, "java.lang.Float") || kind == TypeKind.FLOAT
-
-    private fun TypeMirror.isDouble() = typeEnv.isSameType(this, "java.lang.Double") || kind == TypeKind.DOUBLE
-
-    private fun TypeMirror.isBigDecimal() = typeEnv.isSameType(this, "java.math.BigDecimal")
-
-    private fun TypeMirror.isBoolean() = typeEnv.isSameType(this, "java.lang.Boolean") || kind == TypeKind.BOOLEAN
-
-    private fun TypeMirror.isUUID() = typeEnv.isSameType(this, "java.util.UUID")
-
-    private fun TypeMirror.isDateTime() = typeEnv.isSameType(this, "org.joda.time.DateTime")
-
-    private fun TypeMirror.isLocalDateTime() = typeEnv.isSameType(this, "java.time.LocalDateTime")
-
-    private fun TypeMirror.isZonedDateTime() = typeEnv.isSameType(this, "java.time.ZonedDateTime")
-
-    // TODO float/int/long/double
-    private fun TypeMirror.isNumeric() = typeEnv.isSubType(this, "java.lang.Number") ||
-            kind in listOf(TypeKind.LONG, TypeKind.INT, TypeKind.DOUBLE, TypeKind.FLOAT, TypeKind.SHORT)
 
     private fun VariableElement.annotationMirror(className: String): AnnotationMirror? {
         for (mirror in this.annotationMirrors) {
@@ -159,4 +100,15 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
         return null
     }
 
+    private fun VariableElement.toModelType(): Type? {
+        return this.enclosingElement.toTypeElement().toImmutableKmClass().properties
+                .find { it.name == this.simpleName.toString() }
+                ?.returnType
+                ?.toModelType()
+    }
+
+    private fun ImmutableKmType.toModelType(): Type? {
+        return (this.classifier as KmClassifier.Class).name
+                .split("/").let { Type(it.dropLast(1).joinToString(separator = "."), it.last()) }
+    }
 }

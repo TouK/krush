@@ -1,10 +1,10 @@
 package pl.touk.exposed.generator.model
 
+import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import pl.touk.exposed.generator.env.AnnotationEnvironment
 import pl.touk.exposed.generator.env.TypeEnvironment
 import pl.touk.exposed.generator.env.toTypeElement
 import pl.touk.exposed.generator.env.toVariableElement
-import pl.touk.exposed.generator.model.PropertyType.*
 import javax.lang.model.element.Element
 import javax.lang.model.element.Name
 import javax.lang.model.element.TypeElement
@@ -16,6 +16,7 @@ import javax.persistence.Column
 import javax.persistence.JoinColumn
 import javax.persistence.OneToOne
 
+@KotlinPoetMetadataPreview
 interface EntityGraphSampleData {
 
     fun customerTestEntity(typeEnvironment: TypeEnvironment): TypeElement {
@@ -266,7 +267,7 @@ interface EntityGraphSampleData {
                 id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
                 properties = listOf(
                         propertyDefinition(typeEnvironment, long, "long", LONG, false),
-                        propertyDefinition(typeEnvironment, int, "int", INTEGER, false),
+                        propertyDefinition(typeEnvironment, int, "int", INT, false),
                         propertyDefinition(typeEnvironment, short, "short", SHORT, false),
                         propertyDefinition(typeEnvironment, float, "float", FLOAT, false),
                         propertyDefinition(typeEnvironment, double, "double", DOUBLE, false)
@@ -306,7 +307,7 @@ interface EntityGraphSampleData {
                 id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
                 properties = listOf(
                         propertyDefinition(typeEnvironment, dateTime, "dateTime", DATE_TIME, false),
-                        propertyDefinition(typeEnvironment, localDateTime, "localDateTime", LOCAL_DATA_TIME, false),
+                        propertyDefinition(typeEnvironment, localDateTime, "localDateTime", LOCAL_DATE_TIME, false),
                         propertyDefinition(typeEnvironment, zonedDateTime, "zonedDateTime", ZONED_DATE_TIME, false)
                 )
         )
@@ -317,19 +318,17 @@ interface EntityGraphSampleData {
                 name = id.simpleName,
                 columnName = name,
                 annotation = id.getAnnotation(Column::class.java),
-                type = IdType.LONG,
-                typeMirror = id.asType(),
+                type = LONG,
                 generatedValue = true
         )
     }
 
-    private fun propertyDefinition(typeEnvironment: TypeEnvironment, property: VariableElement, columnName: String, propertyType: PropertyType, nullable: Boolean): PropertyDefinition {
+    private fun propertyDefinition(typeEnvironment: TypeEnvironment, property: VariableElement, columnName: String, type: Type, nullable: Boolean): PropertyDefinition {
         return PropertyDefinition(
                 name = typeEnvironment.elementUtils.getName(property.simpleName),
                 columnName = typeEnvironment.elementUtils.getName(columnName),
                 annotation = property.getAnnotation(Column::class.java),
-                type = propertyType,
-                typeMirror = property.asType(),
+                type = type,
                 nullable = nullable
         )
     }
@@ -347,3 +346,16 @@ interface EntityGraphSampleData {
         return this
     }
 }
+
+private const val KOTLIN_PKG = "kotlin"
+private const val JODA_TIME_PKG = "org.joda.time"
+private const val JAVA_TIME_PKG = "java.time"
+@JvmField val STRING = Type(KOTLIN_PKG, "String")
+@JvmField val LONG = Type(KOTLIN_PKG, "Long")
+@JvmField val INT = Type(KOTLIN_PKG, "Int")
+@JvmField val SHORT = Type(KOTLIN_PKG, "Short")
+@JvmField val FLOAT = Type(KOTLIN_PKG, "Float")
+@JvmField val DOUBLE = Type(KOTLIN_PKG, "Double")
+@JvmField val DATE_TIME = Type(JODA_TIME_PKG, "DateTime")
+@JvmField val LOCAL_DATE_TIME = Type(JAVA_TIME_PKG, "LocalDateTime")
+@JvmField val ZONED_DATE_TIME = Type(JAVA_TIME_PKG, "ZonedDateTime")
