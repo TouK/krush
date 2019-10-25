@@ -13,12 +13,14 @@ data class EntityDefinition(
         val table: String,
         val id: IdDefinition? = null,
         val properties: List<PropertyDefinition> = emptyList(),
-        val associations: List<AssociationDefinition> = emptyList()
-
+        val associations: List<AssociationDefinition> = emptyList(),
+        val embeddables: List<EmbeddableDefinition> = emptyList()
 ) {
     fun addProperty(column: PropertyDefinition) = this.copy(properties = this.properties + column)
 
     fun addAssociation(association: AssociationDefinition) = this.copy(associations = this.associations + association)
+
+    fun addEmbeddable(embeddable: EmbeddableDefinition) = this.copy(embeddables = this.embeddables + embeddable)
 
     fun getPropertyAndIdNames() : List<Name> {
         val props = properties.map(PropertyDefinition::name)
@@ -28,8 +30,6 @@ data class EntityDefinition(
     fun getPropertyNames() = properties.map(PropertyDefinition::name)
 
     fun getAssociations(vararg types: AssociationType) = associations.filter { it.type in types }
-
-    fun hasManyToMany() = getAssociations(AssociationType.MANY_TO_MANY).isNotEmpty()
 
     val tableName: String get() = "${name}Table"
     val idColumn: String get() = id?.let { id -> "${tableName}.${id.name}" } ?: throw MissingIdException(this)
@@ -73,6 +73,15 @@ data class Type(
         val packageName: String,
         val simpleName: String
 )
+
+data class EmbeddableDefinition(
+        val propertyName: Name,
+        val qualifiedName: Name,
+        val nullable: Boolean,
+        val properties: List<PropertyDefinition> = emptyList()
+) {
+    fun getPropertyNames() = properties.map(PropertyDefinition::name)
+}
 
 enum class AssociationType {
     ONE_TO_ONE, ONE_TO_MANY, MANY_TO_ONE, MANY_TO_MANY

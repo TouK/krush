@@ -106,5 +106,21 @@ class EntityGraphBuilderTest : AnnotationProcessorTest(), EntityGraphSampleData 
                 .containsKey(datePropertyEntity(getTypeEnv()))
                 .containsValue(datePropertyEntityDefinition(getTypeEnv()))
     }
+
+    @Test
+    fun shouldHandleEmbeddedPropertyTypes() {
+        //given
+        val embeddedPropertyGraphBuilder = embeddedPropertyGraphBuilder(getTypeEnv())
+
+        //when
+        val graphs = embeddedPropertyGraphBuilder.build()
+
+        //then
+        assertThat(graphs).containsKey("pl.touk.example")
+
+        assertThat(graphs["pl.touk.example"])
+                .containsKey(embeddedPropertyEntity(getTypeEnv()))
+                .containsValue(embeddedPropertyEntityDefinition(getTypeEnv()))
+    }
 }
 
