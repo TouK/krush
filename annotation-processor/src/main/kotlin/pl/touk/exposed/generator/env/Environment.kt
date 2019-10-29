@@ -71,16 +71,16 @@ class EnvironmentBuilder(private val roundEnv: RoundEnvironment, private val pro
         return AnnotationEnvironment(entities, ids, columns, oneToMany, manyToOne, manyToMany, oneToOne, embedded, embeddedColumn)
     }
 
-    private fun toColumnElements(entity: Element) = entity.enclosedElements.filter(this::columnPredicate).map(Element::toVariableElement)
+    private fun toColumnElements(entity: Element) = entity.enclosedElements.filter(this::isColumn).map(Element::toVariableElement)
 
-    private fun columnPredicate(element: Element) = element.kind == ElementKind.FIELD &&
+    private fun isColumn(element: Element) = element.kind == ElementKind.FIELD &&
             element.enclosingElement.getAnnotation(Entity::class.java) != null &&
             element.getAnnotation(Transient::class.java) == null && element.getAnnotation(Embedded::class.java) == null
 
     private fun toEmbeddedElements(embeddable: Element) = (embeddable.asType() as DeclaredType).asElement().enclosedElements
-            .filter(this::embeddedPredicate).map(Element::toVariableElement)
+            .filter(this::isEmbedded).map(Element::toVariableElement)
 
-    private fun embeddedPredicate(element: Element) = element.kind == ElementKind.FIELD &&
+    private fun isEmbedded(element: Element) = element.kind == ElementKind.FIELD &&
             element.enclosingElement.getAnnotation(Embeddable::class.java) != null &&
             element.getAnnotation(Transient::class.java) == null && element.getAnnotation(Embedded::class.java) == null
 
