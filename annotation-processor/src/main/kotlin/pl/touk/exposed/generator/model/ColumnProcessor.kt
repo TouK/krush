@@ -10,13 +10,16 @@ import pl.touk.exposed.Convert
 import pl.touk.exposed.Converter
 import pl.touk.exposed.generator.env.AnnotationEnvironment
 import pl.touk.exposed.generator.env.TypeEnvironment
+import pl.touk.exposed.generator.env.enclosingTypeElement
 import pl.touk.exposed.generator.env.toTypeElement
 import pl.touk.exposed.generator.validation.ConverterTypeNotFoundException
 import pl.touk.exposed.generator.validation.ElementTypeNotFoundException
+import pl.touk.exposed.generator.validation.EntityNotMappedException
 import javax.lang.model.element.AnnotationMirror
 import javax.lang.model.element.AnnotationValue
 import javax.lang.model.element.TypeElement
 import javax.lang.model.element.VariableElement
+import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeMirror
 import javax.persistence.Column
 import javax.persistence.GeneratedValue
@@ -27,18 +30,7 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
     override fun process(graphs: EntityGraphs) {
         processIds(graphs)
         processColumns(graphs)
-    }
-
-    private fun processColumns(graphs: EntityGraphs) =
-            processElements(annEnv.columns, graphs) { entity, columnElt ->
-        val columnAnn: Column? = columnElt.getAnnotation(Column::class.java)
-        val name = columnElt.simpleName
-        val columnName = getColumnName(columnAnn, columnElt)
-        val converter = getConverterDefinition(columnElt)
-        val type = columnElt.toModelType() ?: throw ElementTypeNotFoundException(columnElt)
-        val columnDefinition = PropertyDefinition(name = name, columnName = columnName, annotation = columnAnn,
-                type = type, nullable = isNullable(columnElt), converter = converter)
-        entity.addProperty(columnDefinition)
+        processEmbeddedColumns(graphs)
     }
 
     private fun processIds(graphs: EntityGraphs) =
@@ -56,6 +48,40 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
                 )
                 entity.copy(id = idDef)
             }
+
+    private fun processColumns(graphs: EntityGraphs) =
+            processElements(annEnv.columns, graphs) { entity, columnElt ->
+                val columnDefinition = propertyDefinition(columnElt)
+                entity.addProperty(columnDefinition)
+            }
+
+    //TODO handle @AttributeOverride
+    //TODO handle multiple @Embedded with same type
+    private fun processEmbeddedColumns(graphs: EntityGraphs) {
+        for (element in annEnv.embedded) { // @Entity User(@Embedded Address element)
+            val embeddableType =  (element.asType() as DeclaredType).asElement().toTypeElement() // Address
+            val columns = annEnv.embeddedColumn.filter { columnElt -> columnElt.enclosingTypeElement() == embeddableType }.toList() //city, street, houseNumber
+            val entityType = element.enclosingTypeElement() //User
+
+            val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
+            graph.computeIfPresent(entityType) { _, entity -> //User
+                val columnDefs = columns.map(this::propertyDefinition)
+                val embeddable = EmbeddableDefinition(propertyName = element.simpleName, qualifiedName = embeddableType.qualifiedName, nullable = isNullable(element), properties = columnDefs)
+
+                entity.addEmbeddable(embeddable)
+            }
+        }
+    }
+
+    private fun propertyDefinition(columnElt: VariableElement): PropertyDefinition {
+        val columnAnn: Column? = columnElt.getAnnotation(Column::class.java)
+        val name = columnElt.simpleName
+        val columnName = getColumnName(columnAnn, columnElt)
+        val converter = getConverterDefinition(columnElt)
+        val type = columnElt.toModelType() ?: throw ElementTypeNotFoundException(columnElt)
+        return PropertyDefinition(name = name, columnName = columnName, annotation = columnAnn,
+                type = type, nullable = isNullable(columnElt), converter = converter)
+    }
 
     private fun isNullable(columnElt: VariableElement) =
             columnElt.getAnnotation(NotNull::class.java) == null && columnElt.getAnnotation(Nullable::class.java) != null

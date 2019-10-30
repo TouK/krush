@@ -6,9 +6,12 @@ import javax.lang.model.element.Element
 import javax.lang.model.element.ElementKind
 import javax.lang.model.element.TypeElement
 import javax.lang.model.element.VariableElement
+import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.Elements
 import javax.lang.model.util.Types
+import javax.persistence.Embeddable
+import javax.persistence.Embedded
 import javax.persistence.Entity
 import javax.persistence.Id
 import javax.persistence.ManyToMany
@@ -35,7 +38,9 @@ data class AnnotationEnvironment(
         val oneToMany: List<VariableElement>,
         val manyToOne: List<VariableElement>,
         val manyToMany: List<VariableElement>,
-        val oneToOne: List<VariableElement>
+        val oneToOne: List<VariableElement>,
+        val embedded: List<VariableElement>,
+        val embeddedColumn: List<VariableElement>
 )
 
 fun Element.enclosingTypeElement() = this.enclosingElement.toTypeElement()
@@ -60,16 +65,27 @@ class EnvironmentBuilder(private val roundEnv: RoundEnvironment, private val pro
         val manyToMany = roundEnv.getElementsAnnotatedWith(ManyToMany::class.java).toVariableElements()
         val oneToOne = roundEnv.getElementsAnnotatedWith(OneToOne::class.java).toVariableElements()
         val columns = (roundEnv.rootElements.asSequence().map(this::toColumnElements).flatten() - (ids + oneToOne + oneToMany + manyToOne + manyToMany)).toList()
+        val embedded = roundEnv.getElementsAnnotatedWith(Embedded::class.java).toVariableElements()
+        val embeddedColumn = roundEnv.getElementsAnnotatedWith(Embeddable::class.java).map(this::toEmbeddedElements).flatten().toList()
 
-        return AnnotationEnvironment(entities, ids, columns, oneToMany, manyToOne, manyToMany, oneToOne)
+        return AnnotationEnvironment(entities, ids, columns, oneToMany, manyToOne, manyToMany, oneToOne, embedded, embeddedColumn)
     }
 
-    private fun toColumnElements(entity: Element) = entity.enclosedElements.filter(this::columnPredicate).map(Element::toVariableElement)
+    private fun toColumnElements(entity: Element) = entity.enclosedElements.filter(this::isColumn).map(Element::toVariableElement)
+
+    private fun isColumn(element: Element) = element.kind == ElementKind.FIELD &&
+            element.enclosingElement.getAnnotation(Entity::class.java) != null &&
+            element.getAnnotation(Transient::class.java) == null && element.getAnnotation(Embedded::class.java) == null
+
+    private fun toEmbeddedElements(embeddable: Element) = (embeddable.asType() as DeclaredType).asElement().enclosedElements
+            .filter(this::isEmbedded).map(Element::toVariableElement)
+
+    private fun isEmbedded(element: Element) = element.kind == ElementKind.FIELD &&
+            element.enclosingElement.getAnnotation(Embeddable::class.java) != null &&
+            element.getAnnotation(Transient::class.java) == null && element.getAnnotation(Embedded::class.java) == null
+
 
     fun buildTypeEnv() = TypeEnvironment(processingEnv.typeUtils, processingEnv.elementUtils)
-
-    private fun columnPredicate(element: Element) = element.kind == ElementKind.FIELD &&
-            element.enclosingElement.getAnnotation(Entity::class.java) != null && element.getAnnotation(Transient::class.java) == null
 
     private fun Collection<Element>.toTypeElements() = this.map(Element::toTypeElement)
     private fun Collection<Element>.toVariableElements() = this.map(Element::toVariableElement)
