@@ -75,7 +75,7 @@ class MappingsGenerator : SourceGenerator {
             "\t$embeddableName = ${embeddable.qualifiedName}(\n$embeddableMapping\n\t)"
         }
 
-        val associationsMappings = entity.getAssociations(MANY_TO_ONE).filter { assoc ->
+        val associationsMappings = entity.getAssociations(MANY_TO_ONE, ONE_TO_ONE).filter { assoc ->
             val isBidirectional = assoc.mapped
             isBidirectional
         }.map { "\t${it.name} = this.to${it.name.asVariable().capitalize()}()"}
@@ -117,8 +117,8 @@ class MappingsGenerator : SourceGenerator {
             val associationMapValueType = if (assoc.type in listOf(ONE_TO_MANY, MANY_TO_MANY)) "MutableSet<${target.name}>" else "${target.name}"
 
             func.addStatement("val $associationMapName = mutableMapOf<${entityTypeName}, $associationMapValueType>()")
-            if (assoc.type in listOf(ONE_TO_MANY, MANY_TO_MANY)) {
-                func.addStatement("val all_${assoc.name} = this.to${assoc.target.simpleName}Map()")
+            if (!(assoc.type == ONE_TO_ONE && assoc.mapped)) {
+              func.addStatement("val ${assoc.name}_map = this.to${assoc.target.simpleName}Map()")
             }
         }
 
@@ -135,7 +135,7 @@ class MappingsGenerator : SourceGenerator {
             when (assoc.type) {
                 ONE_TO_MANY, MANY_TO_MANY -> {
                     func.addStatement("\tresultRow.getOrNull(${target.idColumn})?.let {")
-                    func.addStatement("\t\tval $collName = all_${assoc.name}.filter { $targetVal -> $targetVal.key == it }")
+                    func.addStatement("\t\tval $collName = ${assoc.name}_map.filter { $targetVal -> $targetVal.key == it }")
 
                     val isBidirectional = target.associations.find { it.target == entityType }?.mapped ?: false
                     if (isBidirectional) {
@@ -148,8 +148,15 @@ class MappingsGenerator : SourceGenerator {
                 }
 
                 ONE_TO_ONE -> {
-                    func.addStatement("\t\tval ${assoc.name.asVariable()} = resultRow.to${target.name}().copy($rootVal = $rootVal)")
-                    func.addStatement("\t\t$associationMapName[${rootValId}] =  ${assoc.name.asVariable()}")
+                    if (!assoc.mapped) {
+                        func.addStatement("\tresultRow.getOrNull(${target.idColumn})?.let {")
+                        func.addStatement("\t\t${assoc.name}_map.get(it)?.let {")
+                        func.addStatement("\t\t\t$associationMapName[$rootValId] = it")
+                        func.addStatement("\t\t}\n}")
+                    } else {
+                        func.addStatement("\tval ${assoc.name.asVariable()} = resultRow.to${target.name}()")
+                        func.addStatement("\t$associationMapName[${rootValId}] =  ${assoc.name.asVariable()}")
+                    }
                 }
 
                 else -> {}
@@ -215,7 +222,7 @@ class MappingsGenerator : SourceGenerator {
             if (assoc.mapped) {
                 "\tthis[$tableName.$name] = $param.$name?.${assoc.targetId.name.asVariable()}"
             } else {
-                "\t${targetParam}?.let { this[$tableName.$name] = it.id }"
+                "\t${targetParam}?.let { this[$tableName.$name] = it.${assoc.targetId.name} }"
             }
         }
 

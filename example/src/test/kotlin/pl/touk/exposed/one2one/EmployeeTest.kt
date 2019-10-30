@@ -29,14 +29,15 @@ class EmployeeTest {
 
             val employeeInfo = EmployeeInfo(login = "admin", employee = employee).let { employeeInfo ->
                 EmployeeInfoTable.insert { it.from(employeeInfo) }
-                employeeInfo
+                employeeInfo.copy(employee = employee)
             }
 
             //when
             val employees = (EmployeeTable leftJoin EmployeeInfoTable).selectAll().toEmployeeList()
 
-            //then
             val fullEmployee = employee.copy(employeeInfo = employeeInfo)
+
+            //then
             Assertions.assertThat(employees).containsOnly(fullEmployee)
         }
     }
