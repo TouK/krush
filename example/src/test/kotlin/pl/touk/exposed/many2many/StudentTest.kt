@@ -1,6 +1,6 @@
 package pl.touk.exposed.many2many
 
-import org.assertj.core.api.Assertions
+import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.insert
@@ -43,7 +43,7 @@ class StudentTest {
             val (selectedStudent) = (StudentTable leftJoin StudentCoursesTable leftJoin CourseTable).selectAll().toStudentList()
 
             // then
-            Assertions.assertThat(selectedStudent).isEqualTo(student)
+            assertThat(selectedStudent).isEqualTo(student)
         }
     }
 }
