@@ -109,6 +109,10 @@ fun EntityGraphs.entityId(typeElement: TypeElement) : IdDefinition {
     return graph[typeElement]?.id ?: throw EntityNotMappedException(typeElement)
 }
 
+fun EntityGraphs.entity(packageName: String, typeElement: TypeElement) : EntityDefinition? {
+    return this[packageName]?.get(typeElement)
+}
+
 fun Name.asObject() = this.toString().capitalize()
 fun Name.asVariable() = this.toString().decapitalize()
 
