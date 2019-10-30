@@ -12,10 +12,12 @@ buildscript {
 
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "com.github.jengelman.gradle.plugins:shadow:5.1.0"
     }
 }
 
 apply plugin: 'kotlin'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 group = 'pl.touk.exposed-generator'
 sourceCompatibility = 1.8
@@ -25,5 +27,6 @@ allprojects {
         jcenter()
         maven { url 'https://jitpack.io' }
         maven { url 'https://philanthropist.touk.pl/nexus/content/repositories/snapshots' }
+        maven { url 'https://plugins.gradle.org/m2/'}
     }
 }
