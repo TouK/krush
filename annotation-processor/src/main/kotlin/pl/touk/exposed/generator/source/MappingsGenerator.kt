@@ -66,12 +66,21 @@ class MappingsGenerator : SourceGenerator {
             "\t$name = this[${entity.name}Table.${name}]"
         }
 
+        val embeddedMappings = entity.embeddables.map { embeddable ->
+            val embeddableName = embeddable.propertyName.asVariable()
+            val embeddableMapping = embeddable.getPropertyNames().joinToString(", \n") { name ->
+                "\t\t$name = this[${entity.name}Table.${name}]"
+            }
+
+            "\t$embeddableName = ${embeddable.qualifiedName}(\n$embeddableMapping\n\t)"
+        }
+
         val associationsMappings = entity.getAssociations(MANY_TO_ONE).filter { assoc ->
             val isBidirectional = assoc.mapped
             isBidirectional
         }.map { "\t${it.name} = this.to${it.name.asVariable().capitalize()}()"}
 
-        val mapping = (propsMappings + associationsMappings).joinToString(",\n")
+        val mapping = (propsMappings + embeddedMappings + associationsMappings).joinToString(",\n")
 
         func.addStatement("return %T(\n$mapping\n)", entityType.asType().asTypeName())
 
@@ -193,6 +202,13 @@ class MappingsGenerator : SourceGenerator {
             "\tthis[$tableName.$name] = $param.$name"
         }
 
+        val embeddedMappings = entity.embeddables.map { embeddable ->
+            val embeddableName = embeddable.propertyName.asVariable()
+            embeddable.getPropertyNames().map { name ->
+                "\tthis[$tableName.$name] = $param.$embeddableName.$name"
+            }
+        }.flatten()
+
         val assocMappings = entity.getAssociations(MANY_TO_ONE).map { assoc ->
             val name = assoc.name
             val targetParam = assoc.target.simpleName.asVariable()
@@ -208,7 +224,7 @@ class MappingsGenerator : SourceGenerator {
             "\tthis[$tableName.$name] = $param.$name?.${assoc.targetId.name.asVariable()}"
         }
 
-        (listOf(idMapping) + propsMappings + assocMappings + oneToOneMappings).forEach {
+        (listOf(idMapping) + propsMappings + embeddedMappings + assocMappings + oneToOneMappings).forEach {
             func.addStatement(it)
         }
 

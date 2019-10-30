@@ -4,6 +4,8 @@ import org.joda.time.DateTime
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import javax.persistence.Column
+import javax.persistence.Embeddable
+import javax.persistence.Embedded
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
 import javax.persistence.Id
@@ -87,4 +89,18 @@ data class DatePropertyEntity(
         val dateTime: DateTime,
         val localDateTime: LocalDateTime,
         val zonedDateTime: ZonedDateTime
+)
+
+@Entity
+data class EmbeddedPropertyEntity(
+        @Id @GeneratedValue
+        val id: Long,
+
+        @Embedded
+        val embeddableType: EmbeddableType
+)
+
+@Embeddable
+data class EmbeddableType(
+        val property1: String
 )
