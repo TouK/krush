@@ -82,19 +82,11 @@ class TablesGenerator : SourceGenerator {
             } ?: throw MissingIdException(entity)
 
             entity.properties.forEach { column ->
-                val name = column.name
-                val type = column.asTypeName().copy(nullable =  column.nullable)
-                val columnType = Column::class.asTypeName().parameterizedBy(type)
-                val propSpec = PropertySpec.builder(name.asVariable(), columnType)
-                val initializer = propertyInitializer(column, entity)
+                addTableProperty(column, entity, tableSpec, fileSpec)
+            }
 
-                propSpec.initializer(initializer)
-                tableSpec.addProperty(propSpec.build())
-
-                if (column.converter != null) {
-                    val converterName: String = converterFuncName(entityName = entity.name, propertyName = column.name)
-                    converterFunc(converterName, type, column.converter, fileSpec)
-                }
+            entity.embeddables.map { it.properties }.flatten().forEach { column ->
+                addTableProperty(column, entity, tableSpec, fileSpec)
             }
 
             entity.getAssociations(AssociationType.MANY_TO_ONE).forEach { assoc ->
@@ -150,9 +142,27 @@ class TablesGenerator : SourceGenerator {
 
                 fileSpec.addType(manyToManyTableSpec.build())
             }
+
+
         }
 
         return fileSpec.build()
+    }
+
+    private fun addTableProperty(column: PropertyDefinition, entity: EntityDefinition, tableSpec: TypeSpec.Builder, fileSpec: FileSpec.Builder) {
+        val name = column.name
+        val type = column.asTypeName().copy(nullable = column.nullable)
+        val columnType = Column::class.asTypeName().parameterizedBy(type)
+        val propSpec = PropertySpec.builder(name.asVariable(), columnType)
+        val initializer = propertyInitializer(column, entity)
+
+        propSpec.initializer(initializer)
+        tableSpec.addProperty(propSpec.build())
+
+        column.converter?.let {
+            val converterName: String = converterFuncName(entityName = entity.name, propertyName = column.name)
+            converterFunc(converterName, type, it, fileSpec)
+        }
     }
 
     private fun converterFunc(name: String, type: TypeName, it: ConverterDefinition, fileSpec: FileSpec.Builder): FileSpec.Builder {
