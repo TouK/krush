@@ -45,7 +45,7 @@ class MappingsGenerator : SourceGenerator {
         }
 
         graph.traverse { entityType, entity ->
-            fileSpec.addFunction(buildToEntityFunc(entityType, entity, graphs))
+            fileSpec.addFunction(buildToEntityFunc(entityType, entity))
             fileSpec.addFunction(buildToEntityListFunc(entityType, entity, graphs))
             fileSpec.addFunction(buildToEntityMapFunc(entityType, entity, graphs))
             fileSpec.addFunction(buildFromEntityFunc(entityType, entity))
@@ -57,7 +57,7 @@ class MappingsGenerator : SourceGenerator {
         return fileSpec.build()
     }
 
-    private fun buildToEntityFunc(entityType: TypeElement, entity: EntityDefinition, graphs: EntityGraphs): FunSpec {
+    private fun buildToEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
         val func = FunSpec.builder("to${entity.name}")
                 .receiver(ResultRow::class.java)
                 .returns(entityType.asType().asTypeName())
@@ -78,7 +78,7 @@ class MappingsGenerator : SourceGenerator {
         val associationsMappings = entity.getAssociations(MANY_TO_ONE, ONE_TO_ONE).filter { assoc ->
             val isBidirectional = assoc.mapped
             isBidirectional
-        }.map { "\t${it.name} = this.to${it.name.asVariable().capitalize()}()"}
+        }.map { "\t${it.name} = this.to${it.target.simpleName}()"}
 
         val mapping = (propsMappings + embeddedMappings + associationsMappings).joinToString(",\n")
 
@@ -152,7 +152,8 @@ class MappingsGenerator : SourceGenerator {
                         func.addStatement("\tresultRow.getOrNull(${target.idColumn})?.let {")
                         func.addStatement("\t\t${assoc.name}_map.get(it)?.let {")
                         func.addStatement("\t\t\t$associationMapName[$rootValId] = it")
-                        func.addStatement("\t\t}\n}")
+                        func.addStatement("\t\t}")
+                        func.addStatement("\t}")
                     } else {
                         func.addStatement("\tval ${assoc.name.asVariable()} = resultRow.to${target.name}()")
                         func.addStatement("\t$associationMapName[${rootValId}] =  ${assoc.name.asVariable()}")
