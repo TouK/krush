@@ -123,7 +123,7 @@ class MappingsGenerator : SourceGenerator {
         }
 
         func.addStatement("this.forEach { resultRow ->")
-        func.addStatement("\tval $rootValId = resultRow[${entity.name}Table.${entity.id.name}]")
+        func.addStatement("\tval $rootValId = resultRow.getOrNull(${entity.name}Table.${entity.id.name}) ?: return@forEach")
         func.addStatement("\tval $rootVal = roots[$rootValId] ?: resultRow.to${entity.name}()")
         func.addStatement("\troots[$rootValId] = $rootVal")
         associations.forEach { assoc ->

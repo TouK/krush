@@ -8,6 +8,7 @@ import javax.persistence.OneToOne
 
 @Entity
 data class Employee(
+
         @Id @GeneratedValue
         val id: Long? = null,
 
@@ -17,10 +18,27 @@ data class Employee(
 
 @Entity
 data class EmployeeInfo(
+
         @Id
         val login: String,
 
         @OneToOne
         @JoinColumn(name = "employee_id")
-        val employee: Employee? = null
+        val employee: Employee? = null,
+
+        @OneToOne(mappedBy = "employeeInfo")
+        val parkingSpot: ParkingSpot? = null
+)
+
+@Entity
+data class ParkingSpot(
+
+        @Id @GeneratedValue
+        val id: Long? = null,
+
+        val code: String,
+
+        @OneToOne
+        @JoinColumn(name = "employee_info_id")
+        val employeeInfo: EmployeeInfo?
 )

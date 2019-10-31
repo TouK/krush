@@ -1,10 +1,11 @@
-package pl.touk.exposed.one2one.multilevel
+package pl.touk.exposed.one2many.bidi
 
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
 import javax.persistence.Id
 import javax.persistence.JoinColumn
-import javax.persistence.OneToOne
+import javax.persistence.ManyToOne
+import javax.persistence.OneToMany
 
 @Entity
 data class Tree(
@@ -14,8 +15,8 @@ data class Tree(
 
         val name: String,
 
-        @OneToOne(mappedBy = "tree")
-        val branch: Branch? = null
+        @OneToMany(mappedBy = "tree")
+        val branches: List<Branch> = emptyList()
 )
 
 @Entity
@@ -27,12 +28,12 @@ data class Branch(
 
         val name: String,
 
-        @OneToOne
+        @ManyToOne
         @JoinColumn(name = "tree_id")
         val tree: Tree? = null,
 
-        @OneToOne(mappedBy = "branch")
-        val leaf: Leaf? = null
+        @OneToMany(mappedBy = "branch")
+        val leafs: List<Leaf> = emptyList()
 )
 
 @Entity
@@ -43,7 +44,7 @@ data class Leaf(
 
         val name: String,
 
-        @OneToOne
+        @ManyToOne
         @JoinColumn(name = "branch_id")
         val branch: Branch? = null
 )

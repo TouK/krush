@@ -1,4 +1,4 @@
-package pl.touk.exposed.one2one.multilevel
+package pl.touk.exposed.one2many.uni
 
 import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.sql.Database
@@ -27,13 +27,28 @@ class TreeTest {
                 tree.copy(id = treeId)
             }
 
-            val branch1 = Branch(name = "branch 1", tree = tree).let { branch ->
-                val branchId = BranchTable.insert { it.from(branch) }[BranchTable.id]
+            val branch1 = Branch(name = "branch 1").let { branch ->
+                val branchId = BranchTable.insert { it.from(branch, tree) }[BranchTable.id]
                 branch.copy(id = branchId)
             }
 
-            val leaf11 = Leaf(name = "leaf11", branch = branch1).let { leaf ->
-                val leafId = LeafTable.insert { it.from(leaf) }[LeafTable.id]
+            val branch2 = Branch(name = "branch 2").let { branch ->
+                val branchId = BranchTable.insert { it.from(branch, tree) }[BranchTable.id]
+                branch.copy(id = branchId)
+            }
+
+            val leaf11 = Leaf(name = "leaf11").let { leaf ->
+                val leafId = LeafTable.insert { it.from(leaf, branch1) }[LeafTable.id]
+                leaf.copy(id = leafId)
+            }
+
+            val leaf12 = Leaf(name = "leaf12").let { leaf ->
+                val leafId = LeafTable.insert { it.from(leaf, branch1) }[LeafTable.id]
+                leaf.copy(id = leafId)
+            }
+
+            val leaf21 = Leaf(name = "leaf21").let { leaf ->
+                val leafId = LeafTable.insert { it.from(leaf, branch2) }[LeafTable.id]
                 leaf.copy(id = leafId)
             }
 
@@ -41,7 +56,7 @@ class TreeTest {
             val (trees) = (TreeTable leftJoin BranchTable leftJoin LeafTable).selectAll().toTreeList()
 
             // then
-            val fullTree= tree.copy(branch = branch1.copy(leaf = leaf11))
+            val fullTree= tree.copy(branches = listOf(branch1.copy(leafs = listOf(leaf11, leaf12)), branch2.copy(leafs = listOf(leaf21))))
 
             assertThat(trees).isEqualTo(fullTree)
         }
