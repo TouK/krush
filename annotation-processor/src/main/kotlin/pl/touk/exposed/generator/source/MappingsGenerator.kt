@@ -215,14 +215,18 @@ class MappingsGenerator : SourceGenerator {
         val targetVal = assoc.target.simpleName.asVariable()
         val targetType = assoc.target
         val tableName = "${entity.name}${assoc.name.asObject()}Table"
+        val entityId = entity.id ?: throw EntityNotMappedException(entityType)
 
         val func = FunSpec.builder("from")
                 .receiver(UpdateBuilder::class.parameterizedBy(Any::class))
                 .addParameter(param, entityType.asType().asTypeName())
                 .addParameter(targetVal, targetType.asClassName())
 
-        listOf(param, targetVal).forEach { side ->
-            func.addStatement("\t${side}.id?.let { id -> this[$tableName.${side}Id] = id }")
+        listOf(Pair(param, entityId), Pair(targetVal, assoc.targetId)).forEach { side ->
+            when {
+                side.second.nullable -> func.addStatement("\t${side.first}.id?.let { id -> this[$tableName.${side.first}Id] = id }")
+                else -> func.addStatement("\tthis[$tableName.${side.first}Id] = ${side.first}.id")
+            }
         }
 
         return func.build()
