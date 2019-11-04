@@ -2,6 +2,7 @@ apply plugin: 'kotlin'
 
 dependencies {
     api "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    api "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
 
     api "org.jetbrains.exposed:exposed-jdbc:$exposed_version"
     api "org.jetbrains.exposed:exposed-jodatime:$exposed_version"
