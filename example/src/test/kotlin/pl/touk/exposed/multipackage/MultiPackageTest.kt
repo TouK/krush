@@ -27,7 +27,7 @@ class MultiPackageTest {
 
             // given
             val a = TestA().let { a ->
-                val id = TestATable.insert { it.from(a) }[TestATable.id]
+                val id = TestATable.insert {}[TestATable.id]
                 a.copy(id = id)
             }
 
