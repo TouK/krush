@@ -44,7 +44,7 @@ class MappingsGenerator : SourceGenerator {
         graph.traverse { entityType, entity ->
             fileSpec.addFunction(buildToEntityFunc(entityType, entity))
             fileSpec.addFunction(buildToEntityListFunc(entityType, entity, graphs))
-            buildFromEntityFunc(entityType, entity)?.let (fileSpec::addFunction)
+            buildFromEntityFunc(entityType, entity)?.let(fileSpec::addFunction)
             entity.getAssociations(MANY_TO_MANY).forEach { assoc ->
                 fileSpec.addFunction(buildFromManyToManyFunc(entityType, entity, assoc))
             }
