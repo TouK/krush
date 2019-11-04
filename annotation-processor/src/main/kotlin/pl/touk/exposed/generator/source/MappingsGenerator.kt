@@ -224,9 +224,9 @@ class MappingsGenerator : SourceGenerator {
                 .addParameter(targetVal, targetType.asClassName())
 
         listOf(Pair(param, entityId), Pair(targetVal, assoc.targetId)).forEach { side ->
-            when {
-                side.second.nullable -> func.addStatement("\t${side.first}.id?.let { id -> this[$tableName.${side.first}Id] = id }")
-                else -> func.addStatement("\tthis[$tableName.${side.first}Id] = ${side.first}.id")
+            when (side.second.nullable) {
+                true -> func.addStatement("\t${side.first}.id?.let { id -> this[$tableName.${side.first}Id] = id }")
+                false -> func.addStatement("\tthis[$tableName.${side.first}Id] = ${side.first}.id")
             }
         }
 
