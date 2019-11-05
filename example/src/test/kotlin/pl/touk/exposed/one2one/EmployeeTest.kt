@@ -23,7 +23,7 @@ class EmployeeTest {
 
             // given
             val employee = Employee().let { employee ->
-                val id = EmployeeTable.insert { it.from(employee) }[EmployeeTable.id]
+                val id = EmployeeTable.insert {}[EmployeeTable.id]
                 employee.copy(id = id)
             }
 

@@ -44,7 +44,8 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
 
                 val idDef = IdDefinition(
                         name = idElt.simpleName, columnName = columnName, converter = converter,
-                        annotation = columnAnn, type = type, generatedValue = generatedValue
+                        annotation = columnAnn, type = type, generatedValue = generatedValue,
+                        nullable = isNullable(idElt)
                 )
                 entity.copy(id = idDef)
             }

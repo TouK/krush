@@ -17,7 +17,7 @@ import javax.persistence.Table
 data class DefaultPropertyNameEntity(
 
         @Id @GeneratedValue
-        val id: Long,
+        val id: Long?,
 
         val prop1: String,
 
@@ -31,7 +31,7 @@ data class CustomPropertyNameEntity(
 
         @Id @GeneratedValue
         @Column(name = "test_id")
-        val id: Long,
+        val id: Long?,
 
         @Column(name = "prop1_custom")
         val prop1: String
@@ -41,7 +41,7 @@ data class CustomPropertyNameEntity(
 data class NullablePropertyEntity(
 
         @Id @GeneratedValue
-        val id: Long,
+        val id: Long?,
 
         val prop1: String?
 )
@@ -50,7 +50,7 @@ data class NullablePropertyEntity(
 data class OneToOneSourceEntity(
 
         @Id @GeneratedValue
-        val id: Long,
+        val id: Long?,
 
         @OneToOne
         @JoinColumn(name = "target_id")
@@ -61,7 +61,7 @@ data class OneToOneSourceEntity(
 data class OneToOneTargetEntity(
 
         @Id @GeneratedValue
-        val id: Long,
+        val id: Long?,
 
         @OneToOne(mappedBy = "targetEntity")
         val sourceEntity: OneToOneSourceEntity
@@ -71,7 +71,7 @@ data class OneToOneTargetEntity(
 data class NumericPropertyEntity(
 
         @Id @GeneratedValue
-        val id: Long,
+        val id: Long?,
 
         val long: Long,
         val int: Int,
@@ -84,7 +84,7 @@ data class NumericPropertyEntity(
 data class DatePropertyEntity(
 
         @Id @GeneratedValue
-        val id: Long,
+        val id: Long?,
 
         val dateTime: DateTime,
         val localDateTime: LocalDateTime,
@@ -94,7 +94,7 @@ data class DatePropertyEntity(
 @Entity
 data class EmbeddedPropertyEntity(
         @Id @GeneratedValue
-        val id: Long,
+        val id: Long?,
 
         @Embedded
         val embeddableType: EmbeddableType

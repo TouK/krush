@@ -41,7 +41,8 @@ data class IdDefinition (
         val annotation: Column?,
         val type: Type,
         val generatedValue: Boolean = false,
-        val converter: ConverterDefinition? = null
+        val converter: ConverterDefinition? = null,
+        val nullable: Boolean
 )
 
 data class AssociationDefinition(
