@@ -75,10 +75,8 @@ class MappingsGenerator : SourceGenerator {
             "\t$embeddableName = ${embeddable.qualifiedName}(\n$embeddableMapping\n\t)"
         }
 
-        val associationsMappings = entity.getAssociations(MANY_TO_ONE, ONE_TO_ONE).filter { assoc ->
-            val isBidirectional = assoc.mapped
-            isBidirectional
-        }.map { "\t${it.name} = this.to${it.target.simpleName}()"}
+        val associationsMappings = entity.getAssociations(MANY_TO_ONE, ONE_TO_ONE)
+                .filter { assoc -> assoc.mapped }.map { "\t${it.name} = this.to${it.target.simpleName}()"}
 
         val mapping = (propsMappings + embeddedMappings + associationsMappings).joinToString(",\n")
 
