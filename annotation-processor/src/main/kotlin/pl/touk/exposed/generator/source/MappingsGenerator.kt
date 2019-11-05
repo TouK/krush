@@ -48,7 +48,7 @@ class MappingsGenerator : SourceGenerator {
             fileSpec.addFunction(buildToEntityFunc(entityType, entity))
             fileSpec.addFunction(buildToEntityListFunc(entityType, entity, graphs))
             fileSpec.addFunction(buildToEntityMapFunc(entityType, entity, graphs))
-            fileSpec.addFunction(buildFromEntityFunc(entityType, entity))
+            buildFromEntityFunc(entityType, entity)?.let(fileSpec::addFunction)
             entity.getAssociations(MANY_TO_MANY).forEach { assoc ->
                 fileSpec.addFunction(buildFromManyToManyFunc(entityType, entity, assoc))
             }
@@ -184,7 +184,7 @@ class MappingsGenerator : SourceGenerator {
         return func.build()
     }
 
-    private fun buildFromEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
+    private fun buildFromEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec? {
         val param = entity.name.asVariable()
         val tableName = "${entity.name}Table"
 
@@ -202,8 +202,8 @@ class MappingsGenerator : SourceGenerator {
         assocParams.forEach { func.addParameter(it) }
 
         val idMapping = when (entity.id?.generatedValue) {
-            false -> "\tthis[$tableName.${entity.id.name}] = $param.${entity.id.name}"
-            else -> ""
+            false -> listOf("\tthis[$tableName.${entity.id.name}] = $param.${entity.id.name}")
+            else -> emptyList()
         }
 
         val propsMappings = entity.getPropertyNames().map { name ->
@@ -232,9 +232,10 @@ class MappingsGenerator : SourceGenerator {
             "\tthis[$tableName.$name] = $param.$name?.${assoc.targetId.name.asVariable()}"
         }
 
-        (listOf(idMapping) + propsMappings + embeddedMappings + assocMappings + oneToOneMappings).forEach {
-            func.addStatement(it)
-        }
+        val statements = (idMapping + propsMappings + embeddedMappings + assocMappings + oneToOneMappings)
+        if (statements.isEmpty()) return null
+
+        statements.forEach { func.addStatement(it) }
 
         return func.build()
     }
@@ -244,14 +245,18 @@ class MappingsGenerator : SourceGenerator {
         val targetVal = assoc.target.simpleName.asVariable()
         val targetType = assoc.target
         val tableName = "${entity.name}${assoc.name.asObject()}Table"
+        val entityId = entity.id ?: throw EntityNotMappedException(entityType)
 
         val func = FunSpec.builder("from")
                 .receiver(UpdateBuilder::class.parameterizedBy(Any::class))
                 .addParameter(param, entityType.asType().asTypeName())
                 .addParameter(targetVal, targetType.asClassName())
 
-        listOf(param, targetVal).forEach { side ->
-            func.addStatement("\t${side}.id?.let { id -> this[$tableName.${side}Id] = id }")
+        listOf(Pair(param, entityId), Pair(targetVal, assoc.targetId)).forEach { side ->
+            when (side.second.nullable) {
+                true -> func.addStatement("\t${side.first}.id?.let { id -> this[$tableName.${side.first}Id] = id }")
+                false -> func.addStatement("\tthis[$tableName.${side.first}Id] = ${side.first}.id")
+            }
         }
 
         return func.build()

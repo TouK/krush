@@ -366,7 +366,8 @@ interface EntityGraphSampleData {
                 columnName = name,
                 annotation = id.getAnnotation(Column::class.java),
                 type = LONG,
-                generatedValue = true
+                generatedValue = true,
+                nullable = true
         )
     }
 
