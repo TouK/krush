@@ -5,7 +5,6 @@ dependencies {
     api "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
 
     api "org.jetbrains.exposed:exposed-jdbc:$exposed_version"
-    api "org.jetbrains.exposed:exposed-jodatime:$exposed_version"
     api "org.jetbrains.exposed:exposed-core:$exposed_version"
-    api "joda-time:joda-time:2.10.2"
+    api "org.jetbrains.exposed:exposed-java-time:$exposed_version"
 }
