@@ -1,5 +1,6 @@
 package pl.touk.example
 
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import javax.persistence.Column
@@ -85,6 +86,7 @@ data class DatePropertyEntity(
         @Id @GeneratedValue
         val id: Long?,
 
+        val localDate: LocalDate,
         val localDateTime: LocalDateTime,
         val zonedDateTime: ZonedDateTime
 )
