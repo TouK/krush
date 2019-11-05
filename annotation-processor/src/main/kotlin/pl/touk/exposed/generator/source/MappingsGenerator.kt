@@ -46,7 +46,7 @@ class MappingsGenerator : SourceGenerator {
 
         graph.traverse { entityType, entity ->
             fileSpec.addFunction(buildToEntityFunc(entityType, entity))
-            fileSpec.addFunction(buildToEntityListFunc(entityType, entity, graphs))
+            fileSpec.addFunction(buildToEntityListFunc(entityType, entity))
             fileSpec.addFunction(buildToEntityMapFunc(entityType, entity, graphs))
             buildFromEntityFunc(entityType, entity)?.let(fileSpec::addFunction)
             entity.getAssociations(MANY_TO_MANY).forEach { assoc ->
@@ -85,7 +85,7 @@ class MappingsGenerator : SourceGenerator {
         return func.build()
     }
 
-    private fun buildToEntityListFunc(entityType: TypeElement, entity: EntityDefinition, graphs: EntityGraphs): FunSpec {
+    private fun buildToEntityListFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
         val func = FunSpec.builder("to${entity.name}List")
                 .receiver(Iterable::class.parameterizedBy(ResultRow::class))
                 .returns(List::class.asClassName().parameterizedBy(entityType.asType().asTypeName()))

@@ -45,8 +45,8 @@ class TablesGenerator : SourceGenerator {
 
     override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String): FileSpec {
         val fileSpec = FileSpec.builder(packageName, fileName = "tables")
-                .addImport("org.jetbrains.exposed.sql", "Table", "datetime")
-                .addImport("pl.touk.exposed", "stringWrapper", "longWrapper", "localDateTime", "zonedDateTime")
+                .addImport("org.jetbrains.exposed.sql", "Table", "date", "datetime")
+                .addImport("pl.touk.exposed", "stringWrapper", "longWrapper", "zonedDateTime")
 
         graph.allAssociations().forEach { entity ->
             if (entity.packageName != packageName) {
@@ -143,7 +143,6 @@ class TablesGenerator : SourceGenerator {
                 fileSpec.addType(manyToManyTableSpec.build())
             }
 
-
         }
 
         return fileSpec.build()
@@ -214,14 +213,14 @@ class TablesGenerator : SourceGenerator {
             STRING -> CodeBlock.of("varchar(%S, %L)", property.columnName, property.annotation?.length ?: 255)
             LONG -> CodeBlock.of("long(%S)", property.columnName)
             BOOLEAN -> CodeBlock.of("bool(%S)", property.columnName)
-            DATE_TIME -> CodeBlock.of("datetime(%S)", property.columnName)
             UUID -> CodeBlock.of("uuid(%S)", property.columnName)
             INT -> CodeBlock.of("integer(%S)", property.columnName)
             SHORT -> CodeBlock.of("short(%S)", property.columnName)
             FLOAT -> CodeBlock.of("float(%S)", property.columnName)
             DOUBLE -> CodeBlock.of("double(%S)", property.columnName)
             BIG_DECIMAL -> CodeBlock.of("decimal(%S, %L, %L)", property.columnName, property.annotation?.precision ?: 0, property.annotation?.scale ?: 0)
-            LOCAL_DATE_TIME -> CodeBlock.of("localDateTime(%S)", property.columnName)
+            LOCAL_DATE -> CodeBlock.of("date(%S)", property.columnName)
+            LOCAL_DATE_TIME -> CodeBlock.of("datetime(%S)", property.columnName)
             ZONED_DATE_TIME -> CodeBlock.of("zonedDateTime(%S)", property.columnName)
             else -> throw PropertyTypeNotSupportedExpcetion(property.type)
         }
@@ -289,7 +288,7 @@ private fun converterFuncName(entityName: Name, propertyName: Name) =
         entityName.asVariable().decapitalize().plus("_$propertyName")
 
 @JvmField val BIG_DECIMAL = ClassName("java.math", "BigDecimal")
+@JvmField val LOCAL_DATE =  ClassName("java.time", "LocalDate")
 @JvmField val LOCAL_DATE_TIME =  ClassName("java.time", "LocalDateTime")
 @JvmField val ZONED_DATE_TIME =  ClassName("java.time", "ZonedDateTime")
 @JvmField val UUID =  ClassName("java.util", "UUID")
-@JvmField val DATE_TIME =  ClassName("org.joda.time", "DateTime")

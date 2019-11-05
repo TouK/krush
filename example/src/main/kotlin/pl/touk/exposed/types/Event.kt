@@ -1,6 +1,6 @@
 package pl.touk.exposed.types
 
-import org.joda.time.DateTime
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.util.*
@@ -15,7 +15,7 @@ data class Event(
     @GeneratedValue
     val id: Long? = null,
 
-    val eventTime: DateTime,
+    val eventDate: LocalDate,
     val processTime: LocalDateTime,
     val createTime: ZonedDateTime,
     val externalId: UUID

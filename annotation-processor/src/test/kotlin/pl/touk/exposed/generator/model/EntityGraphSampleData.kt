@@ -287,12 +287,11 @@ interface EntityGraphSampleData {
 
         val datePropertyEntity = datePropertyEntity(typeEnvironment)
         val datePropertyEntityId = getVariableElement(datePropertyEntity, elements, "id")
-        val dateTime = getVariableElement(datePropertyEntity, typeEnvironment.elementUtils,"dateTime")
         val localDateTime = getVariableElement(datePropertyEntity, typeEnvironment.elementUtils,"localDateTime")
         val zonedDateTime = getVariableElement(datePropertyEntity, typeEnvironment.elementUtils,"zonedDateTime")
 
         val annEnv = AnnotationEnvironment(entities =  listOf(datePropertyEntity), ids = listOf(datePropertyEntityId),
-                columns = listOf(dateTime, localDateTime, zonedDateTime), oneToMany = emptyList(), manyToOne = emptyList(),
+                columns = listOf(localDateTime, zonedDateTime), oneToMany = emptyList(), manyToOne = emptyList(),
                 manyToMany =  emptyList(), oneToOne = emptyList(), embedded = emptyList(), embeddedColumn = emptyList())
 
         return EntityGraphBuilder(typeEnvironment, annEnv)
@@ -303,7 +302,6 @@ interface EntityGraphSampleData {
 
         val entity = datePropertyEntity(typeEnvironment)
         val id = getVariableElement(entity, elements, "id")
-        val dateTime = getVariableElement(entity, typeEnvironment.elementUtils,"dateTime")
         val localDateTime = getVariableElement(entity, typeEnvironment.elementUtils,"localDateTime")
         val zonedDateTime = getVariableElement(entity, typeEnvironment.elementUtils,"zonedDateTime")
 
@@ -313,7 +311,6 @@ interface EntityGraphSampleData {
                 table = entity.simpleName.asVariable(),
                 id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
                 properties = listOf(
-                        propertyDefinition(typeEnvironment, dateTime, "dateTime", DATE_TIME, false),
                         propertyDefinition(typeEnvironment, localDateTime, "localDateTime", LOCAL_DATE_TIME, false),
                         propertyDefinition(typeEnvironment, zonedDateTime, "zonedDateTime", ZONED_DATE_TIME, false)
                 )
@@ -396,7 +393,6 @@ interface EntityGraphSampleData {
 }
 
 private const val KOTLIN_PKG = "kotlin"
-private const val JODA_TIME_PKG = "org.joda.time"
 private const val JAVA_TIME_PKG = "java.time"
 @JvmField val STRING = Type(KOTLIN_PKG, "String")
 @JvmField val LONG = Type(KOTLIN_PKG, "Long")
@@ -404,6 +400,5 @@ private const val JAVA_TIME_PKG = "java.time"
 @JvmField val SHORT = Type(KOTLIN_PKG, "Short")
 @JvmField val FLOAT = Type(KOTLIN_PKG, "Float")
 @JvmField val DOUBLE = Type(KOTLIN_PKG, "Double")
-@JvmField val DATE_TIME = Type(JODA_TIME_PKG, "DateTime")
 @JvmField val LOCAL_DATE_TIME = Type(JAVA_TIME_PKG, "LocalDateTime")
 @JvmField val ZONED_DATE_TIME = Type(JAVA_TIME_PKG, "ZonedDateTime")
