@@ -4,7 +4,7 @@ import org.assertj.core.api.Assertions
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Before
 import org.junit.Test
@@ -30,7 +30,9 @@ class LineTest {
             }
 
             //when
-            val lines = (LineTable).selectAll().toLineList()
+            val lines = (LineTable)
+                    .select { LineTable.id eq line.id!! }
+                    .toLineList()
 
             //then
             Assertions.assertThat(lines).containsOnly(line)

@@ -5,6 +5,7 @@ import pl.touk.exposed.generator.env.TypeEnvironment
 import pl.touk.exposed.generator.env.enclosingTypeElement
 import pl.touk.exposed.generator.env.toTypeElement
 import pl.touk.exposed.generator.validation.EntityNotMappedException
+import javax.lang.model.element.Name
 import javax.persistence.JoinColumn
 
 class OneToManyPostProcessor(override val typeEnv: TypeEnvironment, private val annEnv: AnnotationEnvironment) : ElementProcessor {
@@ -23,13 +24,16 @@ class OneToManyPostProcessor(override val typeEnv: TypeEnvironment, private val 
                 } else {
                     val parentEntityId = graphs.entityId(entityType)
                     val associationDef = AssociationDefinition(
-                            name = entityType.simpleName, type = AssociationType.MANY_TO_ONE,
-                            target = entityType, joinColumn = joinColumnAnn.name, mapped = false,
-                            targetId = parentEntityId
+                            name = entityType.simpleName.decapitalize(), type = AssociationType.MANY_TO_ONE,
+                            target = entityType, joinColumn = joinColumnAnn.name, mapped = false, targetId = parentEntityId
                     )
                     entity.addAssociation(associationDef)
                 }
             }
         }
+    }
+
+    private fun Name.decapitalize() : Name {
+        return typeEnv.elementUtils.getName(this.asVariable().decapitalize())
     }
 }
