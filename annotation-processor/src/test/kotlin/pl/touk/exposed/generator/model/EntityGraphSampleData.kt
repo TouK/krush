@@ -59,6 +59,10 @@ interface EntityGraphSampleData {
         return getTypeElement("pl.touk.example.EmbeddableType", typeEnvironment.elementUtils)
     }
 
+    fun enumPropertyEntity(typeEnvironment: TypeEnvironment): TypeElement {
+        return getTypeElement("pl.touk.example.EnumPropertyEntity", typeEnvironment.elementUtils)
+    }
+
     fun customerGraphBuilder(typeEnvironment: TypeEnvironment): EntityGraphBuilder {
         val entity = customerTestEntity(typeEnvironment)
 
@@ -357,6 +361,40 @@ interface EntityGraphSampleData {
                                 )
                         )
                 )
+        )
+    }
+
+    fun enumPropertyGraphBuilder(typeEnvironment: TypeEnvironment): EntityGraphBuilder {
+        val elements = typeEnvironment.elementUtils
+
+        val enumPropertyEntity = enumPropertyEntity(typeEnvironment)
+        val enumPropertyEntityId = getVariableElement(enumPropertyEntity, elements, "id")
+        val enumClass = getVariableElement(enumPropertyEntity, typeEnvironment.elementUtils,"enumClass")
+
+        val annEnv = AnnotationEnvironment(entities =  listOf(enumPropertyEntity), ids = listOf(enumPropertyEntityId),
+                columns = listOf(enumClass), oneToMany = emptyList(), manyToOne = emptyList(),
+                manyToMany =  emptyList(), oneToOne = emptyList(), embedded = emptyList(), embeddedColumn = emptyList())
+
+        return EntityGraphBuilder(typeEnvironment, annEnv)
+    }
+
+    fun enumPropertyEntityDefinition(typeEnvironment: TypeEnvironment): EntityDefinition {
+        val elements = typeEnvironment.elementUtils
+
+        val entity = enumPropertyEntity(typeEnvironment)
+        val id = getVariableElement(entity, elements, "id")
+        val enumClass = getVariableElement(entity, typeEnvironment.elementUtils,"enumClass")
+
+        return EntityDefinition(
+                name = entity.simpleName,
+                qualifiedName = entity.qualifiedName,
+                table = entity.simpleName.asVariable(),
+                id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
+                properties = listOf(
+                        propertyDefinition(typeEnvironment, enumClass, "enumClass", Type("pl.touk.example", "EnumClass"), false)
+                                .copy(enumerated = EnumeratedDefinition(EnumType.STRING))
+                ),
+                embeddables = emptyList()
         )
     }
 

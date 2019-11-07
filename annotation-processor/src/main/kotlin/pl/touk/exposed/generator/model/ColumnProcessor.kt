@@ -22,6 +22,7 @@ import javax.lang.model.element.VariableElement
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeMirror
 import javax.persistence.Column
+import javax.persistence.Enumerated
 import javax.persistence.GeneratedValue
 
 @KotlinPoetMetadataPreview
@@ -79,9 +80,10 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
         val name = columnElt.simpleName
         val columnName = getColumnName(columnAnn, columnElt)
         val converter = getConverterDefinition(columnElt)
+        val enumerated = getEnumeratedDefinition(columnElt)
         val type = columnElt.toModelType() ?: throw ElementTypeNotFoundException(columnElt)
-        return PropertyDefinition(name = name, columnName = columnName, annotation = columnAnn,
-                type = type, nullable = isNullable(columnElt), converter = converter)
+        return PropertyDefinition(name = name, columnName = columnName, annotation = columnAnn, type = type,
+                nullable = isNullable(columnElt), converter = converter, enumerated = enumerated)
     }
 
     private fun isNullable(columnElt: VariableElement) =
@@ -100,6 +102,11 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
 
             return ConverterDefinition(name = converterType.qualifiedName.asVariable(), targetType = databaseType)
         }
+    }
+
+    private fun getEnumeratedDefinition(columnElt: VariableElement): EnumeratedDefinition? {
+        return columnElt.annotationMirror(Enumerated::class.java.canonicalName)?.value("value")
+                ?.value?.toString()?.let { EnumeratedDefinition(EnumType.valueOf(it)) }
     }
 
     private fun VariableElement.annotationMirror(className: String): AnnotationMirror? {

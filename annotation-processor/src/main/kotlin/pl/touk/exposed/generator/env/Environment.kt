@@ -68,7 +68,9 @@ class EnvironmentBuilder(private val roundEnv: RoundEnvironment, private val pro
         val embedded = roundEnv.getElementsAnnotatedWith(Embedded::class.java).toVariableElements()
         val embeddedColumn = roundEnv.getElementsAnnotatedWith(Embeddable::class.java).map(this::toEmbeddedElements).flatten().toList()
 
-        return AnnotationEnvironment(entities, ids, columns, oneToMany, manyToOne, manyToMany, oneToOne, embedded, embeddedColumn)
+        return AnnotationEnvironment(entities = entities, ids = ids, columns = columns, oneToMany = oneToMany,
+                manyToOne = manyToOne, manyToMany = manyToMany, oneToOne = oneToOne, embedded = embedded,
+                embeddedColumn = embeddedColumn)
     }
 
     private fun toColumnElements(entity: Element) = entity.enclosedElements.filter(this::isColumn).map(Element::toVariableElement)

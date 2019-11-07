@@ -25,6 +25,7 @@ import pl.touk.exposed.generator.model.ConverterDefinition
 import pl.touk.exposed.generator.model.EntityDefinition
 import pl.touk.exposed.generator.model.EntityGraph
 import pl.touk.exposed.generator.model.EntityGraphs
+import pl.touk.exposed.generator.model.EnumType
 import pl.touk.exposed.generator.model.IdDefinition
 import pl.touk.exposed.generator.model.PropertyDefinition
 import pl.touk.exposed.generator.model.Type
@@ -207,22 +208,10 @@ class TablesGenerator : SourceGenerator {
     private fun propertyInitializer(property: PropertyDefinition, entity: EntityDefinition) : CodeBlock {
         val codeBlockBuilder = CodeBlock.builder()
 
-        val codeBlock = if (property.converter != null) {
-            converterPropInitializer(entityName = entity.name, propertyName = property.name, columnName = property.columnName.asVariable())
-        } else when (property.asTypeName()) {
-            STRING -> CodeBlock.of("varchar(%S, %L)", property.columnName, property.annotation?.length ?: 255)
-            LONG -> CodeBlock.of("long(%S)", property.columnName)
-            BOOLEAN -> CodeBlock.of("bool(%S)", property.columnName)
-            UUID -> CodeBlock.of("uuid(%S)", property.columnName)
-            INT -> CodeBlock.of("integer(%S)", property.columnName)
-            SHORT -> CodeBlock.of("short(%S)", property.columnName)
-            FLOAT -> CodeBlock.of("float(%S)", property.columnName)
-            DOUBLE -> CodeBlock.of("double(%S)", property.columnName)
-            BIG_DECIMAL -> CodeBlock.of("decimal(%S, %L, %L)", property.columnName, property.annotation?.precision ?: 0, property.annotation?.scale ?: 0)
-            LOCAL_DATE -> CodeBlock.of("date(%S)", property.columnName)
-            LOCAL_DATE_TIME -> CodeBlock.of("datetime(%S)", property.columnName)
-            ZONED_DATE_TIME -> CodeBlock.of("zonedDateTime(%S)", property.columnName)
-            else -> throw PropertyTypeNotSupportedExpcetion(property.type)
+        val codeBlock = when {
+            property.hasConverter() -> converterPropInitializer(entity, property)
+            property.isEnumerated() -> enumPropInitializer(property)
+            else -> typePropInitializer(property)
         }
 
         codeBlockBuilder.add(codeBlock)
@@ -233,6 +222,46 @@ class TablesGenerator : SourceGenerator {
 
         return codeBlockBuilder.build()
     }
+
+    private fun converterPropInitializer(entity: EntityDefinition, property: PropertyDefinition) =
+            converterPropInitializer(entityName = entity.name, propertyName = property.name, columnName = property.columnName.asVariable())
+
+    private fun enumPropInitializer(property: PropertyDefinition): CodeBlock {
+        val columnName = property.columnName
+        val enumType = property.type.asClassName()
+
+        return when (property.enumerated!!.enumType) {
+            EnumType.STRING -> {
+                val size: Any? = property.annotation?.length ?: 255
+                CodeBlock.of("enumerationByName(%S, %L, %L)", columnName, size, "$enumType::class")
+            }
+            EnumType.ORDINAL -> CodeBlock.of("enumeration(%S, %L)", columnName, "$enumType::class")
+        }
+    }
+
+    private fun typePropInitializer(property: PropertyDefinition): CodeBlock {
+        return when (property.asTypeName()) {
+            STRING -> CodeBlock.of("varchar(%S, %L)", property.columnName, property.annotation?.length ?: 255)
+            LONG -> CodeBlock.of("long(%S)", property.columnName)
+            BOOLEAN -> CodeBlock.of("bool(%S)", property.columnName)
+            UUID -> CodeBlock.of("uuid(%S)", property.columnName)
+            INT -> CodeBlock.of("integer(%S)", property.columnName)
+            SHORT -> CodeBlock.of("short(%S)", property.columnName)
+            FLOAT -> CodeBlock.of("float(%S)", property.columnName)
+            DOUBLE -> CodeBlock.of("double(%S)", property.columnName)
+            BIG_DECIMAL -> {
+                val precision = property.annotation?.precision ?: 0
+                val scale = property.annotation?.scale ?: 0
+                CodeBlock.of("decimal(%S, %L, %L)", property.columnName, precision, scale)
+            }
+            LOCAL_DATE -> CodeBlock.of("date(%S)", property.columnName)
+            LOCAL_DATE_TIME -> CodeBlock.of("datetime(%S)", property.columnName)
+            ZONED_DATE_TIME -> CodeBlock.of("zonedDateTime(%S)", property.columnName)
+            else -> throw PropertyTypeNotSupportedExpcetion(property.type)
+        }
+    }
+
+
 
     private fun associationInitializer(association: AssociationDefinition, idName: String) : CodeBlock {
         val columnName = association.joinColumn ?: "${idName}_${association.targetId.name.asVariable()}"
