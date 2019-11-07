@@ -6,7 +6,7 @@ import org.junit.Test
 import pl.touk.exposed.generator.AnnotationProcessorTest
 
 @KotlinPoetMetadataPreview
-class EntityGraphBuilderTest : AnnotationProcessorTest(), EntityGraphSampleData {
+ class EntityGraphBuilderTest : AnnotationProcessorTest(), EntityGraphSampleData {
 
     @Test
     fun shouldPutEntityToGraph() {
@@ -121,6 +121,22 @@ class EntityGraphBuilderTest : AnnotationProcessorTest(), EntityGraphSampleData 
         assertThat(graphs["pl.touk.example"])
                 .containsKey(embeddedPropertyEntity(getTypeEnv()))
                 .containsValue(embeddedPropertyEntityDefinition(getTypeEnv()))
+    }
+
+    @Test
+    fun shouldHandleEnumPropertyTypes() {
+        //given
+        val enumPropertyGraphBuilder = enumPropertyGraphBuilder(getTypeEnv())
+
+        //when
+        val graphs = enumPropertyGraphBuilder.build()
+
+        //then
+        assertThat(graphs).containsKey("pl.touk.example")
+
+        assertThat(graphs["pl.touk.example"])
+                .containsKey(enumPropertyEntity(getTypeEnv()))
+                .containsValue(enumPropertyEntityDefinition(getTypeEnv()))
     }
 }
 

@@ -62,13 +62,30 @@ data class PropertyDefinition(
         val annotation: Column?,
         val type: Type,
         val nullable: Boolean,
-        val converter: ConverterDefinition? = null
-)
+        val converter: ConverterDefinition? = null,
+        val enumerated: EnumeratedDefinition? = null
+) {
+    fun hasConverter(): Boolean {
+        return converter != null
+    }
+
+    fun isEnumerated(): Boolean {
+        return enumerated != null
+    }
+}
 
 data class ConverterDefinition(
         val name: String,
         val targetType: Type
 )
+
+data class EnumeratedDefinition(
+        val enumType: EnumType
+)
+
+enum class EnumType {
+    STRING, ORDINAL
+}
 
 data class Type(
         val packageName: String,

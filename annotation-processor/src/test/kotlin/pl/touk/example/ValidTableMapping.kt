@@ -7,6 +7,8 @@ import javax.persistence.Column
 import javax.persistence.Embeddable
 import javax.persistence.Embedded
 import javax.persistence.Entity
+import javax.persistence.EnumType.STRING
+import javax.persistence.Enumerated
 import javax.persistence.GeneratedValue
 import javax.persistence.Id
 import javax.persistence.JoinColumn
@@ -93,6 +95,7 @@ data class DatePropertyEntity(
 
 @Entity
 data class EmbeddedPropertyEntity(
+
         @Id @GeneratedValue
         val id: Long?,
 
@@ -104,3 +107,18 @@ data class EmbeddedPropertyEntity(
 data class EmbeddableType(
         val property1: String
 )
+
+@Entity
+data class EnumPropertyEntity(
+
+        @Id @GeneratedValue
+        val id: Long?,
+
+        @Enumerated(STRING)
+        val enumClass: EnumClass
+)
+
+enum class EnumClass {
+
+    PROPERTY1, PROPERTY2
+}
