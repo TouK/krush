@@ -16,8 +16,10 @@ buildscript {
 }
 
 apply plugin: 'kotlin'
+apply plugin: 'maven-publish'
 
 group = 'pl.touk.exposed-generator'
+version = '0.1.0-SNAPSHOT'
 sourceCompatibility = 1.8
 
 allprojects {
@@ -26,4 +28,39 @@ allprojects {
         maven { url 'https://jitpack.io' }
         maven { url 'https://philanthropist.touk.pl/nexus/content/repositories/snapshots' }
     }
+}
+
+configure([project(':annotation-processor'), project(':runtime')]) {
+    apply plugin: 'java'
+    apply plugin: 'maven-publish'
+
+    task sourcesJar(type: Jar) {
+        from sourceSets.main.allSource
+    }
+
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                from components.java
+                groupId rootProject.group
+                artifactId project.name
+                version rootProject.version
+
+                artifact sourcesJar {
+                    classifier "sources"
+                }
+            }
+        }
+
+        repositories {
+            maven {
+                credentials {
+                    username = project.properties["deployUsername"]?.toString() ?: System.getenv("DEPLOY_USERNAME")
+                    password = project.properties["deployPassword"]?.toString() ?: System.getenv("DEPLOY_PASSWORD")
+                }
+                url = 'https://philanthropist.touk.pl/nexus/content/repositories/snapshots'
+            }
+        }
+    }
+
 }

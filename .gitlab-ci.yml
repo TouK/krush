@@ -3,6 +3,7 @@ image: java:8-jdk
 stages:
   - test
   - build
+  - publish
 
 before_script:
   - export GRADLE_USER_HOME=`pwd`/.gradle
@@ -25,3 +26,10 @@ test:
   stage: test
   script:
     - ./gradlew check
+
+publish_snapshot:
+  stage: publish
+  only:
+    - master
+  script:
+    - ./gradlew publish
