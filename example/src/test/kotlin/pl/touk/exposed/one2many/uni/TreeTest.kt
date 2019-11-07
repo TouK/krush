@@ -4,7 +4,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Before
 import org.junit.Test
@@ -53,7 +53,9 @@ class TreeTest {
             }
 
             // then
-            val (trees) = (TreeTable leftJoin BranchTable leftJoin LeafTable).selectAll().toTreeList()
+            val (trees) = (TreeTable leftJoin BranchTable leftJoin LeafTable)
+                    .select { BranchTable.tree eq tree.id }
+                    .toTreeList()
 
             // then
             val fullTree= tree.copy(branches = listOf(branch1.copy(leafs = listOf(leaf11, leaf12)), branch2.copy(leafs = listOf(leaf21))))

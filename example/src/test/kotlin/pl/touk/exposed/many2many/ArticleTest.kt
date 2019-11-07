@@ -4,7 +4,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Before
 import org.junit.Test
@@ -40,7 +40,9 @@ class ArticleTest {
             }
 
             // when
-            val (selectedArticle) = (ArticleTable leftJoin ArticleTagsTable leftJoin TagTable).selectAll().toArticleList()
+            val (selectedArticle) = (ArticleTable leftJoin ArticleTagsTable leftJoin TagTable)
+                    .select { TagTable.name inList listOf("jvm", "spring") }
+                    .toArticleList()
 
             // then
             assertThat(selectedArticle).isEqualTo(article)

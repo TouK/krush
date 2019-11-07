@@ -4,7 +4,7 @@ import org.assertj.core.api.Assertions
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Before
 import org.junit.Test
@@ -22,18 +22,21 @@ class ThreadTest {
             SchemaUtils.create(CommentTable, ThreadTable)
 
             // given
-            val thread = Thread(name = "Test thread").let {thread ->
+            val thread = Thread(name = "Test thread").let { thread ->
                 val threadId = ThreadTable.insert { it.from(thread) }[ThreadTable.id]
                 thread.copy(id = threadId)
             }
 
-            val comment = Comment(author = Author("John", "Smith"), thread = thread).let { comment ->
+            val author = Author("John", "Smith")
+            val comment = Comment(author = author, thread = thread).let { comment ->
                 val commentId = CommentTable.insert { it.from(comment) }[CommentTable.id]
                 comment.copy(id = commentId)
             }
 
             // when
-            val selectedThreads = (ThreadTable leftJoin CommentTable).selectAll().toThreadList()
+            val selectedThreads = (ThreadTable leftJoin CommentTable)
+                    .select { CommentTable.author eq author }
+                    .toThreadList()
 
             val fullThread = thread.copy(comments = listOf(comment))
 

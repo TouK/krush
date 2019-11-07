@@ -4,7 +4,7 @@ import org.assertj.core.api.Assertions
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Before
 import org.junit.Test
@@ -31,15 +31,18 @@ class EventTest {
             // given
             val clock = Clock.fixed(Instant.parse("2019-10-22T09:00:00.000Z"), systemDefault())
 
+            val createTime = ZonedDateTime.now(clock)
             val event = Event(eventDate = LocalDate.now(clock), processTime = LocalDateTime.now(clock),
-                    createTime = ZonedDateTime.now(clock), externalId = randomUUID())
+                    createTime = createTime, externalId = randomUUID())
                     .let { event ->
                         val id = EventTable.insert { it.from(event) }[EventTable.id]
                         event.copy(id = id)
                     }
 
             //when
-            val events = (EventTable).selectAll().toEventList()
+            val events = (EventTable)
+                    .select { EventTable.createTime greater createTime.minusDays(1) }
+                    .toEventList()
 
             //then
             Assertions.assertThat(events).containsOnly(event)

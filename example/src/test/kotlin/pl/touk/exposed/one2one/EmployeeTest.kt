@@ -4,6 +4,7 @@ import org.assertj.core.api.Assertions
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Before
@@ -33,7 +34,9 @@ class EmployeeTest {
             }
 
             //when
-            val employees = (EmployeeTable leftJoin EmployeeInfoTable).selectAll().toEmployeeList()
+            val employees = (EmployeeTable leftJoin EmployeeInfoTable)
+                    .select { EmployeeInfoTable.login.regexp("[a-z]{5}") }
+                    .toEmployeeList()
 
             val fullEmployee = employee.copy(employeeInfo = employeeInfo)
 

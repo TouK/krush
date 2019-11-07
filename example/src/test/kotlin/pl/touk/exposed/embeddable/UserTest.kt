@@ -3,8 +3,10 @@ package pl.touk.exposed.embeddable
 import org.assertj.core.api.Assertions
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.lowerCase
+import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Before
 import org.junit.Test
@@ -30,7 +32,9 @@ class UserTest {
             }
 
             // when
-            val selectedUsers = UserTable.selectAll().toUserList()
+            val selectedUsers = UserTable
+                    .select { (UserTable.city.lowerCase() eq "warsaw") and (UserTable.houseNumber greaterEq 9) }
+                    .toUserList()
 
             // then
             Assertions.assertThat(selectedUsers).containsOnly(user)

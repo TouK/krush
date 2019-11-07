@@ -4,7 +4,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Before
 import org.junit.Test
@@ -38,7 +38,9 @@ class MultiPackageTest {
             }
 
             // when
-            val aList = (TestBTable leftJoin TestATable).selectAll().toTestAList()
+            val aList = (TestBTable leftJoin TestATable)
+                    .select { TestBTable.text like "tes%" }
+                    .toTestAList()
 
             // then
             assertThat(aList).containsExactly(a.copy(b = listOf(b)))
