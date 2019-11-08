@@ -49,7 +49,9 @@ class MappingsGenerator : SourceGenerator {
             fileSpec.addFunction(buildToEntityFunc(entityType, entity))
             fileSpec.addFunction(buildToEntityListFunc(entityType, entity))
             fileSpec.addFunction(buildToEntityMapFunc(entityType, entity, graphs))
-            buildFromEntityFunc(entityType, entity)?.let(fileSpec::addFunction)
+            buildFromEntityFunc(entityType, entity)?.let { funSpec ->
+                fileSpec.addFunction(funSpec)
+            }
             entity.getAssociations(MANY_TO_MANY).forEach { assoc ->
                 fileSpec.addFunction(buildFromManyToManyFunc(entityType, entity, assoc))
             }
@@ -192,14 +194,7 @@ class MappingsGenerator : SourceGenerator {
                 .receiver(UpdateBuilder::class.parameterizedBy(Any::class))
                 .addParameter(param, entityType.asType().asTypeName())
 
-        val assocParams = entity.associations.filter { !it.mapped }.map { assoc ->
-            ParameterSpec.builder(
-                    assoc.target.simpleName.asVariable(),
-                    assoc.target.asType().asTypeName().copy(nullable = true)
-            ).defaultValue("null").build()
-        }
-
-        assocParams.forEach { func.addParameter(it) }
+        entityAssocParams(entity).forEach { func.addParameter(it) }
 
         val idMapping = when (entity.id?.generatedValue) {
             false -> listOf("\tthis[$tableName.${entity.id.name}] = $param.${entity.id.name}")
@@ -262,6 +257,15 @@ class MappingsGenerator : SourceGenerator {
 
         return func.build()
 
+    }
+
+    private fun entityAssocParams(entity: EntityDefinition): List<ParameterSpec> {
+        return entity.associations.filter { !it.mapped }.map { assoc ->
+            ParameterSpec.builder(
+                    assoc.target.simpleName.asVariable(),
+                    assoc.target.asType().asTypeName().copy(nullable = true)
+            ).defaultValue("null").build()
+        }
     }
 
 }

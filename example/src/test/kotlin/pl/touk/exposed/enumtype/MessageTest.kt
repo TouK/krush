@@ -3,7 +3,6 @@ package pl.touk.exposed.enumtype
 import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Before
@@ -27,11 +26,7 @@ class MessageTest {
 
             // given
             val messageInfo = MessageInfo(contentType = XML, priority = HIGH)
-            val message = Message(status = PENDING, previousStatus = NEW, info = messageInfo)
-                    .let { message ->
-                        val messageId = MessageTable.insert { it.from(message) }[MessageTable.id]
-                        message.copy(id = messageId)
-                    }
+            val message = MessageTable.insert(Message(status = PENDING, previousStatus = NEW, info = messageInfo))
 
             // when
             val selectedMessages = MessageTable.selectAll().toMessageList()

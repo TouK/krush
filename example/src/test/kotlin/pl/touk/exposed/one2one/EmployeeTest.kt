@@ -28,10 +28,7 @@ class EmployeeTest {
                 employee.copy(id = id)
             }
 
-            val employeeInfo = EmployeeInfo(login = "admin", employee = employee).let { employeeInfo ->
-                EmployeeInfoTable.insert { it.from(employeeInfo) }
-                employeeInfo.copy(employee = employee)
-            }
+            val employeeInfo = EmployeeInfoTable.insert(EmployeeInfo(login = "admin", employee = employee))
 
             //when
             val employees = (EmployeeTable leftJoin EmployeeInfoTable)
@@ -56,19 +53,14 @@ class EmployeeTest {
                 employee.copy(id = id)
             }
 
-            val employeeInfo = EmployeeInfo(login = "admin", employee = employee).let { employeeInfo ->
-                EmployeeInfoTable.insert { it.from(employeeInfo) }
-                employeeInfo.copy(employee = employee)
-            }
+            val employeeInfo = EmployeeInfo(login = "admin", employee = employee)
+                    .let { employeeInfo -> EmployeeInfoTable.insert(employeeInfo) }
 
-            val parkingSpot = ParkingSpot(code = "C12345", employeeInfo = employeeInfo).let { parkingSpot ->
-                val id = ParkingSpotTable.insert { it.from(parkingSpot) }[ParkingSpotTable.id]
-                parkingSpot.copy(id)
-            }
+            val parkingSpot = ParkingSpot(code = "C12345", employeeInfo = employeeInfo)
+                    .let(ParkingSpotTable::insert)
 
             //when
             val employees = (EmployeeTable leftJoin EmployeeInfoTable leftJoin ParkingSpotTable).selectAll().toEmployeeList()
-
             val fullEmployee = employee.copy(employeeInfo = employeeInfo.copy(parkingSpot = parkingSpot))
 
             //then

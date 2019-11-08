@@ -3,7 +3,6 @@ package pl.touk.exposed.types
 import org.assertj.core.api.Assertions
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Before
@@ -32,12 +31,8 @@ class EventTest {
             val clock = Clock.fixed(Instant.parse("2019-10-22T09:00:00.000Z"), systemDefault())
 
             val createTime = ZonedDateTime.now(clock)
-            val event = Event(eventDate = LocalDate.now(clock), processTime = LocalDateTime.now(clock),
-                    createTime = createTime, externalId = randomUUID())
-                    .let { event ->
-                        val id = EventTable.insert { it.from(event) }[EventTable.id]
-                        event.copy(id = id)
-                    }
+            val event = EventTable.insert(Event(eventDate = LocalDate.now(clock), processTime = LocalDateTime.now(clock),
+                    createTime = createTime, externalId = randomUUID()))
 
             //when
             val events = (EventTable)

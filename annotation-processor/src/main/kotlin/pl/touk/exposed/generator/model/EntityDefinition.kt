@@ -31,6 +31,12 @@ data class EntityDefinition(
 
     fun getAssociations(vararg types: AssociationType) = associations.filter { it.type in types }
 
+    fun hasAssignableProperties(): Boolean {
+       return id?.generatedValue == false || properties.isNotEmpty() || embeddables.isNotEmpty()
+               || getAssociations(AssociationType.MANY_TO_MANY).isNotEmpty()
+               || getAssociations(AssociationType.ONE_TO_ONE).any { it.mapped }
+    }
+
     val tableName: String get() = "${name}Table"
     val idColumn: String get() = id?.let { id -> "${tableName}.${id.name}" } ?: throw MissingIdException(this)
 }

@@ -3,7 +3,6 @@ package pl.touk.exposed.converter
 import org.assertj.core.api.Assertions
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Before
@@ -22,16 +21,10 @@ class ThreadTest {
             SchemaUtils.create(CommentTable, ThreadTable)
 
             // given
-            val thread = Thread(name = "Test thread").let { thread ->
-                val threadId = ThreadTable.insert { it.from(thread) }[ThreadTable.id]
-                thread.copy(id = threadId)
-            }
+            val thread = ThreadTable.insert(Thread(name = "Test thread"))
 
             val author = Author("John", "Smith")
-            val comment = Comment(author = author, thread = thread).let { comment ->
-                val commentId = CommentTable.insert { it.from(comment) }[CommentTable.id]
-                comment.copy(id = commentId)
-            }
+            val comment = CommentTable.insert(Comment(author = author, thread = thread))
 
             // when
             val selectedThreads = (ThreadTable leftJoin CommentTable)

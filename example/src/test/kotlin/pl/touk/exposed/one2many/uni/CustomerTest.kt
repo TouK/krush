@@ -4,7 +4,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.upperCase
@@ -26,21 +25,10 @@ class CustomerTest {
 
             // given
             val currentAddress = Address(id = UUID.randomUUID(), city = "Warsaw", street = "Suwak", houseNo = "12/14", apartmentNo = "206")
+            val customer = CustomerTable.insert(Customer(name = "TouK", age = 13, currentAddress = currentAddress)).copy(currentAddress = null)
 
-            val customer = Customer(name = "TouK", age = 13, currentAddress = currentAddress).let { customer ->
-                val customerId = CustomerTable.insert { it.from(customer) }[CustomerTable.id]
-                customer.copy(id = customerId, currentAddress = null)
-            }
-
-            val phone = Phone(number = "777 888 999").let { phone ->
-                val phoneId = PhoneTable.insert { it.from(phone, customer) }[PhoneTable.id]
-                phone.copy(id = phoneId)
-            }
-
-            val address = currentAddress.copy().let { address ->
-                val addressId = AddressTable.insert { it.from(address, customer) }[AddressTable.id]
-                address.copy(id = addressId)
-            }
+            val phone = PhoneTable.insert(Phone(number = "777 888 999"), customer)
+            val address = AddressTable.insert(currentAddress.copy(), customer)
 
             // then
             val customers = (CustomerTable leftJoin PhoneTable leftJoin AddressTable)
