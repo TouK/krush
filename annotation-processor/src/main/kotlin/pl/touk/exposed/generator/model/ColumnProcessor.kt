@@ -17,10 +17,13 @@ import pl.touk.exposed.generator.validation.ElementTypeNotFoundException
 import pl.touk.exposed.generator.validation.EntityNotMappedException
 import javax.lang.model.element.AnnotationMirror
 import javax.lang.model.element.AnnotationValue
+import javax.lang.model.element.Name
 import javax.lang.model.element.TypeElement
 import javax.lang.model.element.VariableElement
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeMirror
+import javax.persistence.AttributeOverride
+import javax.persistence.AttributeOverrides
 import javax.persistence.Column
 import javax.persistence.Enumerated
 import javax.persistence.GeneratedValue
@@ -39,7 +42,7 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
                 val columnAnn: Column? = idElt.getAnnotation(Column::class.java)
                 val columnName = getColumnName(columnAnn, idElt)
                 val converter = getConverterDefinition(idElt)
-                val genValAnn : GeneratedValue? = idElt.getAnnotation(GeneratedValue::class.java)
+                val genValAnn: GeneratedValue? = idElt.getAnnotation(GeneratedValue::class.java)
                 val generatedValue = genValAnn?.let { true } ?: false
                 val type = idElt.toModelType() ?: throw ElementTypeNotFoundException(idElt)
 
@@ -57,28 +60,28 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
                 entity.addProperty(columnDefinition)
             }
 
-    //TODO handle @AttributeOverride
-    //TODO handle multiple @Embedded with same type
     private fun processEmbeddedColumns(graphs: EntityGraphs) {
-        for (element in annEnv.embedded) { // @Entity User(@Embedded Address element)
-            val embeddableType =  (element.asType() as DeclaredType).asElement().toTypeElement() // Address
+        for (element in annEnv.embedded) { // @Entity User(@Embedded InvoiceAddress element)
+            val embeddableType = (element.asType() as DeclaredType).asElement().toTypeElement() // InvoiceAddress
             val columns = annEnv.embeddedColumn.filter { columnElt -> columnElt.enclosingTypeElement() == embeddableType }.toList() //city, street, houseNumber
             val entityType = element.enclosingTypeElement() //User
 
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
-            graph.computeIfPresent(entityType) { _, entity -> //User
-                val columnDefs = columns.map(this::propertyDefinition)
-                val embeddable = EmbeddableDefinition(propertyName = element.simpleName, qualifiedName = embeddableType.qualifiedName, nullable = isNullable(element), properties = columnDefs)
+            graph.computeIfPresent(entityType) { _, entity ->
+                //User
+                val columnDefs = columns.map { column -> propertyDefinition(column, element.mappingOverride()) }
+                val embeddable = EmbeddableDefinition(propertyName = element.simpleName,
+                        qualifiedName = embeddableType.qualifiedName, nullable = isNullable(element), properties = columnDefs)
 
                 entity.addEmbeddable(embeddable)
             }
         }
     }
 
-    private fun propertyDefinition(columnElt: VariableElement): PropertyDefinition {
+    private fun propertyDefinition(columnElt: VariableElement, overrideMapping: List<AttributeOverride> = emptyList()): PropertyDefinition {
         val columnAnn: Column? = columnElt.getAnnotation(Column::class.java)
         val name = columnElt.simpleName
-        val columnName = getColumnName(columnAnn, columnElt)
+        val columnName = overrideMapping.overriddenName(name) ?: getColumnName(columnAnn, columnElt)
         val converter = getConverterDefinition(columnElt)
         val enumerated = getEnumeratedDefinition(columnElt)
         val type = columnElt.toModelType() ?: throw ElementTypeNotFoundException(columnElt)
@@ -89,15 +92,20 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
     private fun isNullable(columnElt: VariableElement) =
             columnElt.getAnnotation(NotNull::class.java) == null && columnElt.getAnnotation(Nullable::class.java) != null
 
-    private fun getColumnName(columnAnn: Column?, columnElt: VariableElement) =
-            if (columnAnn == null || columnAnn.name.isEmpty()) columnElt.simpleName else typeEnv.elementUtils.getName(columnAnn.name)
+    private fun getColumnName(columnAnn: Column?, columnElt: VariableElement): Name = when {
+        columnAnn == null || columnAnn.name.isEmpty() -> columnElt.simpleName
+        else -> columnAnn.name.name()
+    }
+
+    private fun Iterable<AttributeOverride>.overriddenName(basicName: Name): Name? =
+            this.singleOrNull { it.name == basicName.asVariable() }?.column?.name?.name()
 
     private fun getConverterDefinition(columnElt: VariableElement): ConverterDefinition? {
         val converterType = columnElt.annotationMirror(Convert::class.java.canonicalName)?.valueType("value")
 
         return converterType?.let {
             val databaseType = converterType.toTypeElement().toImmutableKmClass().functions
-                    .find { it.name == Converter<*,*>::convertToDatabaseColumn.name }
+                    .find { it.name == Converter<*, *>::convertToDatabaseColumn.name }
                     ?.returnType?.toModelType() ?: throw ConverterTypeNotFoundException(converterType)
 
             return ConverterDefinition(name = converterType.qualifiedName.asVariable(), targetType = databaseType)
@@ -141,8 +149,15 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
                 ?.toModelType()
     }
 
+    private fun VariableElement.mappingOverride(): List<AttributeOverride> {
+        return (this.getAnnotation(AttributeOverrides::class.java)?.value?.toList() ?: emptyList()) +
+                (this.getAnnotation(AttributeOverride::class.java)?.let { listOf(it) } ?: emptyList())
+    }
+
     private fun ImmutableKmType.toModelType(): Type? {
         return (this.classifier as KmClassifier.Class).name
                 .split("/").let { Type(it.dropLast(1).joinToString(separator = "."), it.last()) }
     }
+
+    private fun String.name(): Name = typeEnv.elementUtils.getName(this)
 }

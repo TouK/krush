@@ -1,5 +1,8 @@
 package pl.touk.exposed.embeddable
 
+import pl.touk.exposed.embeddable.Address.*
+import javax.persistence.AttributeOverride
+import javax.persistence.AttributeOverrides
 import javax.persistence.Column
 import javax.persistence.Embeddable
 import javax.persistence.Embedded
@@ -14,36 +17,37 @@ data class User(
         val id: Long? = null,
 
         @Embedded
-        val contactAddress: Address.ContactAddress
+        @AttributeOverride(name = "houseNumber", column = Column(name = "house_no"))
+        val contactAddress: ContactAddress,
 
-//        @Embedded
-//        val invoiceAddress: Address.InvoiceAddress
+        @Embedded
+        @AttributeOverrides(
+                AttributeOverride(name = "city", column = Column(name = "inv_city")),
+                AttributeOverride(name = "street", column = Column(name = "inv_street"))
+        )
+        val invoiceAddress: InvoiceAddress
 )
 
 sealed class Address {
 
-        @Embeddable
-        data class ContactAddress(
+    @Embeddable
+    data class ContactAddress(
 
-                val city: String,
+            val city: String,
 
-                @Column
-                val street: String,
+            @Column
+            val street: String,
 
-                @Column(name = "houseNo")
-                val houseNumber: Int
-        ) : Address()
+            val houseNumber: Int
+    ) : Address()
 
-//        @Embeddable
-//        data class InvoiceAddress(
-//
-//                @Column(name = "inv_city")
-//                val city: String,
-//
-//                @Column(name = "inv_street")
-//                val street: String,
-//
-//                @Column(name = "inv_houseNo")
-//                val houseNumber: Int
-//        ) : Address()
+    @Embeddable
+    data class InvoiceAddress(
+
+            val city: String,
+
+            val street: String,
+
+            val houseNumber: Int
+    ) : Address()
 }
