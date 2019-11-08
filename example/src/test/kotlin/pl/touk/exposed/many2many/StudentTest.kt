@@ -3,7 +3,6 @@ package pl.touk.exposed.many2many
 import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Before
@@ -25,19 +24,9 @@ class StudentTest {
             val course1 = Course(name = "kotlin")
             val course2 = Course(name = "spring cloud")
 
-            val courses = listOf(course1, course2).map { course ->
-                val courseId = CourseTable.insert { it.from(course) }[CourseTable.id]
-                course.copy(id = courseId)
-            }
+            val courses = listOf(course1, course2).map(CourseTable::insert)
 
-            val student = Student(name = "John Smith", courses = courses).let { student ->
-                val studentId = StudentTable.insert { it.from(student) }[StudentTable.id]
-                val persistedStudent = student.copy(id = studentId)
-                student.courses.forEach { course ->
-                    StudentCoursesTable.insert { it.from(persistedStudent, course) }
-                }
-                persistedStudent
-            }
+            val student = StudentTable.insert(Student(name = "John Smith", courses = courses))
 
             // when
             val (selectedStudent) = (StudentTable leftJoin StudentCoursesTable leftJoin CourseTable)

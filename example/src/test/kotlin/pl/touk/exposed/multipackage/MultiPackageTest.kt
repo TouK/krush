@@ -10,7 +10,7 @@ import org.junit.Before
 import org.junit.Test
 import pl.touk.exposed.multipackage.b.TestB
 import pl.touk.exposed.multipackage.b.TestBTable
-import pl.touk.exposed.multipackage.b.from
+import pl.touk.exposed.multipackage.b.insert
 
 class MultiPackageTest {
 
@@ -31,11 +31,7 @@ class MultiPackageTest {
                 a.copy(id = id)
             }
 
-            val b = TestB(text = "test B").let { b ->
-                val id = TestBTable.insert { it.from(b, a) }[TestBTable.id]
-                b.copy(id = id)
-
-            }
+            val b = TestBTable.insert(testB = TestB(text = "test B"), testA = a)
 
             // when
             val aList = (TestBTable leftJoin TestATable)

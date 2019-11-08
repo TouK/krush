@@ -9,6 +9,7 @@ import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.INT
 import com.squareup.kotlinpoet.LONG
+import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.SHORT
@@ -43,12 +44,13 @@ import pl.touk.exposed.generator.validation.MissingIdException
 import pl.touk.exposed.generator.validation.PropertyTypeNotSupportedExpcetion
 import pl.touk.exposed.generator.validation.TypeConverterNotSupportedException
 import javax.lang.model.element.Name
+import javax.lang.model.element.TypeElement
 
 class TablesGenerator : SourceGenerator {
 
     override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String, typeEnv: TypeEnvironment): FileSpec {
         val fileSpec = FileSpec.builder(packageName, fileName = "tables")
-                .addImport("org.jetbrains.exposed.sql", "Table", "date", "datetime")
+                .addImport("org.jetbrains.exposed.sql", "Table", "date", "datetime", "insert")
                 .addImport("pl.touk.exposed", "stringWrapper", "longWrapper", "zonedDateTime")
 
         graph.allAssociations().forEach { entity ->
@@ -57,7 +59,7 @@ class TablesGenerator : SourceGenerator {
             }
         }
 
-        graph.traverse { entity ->
+        graph.traverse { entityType, entity ->
             val rootVal = entity.name.asVariable()
 
             val tableSpec = TypeSpec.objectBuilder("${entity.name}Table")
@@ -148,6 +150,7 @@ class TablesGenerator : SourceGenerator {
                 fileSpec.addType(manyToManyTableSpec.build())
             }
 
+            insertFunc(entityType = entityType, entity = entity, fileSpec = fileSpec)
         }
 
         return fileSpec.build()
@@ -175,7 +178,46 @@ class TablesGenerator : SourceGenerator {
         }
     }
 
-    private fun converterFunc(name: String, type: TypeName, it: ConverterDefinition, fileSpec: FileSpec.Builder): FileSpec.Builder {
+    private fun insertFunc(entityType: TypeElement, entity: EntityDefinition, fileSpec: FileSpec.Builder) {
+        val entityName = entity.name.asVariable()
+        val persistedName = "persisted${entityName.capitalize()}"
+        val func = FunSpec.builder("insert")
+                .receiver(Type(entityType.packageName, entity.tableName).asClassName())
+                .addParameter(entity.name.asVariable(), entityType.asType().asTypeName())
+                .returns(entityType.asType().asTypeName())
+
+        val assocParams = entityAssocParams(entity)
+
+        assocParams.forEach { func.addParameter(it) }
+
+        val fromFuncParams = (listOf(entityName) + assocParams.map(ParameterSpec::name)).joinToString(separator = ", ")
+        val fromFunc = if (entity.hasAssignableProperties()) "it.from(${fromFuncParams})" else ""
+
+        func.addStatement("val id = ${entity.tableName}.insert { $fromFunc }[${entity.tableName}.${entity.id?.name}]")
+        func.addStatement("val $persistedName = ${entityName.decapitalize()}.copy(${entity.id?.name} = id)")
+
+        entity.getAssociations(AssociationType.MANY_TO_MANY).forEach { assoc ->
+            val tableName = "${entity.name}${assoc.name.asObject()}Table"
+            func.addStatement("$persistedName.${assoc.name}.forEach { ${assoc.name} ->")
+            func.addStatement("\t\t${tableName}.insert { it.from($persistedName, ${assoc.name}) }")
+            func.addStatement("}\n")
+        }
+
+        func.addStatement("return $persistedName")
+
+        fileSpec.addFunction(func.build())
+    }
+
+    private fun entityAssocParams(entity: EntityDefinition): List<ParameterSpec> {
+        return entity.associations.filter { !it.mapped }.map { assoc ->
+            ParameterSpec.builder(
+                    assoc.target.simpleName.asVariable(),
+                    assoc.target.asType().asTypeName().copy(nullable = true)
+            ).defaultValue("null").build()
+        }
+    }
+
+    private fun converterFunc(name: String, type: TypeName, it: ConverterDefinition, fileSpec: FileSpec.Builder) {
         val wrapperName = when (it.targetType.asClassName()) {
             STRING -> "stringWrapper"
             LONG -> "longWrapper"
@@ -188,7 +230,7 @@ class TablesGenerator : SourceGenerator {
                 .returns(Column::class.asClassName().parameterizedBy(type))
                 .addStatement("return %L<%T>(columnName, { %L().convertToEntityAttribute(it) }, { %L().convertToDatabaseColumn(it) })", wrapperName, type, it.name, it.name)
                 .build()
-        return fileSpec.addFunction(converterSpec)
+        fileSpec.addFunction(converterSpec)
     }
 
     private fun idInitializer(id: IdDefinition, entity: EntityDefinition) : CodeBlock {
@@ -270,8 +312,6 @@ class TablesGenerator : SourceGenerator {
             else -> throw PropertyTypeNotSupportedExpcetion(property.type)
         }
     }
-
-
 
     private fun associationInitializer(association: AssociationDefinition, idName: String) : CodeBlock {
         val columnName = association.joinColumn ?: "${idName}_${association.targetId.name.asVariable()}"

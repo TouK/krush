@@ -4,13 +4,11 @@ import org.assertj.core.api.Assertions
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.lowerCase
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Before
 import org.junit.Test
-import pl.touk.exposed.embeddable.Address.ContactAddress
 import pl.touk.exposed.embeddable.Address.InvoiceAddress
 
 class UserTest {
@@ -26,13 +24,9 @@ class UserTest {
             SchemaUtils.create(UserTable)
 
             // given
-            val contactAddress = ContactAddress(city = "Warsaw", street = "Aleja Bohaterów Września", houseNumber = 9)
+            val contactAddress = Address.ContactAddress(city = "Warsaw", street = "Aleja Bohaterów Września", houseNumber = 9)
             val invoiceAddress = InvoiceAddress(city = "Warsaw", street = "Aleje Jerozolimskie", houseNumber = 0)
-
-            val user = User(contactAddress = contactAddress, invoiceAddress = invoiceAddress).let { user ->
-                val userId = UserTable.insert { it.from(user) }[UserTable.id]
-                user.copy(id = userId)
-            }
+            val user = UserTable.insert(User(contactAddress = contactAddress, invoiceAddress = invoiceAddress))
 
             // when
             val selectedUsers = UserTable
