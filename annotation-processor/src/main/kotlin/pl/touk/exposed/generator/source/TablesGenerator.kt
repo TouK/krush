@@ -19,9 +19,11 @@ import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.Table
+import pl.touk.exposed.generator.env.TypeEnvironment
 import pl.touk.exposed.generator.model.AssociationDefinition
 import pl.touk.exposed.generator.model.AssociationType
 import pl.touk.exposed.generator.model.ConverterDefinition
+import pl.touk.exposed.generator.model.EmbeddableDefinition
 import pl.touk.exposed.generator.model.EntityDefinition
 import pl.touk.exposed.generator.model.EntityGraph
 import pl.touk.exposed.generator.model.EntityGraphs
@@ -44,7 +46,7 @@ import javax.lang.model.element.Name
 
 class TablesGenerator : SourceGenerator {
 
-    override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String): FileSpec {
+    override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String, typeEnv: TypeEnvironment): FileSpec {
         val fileSpec = FileSpec.builder(packageName, fileName = "tables")
                 .addImport("org.jetbrains.exposed.sql", "Table", "date", "datetime")
                 .addImport("pl.touk.exposed", "stringWrapper", "longWrapper", "zonedDateTime")
@@ -86,8 +88,10 @@ class TablesGenerator : SourceGenerator {
                 addTableProperty(column, entity, tableSpec, fileSpec)
             }
 
-            entity.embeddables.map { it.properties }.flatten().forEach { column ->
-                addTableProperty(column, entity, tableSpec, fileSpec)
+            entity.embeddables.forEach { embeddable ->
+                embeddable.properties.forEach { prop ->
+                    addEmbeddedTableProperty(embeddable, prop, entity, tableSpec, fileSpec, typeEnv)
+                }
             }
 
             entity.getAssociations(AssociationType.MANY_TO_ONE).forEach { assoc ->
@@ -147,6 +151,12 @@ class TablesGenerator : SourceGenerator {
         }
 
         return fileSpec.build()
+    }
+
+    private fun addEmbeddedTableProperty(embeddable: EmbeddableDefinition, column: PropertyDefinition, entity: EntityDefinition, tableSpec: TypeSpec.Builder, fileSpec: FileSpec.Builder, typeEnvironment: TypeEnvironment) {
+        val name =  typeEnvironment.elementUtils.getName(embeddable.propertyName.asVariable() + column.name.asVariable().capitalize())
+        val embeddedProperty = column.copy(name = name)
+        addTableProperty(embeddedProperty, entity, tableSpec, fileSpec)
     }
 
     private fun addTableProperty(column: PropertyDefinition, entity: EntityDefinition, tableSpec: TypeSpec.Builder, fileSpec: FileSpec.Builder) {

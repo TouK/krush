@@ -9,6 +9,7 @@ import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.statements.UpdateBuilder
+import pl.touk.exposed.generator.env.TypeEnvironment
 import pl.touk.exposed.generator.model.AssociationDefinition
 import pl.touk.exposed.generator.model.AssociationType.MANY_TO_MANY
 import pl.touk.exposed.generator.model.AssociationType.MANY_TO_ONE
@@ -28,7 +29,7 @@ import javax.lang.model.element.TypeElement
 
 class MappingsGenerator : SourceGenerator {
 
-    override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String): FileSpec {
+    override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String, typeEnv: TypeEnvironment): FileSpec {
         val fileSpec = FileSpec.builder(packageName, fileName = "mappings")
                 .addImport("org.jetbrains.exposed.sql", "ResultRow")
                 .addImport("org.jetbrains.exposed.sql.statements", "UpdateBuilder")
@@ -69,7 +70,8 @@ class MappingsGenerator : SourceGenerator {
         val embeddedMappings = entity.embeddables.map { embeddable ->
             val embeddableName = embeddable.propertyName.asVariable()
             val embeddableMapping = embeddable.getPropertyNames().joinToString(", \n") { name ->
-                "\t\t$name = this[${entity.name}Table.${name}]"
+                val tablePropName = embeddable.propertyName.asVariable() + name.asVariable().capitalize()
+                "\t\t$name = this[${entity.name}Table.${tablePropName}]"
             }
 
             "\t$embeddableName = ${embeddable.qualifiedName}(\n$embeddableMapping\n\t)"
@@ -211,7 +213,8 @@ class MappingsGenerator : SourceGenerator {
         val embeddedMappings = entity.embeddables.map { embeddable ->
             val embeddableName = embeddable.propertyName.asVariable()
             embeddable.getPropertyNames().map { name ->
-                "\tthis[$tableName.$name] = $param.$embeddableName.$name"
+                val tablePropName = embeddable.propertyName.asVariable() + name.asVariable().capitalize()
+                "\tthis[$tableName.$tablePropName] = $param.$embeddableName.$name"
             }
         }.flatten()
 

@@ -47,7 +47,7 @@ class ExposedAnnotationProcessor : AbstractProcessor() {
             val generators = listOf(TablesGenerator(), MappingsGenerator())
             generators.forEach { generator ->
                 graphs.entries.forEach { (packageName, graph) ->
-                    val poetFile = generator.generate(graph, graphs, packageName)
+                    val poetFile = generator.generate(graph, graphs, packageName, envBuilder.buildTypeEnv())
                     File(kaptKotlinGeneratedDir).apply {
                         parentFile.mkdirs()
                         poetFile.writeTo(this)

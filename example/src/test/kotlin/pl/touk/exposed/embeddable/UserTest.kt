@@ -10,6 +10,8 @@ import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Before
 import org.junit.Test
+import pl.touk.exposed.embeddable.Address.ContactAddress
+import pl.touk.exposed.embeddable.Address.InvoiceAddress
 
 class UserTest {
 
@@ -24,16 +26,17 @@ class UserTest {
             SchemaUtils.create(UserTable)
 
             // given
-            val contactAddress = Address.ContactAddress(city = "Warsaw", street = "Aleja Bohaterów Września", houseNumber = 9)
+            val contactAddress = ContactAddress(city = "Warsaw", street = "Aleja Bohaterów Września", houseNumber = 9)
+            val invoiceAddress = InvoiceAddress(city = "Warsaw", street = "Aleje Jerozolimskie", houseNumber = 0)
 
-            val user = User(contactAddress = contactAddress).let { user ->
+            val user = User(contactAddress = contactAddress, invoiceAddress = invoiceAddress).let { user ->
                 val userId = UserTable.insert { it.from(user) }[UserTable.id]
                 user.copy(id = userId)
             }
 
             // when
             val selectedUsers = UserTable
-                    .select { (UserTable.city.lowerCase() eq "warsaw") and (UserTable.houseNumber greaterEq 9) }
+                    .select { (UserTable.contactAddressCity.lowerCase() eq "warsaw") and (UserTable.contactAddressHouseNumber greaterEq 9) }
                     .toUserList()
 
             // then
