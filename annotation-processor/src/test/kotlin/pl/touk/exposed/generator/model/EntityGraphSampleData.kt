@@ -63,21 +63,40 @@ interface EntityGraphSampleData {
         return getTypeElement("pl.touk.example.EnumPropertyEntity", typeEnvironment.elementUtils)
     }
 
+    fun invalidClassTypeEntity(typeEnvironment: TypeEnvironment): TypeElement {
+        return getTypeElement("pl.touk.example.InvalidClassEntity", typeEnvironment.elementUtils)
+    }
+
+    fun idNotPresentEntity(typeEnvironment: TypeEnvironment): TypeElement {
+        return getTypeElement("pl.touk.example.IdNotPresentEntity", typeEnvironment.elementUtils)
+    }
+
+    fun idTypeUnsupportedEntity(typeEnvironment: TypeEnvironment): TypeElement {
+        return getTypeElement("pl.touk.example.IdTypeUnsupportedEntity", typeEnvironment.elementUtils)
+    }
+
+    fun propertyTypeUnsupportedEntity(typeEnvironment: TypeEnvironment): TypeElement {
+        return getTypeElement("pl.touk.example.PropertyTypeUnsupportedEntity", typeEnvironment.elementUtils)
+    }
+
     fun customerGraphBuilder(typeEnvironment: TypeEnvironment): EntityGraphBuilder {
         val entity = customerTestEntity(typeEnvironment)
+        val id = getVariableElement(entity, typeEnvironment.elementUtils, "id")
 
-        val annEnv = AnnotationEnvironment(listOf(entity), emptyList(), emptyList(), emptyList(),
-                emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
+        val annEnv = AnnotationEnvironment(entities = listOf(entity), ids = listOf(id), columns = emptyList(),
+                oneToMany = emptyList(), oneToOne = emptyList(), manyToOne = emptyList(), manyToMany = emptyList(),
+                embedded = emptyList(), embeddedColumn = emptyList())
 
         return EntityGraphBuilder(typeEnvironment, annEnv)
     }
 
     fun customerTestEntityDefinition(typeEnvironment: TypeEnvironment): EntityDefinition {
         val entity = customerTestEntity(typeEnvironment)
+        val id = getVariableElement(entity, typeEnvironment.elementUtils, "id")
 
         return EntityDefinition(
-                name = entity.simpleName, qualifiedName = entity.qualifiedName,
-                table = "customers", id = null)
+                name = entity.simpleName, qualifiedName = entity.qualifiedName, table = "customers",
+                id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)))
     }
 
     fun validTableMappingGraphBuilder(typeEnvironment: TypeEnvironment): EntityGraphBuilder {
@@ -393,6 +412,40 @@ interface EntityGraphSampleData {
                 properties = listOf(
                         propertyDefinition(typeEnvironment, enumClass, "enumClass", Type("pl.touk.example", "EnumClass"), false)
                                 .copy(enumerated = EnumeratedDefinition(EnumType.STRING))
+                ),
+                embeddables = emptyList()
+        )
+    }
+
+    fun idNotPresentEntityDefinition(typeEnvironment: TypeEnvironment): EntityDefinition {
+        val entity = idNotPresentEntity(typeEnvironment)
+
+        return EntityDefinition(name = entity.simpleName, qualifiedName = entity.qualifiedName, id = null,
+                table = entity.simpleName.asVariable(), properties = emptyList(), embeddables = emptyList()
+        )
+    }
+
+    fun idTypeUnsupportedEntityDefinition(typeEnvironment: TypeEnvironment): EntityDefinition {
+        val entity = idTypeUnsupportedEntity(typeEnvironment)
+        val id = getVariableElement(entity, typeEnvironment.elementUtils, "id")
+
+        return EntityDefinition(name = entity.simpleName, qualifiedName = entity.qualifiedName,
+                id = IdDefinition(name = id.simpleName, columnName = typeEnvironment.elementUtils.getName("id"),
+                        annotation = id.getAnnotation(Column::class.java), type = FLOAT, generatedValue = true, nullable = true),
+                table = entity.simpleName.asVariable(), properties = emptyList(), embeddables = emptyList()
+        )
+    }
+
+    fun propertyTypeUnsupportedEntityDefinition(typeEnvironment: TypeEnvironment): EntityDefinition {
+        val entity = propertyTypeUnsupportedEntity(typeEnvironment)
+        val id = getVariableElement(entity, typeEnvironment.elementUtils, "id")
+        val prop = getVariableElement(entity, typeEnvironment.elementUtils,"prop")
+
+        return EntityDefinition(name = entity.simpleName, qualifiedName = entity.qualifiedName,
+                id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
+                table = entity.simpleName.asVariable(),
+                properties = listOf(
+                        propertyDefinition(typeEnvironment, prop, "prop", Type("kotlin", "Pair"), false)
                 ),
                 embeddables = emptyList()
         )

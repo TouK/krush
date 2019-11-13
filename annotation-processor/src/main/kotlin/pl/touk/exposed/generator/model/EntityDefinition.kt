@@ -137,6 +137,8 @@ fun EntityGraphs.entity(packageName: String, typeElement: TypeElement) : EntityD
     return this[packageName]?.get(typeElement)
 }
 
+fun EntityGraphs.entities() : Iterable<EntityDefinition> = this.map { it.value }.flatMap { it.entries }.map { it.value }
+
 fun Name.asObject() = this.toString().capitalize()
 fun Name.asVariable() = this.toString().decapitalize()
 
