@@ -18,7 +18,7 @@ buildscript {
 apply plugin: 'kotlin'
 apply plugin: 'maven-publish'
 
-group = 'pl.touk.exposed-generator'
+group = 'pl.touk.krush'
 version = '0.1.0-SNAPSHOT'
 sourceCompatibility = 1.8
 
