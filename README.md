@@ -1,6 +1,6 @@
 ## krush
 
-**krush** is a lightweight persistence layer for Kotlin based on [Exposed SQL DSL](https://github.com/JetBrains/Exposed). It’s similar to [requery](http://requery.io) and [micronaut-data jdbc](https://micronaut-projects.github.io/micronaut-data/latest/guide/#jdbc), but designed to work idiomatically with Kotlin and immutable data classes.
+**krush** is a lightweight persistence layer for Kotlin based on [Exposed SQL DSL](https://github.com/JetBrains/Exposed/wiki/DSL). It’s similar to [requery](http://requery.io) and [micronaut-data jdbc](https://micronaut-projects.github.io/micronaut-data/latest/guide/#jdbc), but designed to work idiomatically with Kotlin and immutable data classes.
 
 It’s based on a compile-time JPA annotation processor that generates Exposed DSL table and objects mappings for you. This lets you instantly start writing type-safe SQL queries without need to write boilerplate infrastructure code.
 
@@ -108,6 +108,10 @@ Maven:
 </plugin>
 ```
 
+### Dependencies
+* Exposed >= 0.18.1
+* JPA 2.1
+
 ### Features
 * generates table mappings and functions for mapping from/to data classes
 * type-safe SQL DSL without reading schema from existing database (code-first)
@@ -179,7 +183,7 @@ assertThat(selectedArticle).isEqualTo(persistedArticle)
 * [Mateusz Śledź](https://github.com/mateuszsledz)
 * [Piotr Jagielski](https://github.com/pjagielski)
 
-Special thanks to [Łukasz Jędrzejewski](https://github.com/jedrz) for original idea of Exposed usage in our projects.
+Special thanks to [Łukasz Jędrzejewski](https://github.com/jedrz) for original idea of using Exposed in our projects.
 
 ### Licence
 **krush** is published under Apache License 2.0.
