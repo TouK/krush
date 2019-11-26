@@ -64,7 +64,7 @@ configure([project(':annotation-processor'), project(':runtime')]) {
                 def baseUrl = 'https://philanthropist.touk.pl/nexus/content/repositories'
                 def releasesRepoUrl = "$baseUrl/releases"
                 def snapshotsRepoUrl = "$baseUrl/snapshots"
-                url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+                url = scmVersion.version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
             }
         }
     }
