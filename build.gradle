@@ -30,7 +30,6 @@ allprojects {
     repositories {
         jcenter()
         maven { url 'https://jitpack.io' }
-        maven { url 'https://philanthropist.touk.pl/nexus/content/repositories/snapshots' }
     }
 }
 
@@ -62,7 +61,10 @@ configure([project(':annotation-processor'), project(':runtime')]) {
                     username = project.properties["deployUsername"]?.toString() ?: System.getenv("DEPLOY_USERNAME")
                     password = project.properties["deployPassword"]?.toString() ?: System.getenv("DEPLOY_PASSWORD")
                 }
-                url = 'https://philanthropist.touk.pl/nexus/content/repositories/snapshots'
+                def baseUrl = 'https://philanthropist.touk.pl/nexus/content/repositories'
+                def releasesRepoUrl = "$baseUrl/releases"
+                def snapshotsRepoUrl = "$baseUrl/snapshots"
+                url = scmVersion.version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
             }
         }
     }
