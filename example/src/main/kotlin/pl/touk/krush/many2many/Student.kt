@@ -1,10 +1,10 @@
 package pl.touk.krush.many2many
 
-import pl.touk.krush.Convert
-import pl.touk.krush.Converter
 import pl.touk.krush.converter.IdNotPersistedDelegate
 import pl.touk.krush.converter.RefId
+import javax.persistence.AttributeConverter
 import javax.persistence.Column
+import javax.persistence.Convert
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
 import javax.persistence.Id
@@ -18,7 +18,7 @@ import kotlin.reflect.KProperty
 data class Student(
 
         @Id @GeneratedValue
-        @Convert(value = StudentIdConverter::class)
+        @Convert(converter = StudentIdConverter::class)
         val id: StudentId = StudentId.New,
 
         @Column(name = "name")
@@ -34,7 +34,7 @@ data class Student(
 data class Course(
 
         @Id @GeneratedValue
-        @Convert(value = CourseIdConverter::class)
+        @Convert(converter = CourseIdConverter::class)
         val id: CourseId = CourseId.New,
 
         @Column(name = "name")
@@ -52,7 +52,7 @@ sealed class StudentId : RefId<Long>() {
         }
 }
 
-class StudentIdConverter : Converter<StudentId, Long> {
+class StudentIdConverter : AttributeConverter<StudentId, Long> {
 
         override fun convertToDatabaseColumn(attribute: StudentId): Long {
                 return attribute.value
@@ -74,7 +74,7 @@ sealed class CourseId : RefId<Long>() {
     }
 }
 
-class CourseIdConverter : Converter<CourseId, Long> {
+class CourseIdConverter : AttributeConverter<CourseId, Long> {
 
         override fun convertToDatabaseColumn(attribute: CourseId): Long {
                 return attribute.value
