@@ -6,8 +6,6 @@ import com.squareup.kotlinpoet.metadata.toImmutableKmClass
 import kotlinx.metadata.KmClassifier
 import org.jetbrains.annotations.NotNull
 import org.jetbrains.annotations.Nullable
-import pl.touk.krush.Convert
-import pl.touk.krush.Converter
 import pl.touk.krush.env.AnnotationEnvironment
 import pl.touk.krush.env.TypeEnvironment
 import pl.touk.krush.env.enclosingTypeElement
@@ -22,9 +20,11 @@ import javax.lang.model.element.TypeElement
 import javax.lang.model.element.VariableElement
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeMirror
+import javax.persistence.AttributeConverter
 import javax.persistence.AttributeOverride
 import javax.persistence.AttributeOverrides
 import javax.persistence.Column
+import javax.persistence.Convert
 import javax.persistence.Enumerated
 import javax.persistence.GeneratedValue
 
@@ -101,11 +101,11 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
             this.singleOrNull { it.name == basicName.asVariable() }?.column?.name?.name()
 
     private fun getConverterDefinition(columnElt: VariableElement): ConverterDefinition? {
-        val converterType = columnElt.annotationMirror(Convert::class.java.canonicalName)?.valueType("value")
+        val converterType = columnElt.annotationMirror(Convert::class.java.canonicalName)?.valueType("converter")
 
         return converterType?.let {
             val databaseType = converterType.toTypeElement().toImmutableKmClass().functions
-                    .find { it.name == Converter<*, *>::convertToDatabaseColumn.name }
+                    .find { it.name == AttributeConverter<*, *>::convertToDatabaseColumn.name }
                     ?.returnType?.toModelType() ?: throw ConverterTypeNotFoundException(converterType)
 
             return ConverterDefinition(name = converterType.qualifiedName.asVariable(), targetType = databaseType)

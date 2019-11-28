@@ -1,7 +1,7 @@
 package pl.touk.krush.converter
 
-import pl.touk.krush.Convert
-import pl.touk.krush.Converter
+import javax.persistence.AttributeConverter
+import javax.persistence.Convert
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
 import javax.persistence.Id
@@ -14,7 +14,7 @@ import kotlin.reflect.KProperty
 data class Thread(
 
         @Id @GeneratedValue
-        @Convert(value = ThreadConverter::class)
+        @Convert(converter = ThreadConverter::class)
         val id: ThreadId = ThreadId.New,
 
         val name: String,
@@ -37,10 +37,10 @@ sealed class ThreadId : RefId<Long>() {
 data class Comment(
 
         @Id @GeneratedValue
-        @Convert(value = IdConverter::class)
+        @Convert(converter = IdConverter::class)
         val id: String? = null,
 
-        @Convert(value = AuthorConverter::class)
+        @Convert(converter = AuthorConverter::class)
         val author: Author,
 
         @ManyToOne
@@ -64,7 +64,7 @@ class IdNotPersistedDelegate<T> {
     operator fun getValue(thisRef: Any?, property: KProperty<*>): Nothing = throw IllegalStateException("Id not persisted yet")
 }
 
-class AuthorConverter : Converter<Author, String> {
+class AuthorConverter : AttributeConverter<Author, String> {
 
     override fun convertToDatabaseColumn(attribute: Author): String {
         return attribute.name.plus(" ").plus(attribute.surname)
@@ -76,7 +76,7 @@ class AuthorConverter : Converter<Author, String> {
     }
 }
 
-class IdConverter : Converter<String, Long> {
+class IdConverter : AttributeConverter<String, Long> {
 
     override fun convertToDatabaseColumn(attribute: String): Long {
         return attribute.toLong()
@@ -88,7 +88,7 @@ class IdConverter : Converter<String, Long> {
 
 }
 
-class ThreadConverter : Converter<ThreadId, Long> {
+class ThreadConverter : AttributeConverter<ThreadId, Long> {
 
     override fun convertToDatabaseColumn(attribute: ThreadId): Long {
         return attribute.value
