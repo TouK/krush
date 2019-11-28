@@ -1,22 +1,16 @@
 package pl.touk.krush.embeddable
 
-import org.assertj.core.api.Assertions
-import org.jetbrains.exposed.sql.Database
+import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.lowerCase
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Test
+import pl.touk.krush.base.BaseDatabaseTest
 import pl.touk.krush.embeddable.Address.InvoiceAddress
 
-class UserTest {
-
-    @Before
-    fun connect() {
-        Database.connect("jdbc:h2:mem:test", driver = "org.h2.Driver")
-    }
+class UserTest : BaseDatabaseTest(){
 
     @Test
     fun shouldHandleEmbeddedTypes() {
@@ -34,7 +28,7 @@ class UserTest {
                     .toUserList()
 
             // then
-            Assertions.assertThat(selectedUsers).containsOnly(user)
+            assertThat(selectedUsers).containsOnly(user)
         }
     }
 }

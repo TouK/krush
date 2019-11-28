@@ -10,6 +10,15 @@ dependencies {
 
     api project(":runtime")
 
-    testCompile 'com.google.testing.compile:compile-testing:0.18'
-    testCompile 'org.assertj:assertj-core:3.13.2'
+    testCompile'org.junit.jupiter:junit-jupiter:5.5.2'
+    testCompile 'org.assertj:assertj-core:3.14.0'
+    testRuntime 'ch.qos.logback:logback-classic:1.2.3'
+    testCompile("net.serverpeon.testing.compile:compile-testing-extension:1.0.0")
+}
+
+tasks.test {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed")
+    }
 }

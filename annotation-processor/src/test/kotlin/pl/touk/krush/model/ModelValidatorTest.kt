@@ -2,12 +2,14 @@ package pl.touk.krush.model
 
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import pl.touk.krush.AnnotationProcessorTest
 import pl.touk.krush.model.ValidationResult.Error
+import javax.lang.model.util.Elements
+import javax.lang.model.util.Types
 
 @KotlinPoetMetadataPreview
-class ModelValidatorTest : AnnotationProcessorTest(), EntityGraphSampleData {
+class ModelValidatorTest(types: Types, elements: Elements) : AnnotationProcessorTest(types, elements), EntityGraphSampleData {
 
     @Test
     fun shouldFailedValidationWhenEntityIsNotDataClass() {

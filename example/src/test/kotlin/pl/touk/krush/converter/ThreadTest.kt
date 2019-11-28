@@ -1,19 +1,13 @@
 package pl.touk.krush.converter
 
-import org.assertj.core.api.Assertions
-import org.jetbrains.exposed.sql.Database
+import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Test
+import pl.touk.krush.base.BaseDatabaseTest
 
-class ThreadTest {
-
-    @Before
-    fun connect() {
-        Database.connect("jdbc:h2:mem:test", driver = "org.h2.Driver")
-    }
+class ThreadTest : BaseDatabaseTest() {
 
     @Test
     fun shouldHandlePropertyConverter() {
@@ -34,7 +28,7 @@ class ThreadTest {
             val fullThread = thread.copy(comments = listOf(comment))
 
             // then
-            Assertions.assertThat(selectedThreads).containsOnly(fullThread)
+            assertThat(selectedThreads).containsOnly(fullThread)
         }
     }
 }

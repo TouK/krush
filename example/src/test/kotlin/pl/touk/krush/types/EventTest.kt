@@ -1,12 +1,11 @@
 package pl.touk.krush.types
 
-import org.assertj.core.api.Assertions
-import org.jetbrains.exposed.sql.Database
+import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Test
+import pl.touk.krush.base.BaseDatabaseTest
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -15,12 +14,8 @@ import java.time.ZoneId.systemDefault
 import java.time.ZonedDateTime
 import java.util.UUID.randomUUID
 
-class EventTest {
 
-    @Before
-    fun connect() {
-        Database.connect("jdbc:h2:mem:test", driver = "org.h2.Driver")
-    }
+class EventTest : BaseDatabaseTest() {
 
     @Test
     fun shouldHandleUUIDAndDateTypes() {
@@ -40,7 +35,7 @@ class EventTest {
                     .toEventList()
 
             //then
-            Assertions.assertThat(events).containsOnly(event)
+            assertThat(events).containsOnly(event)
         }
     }
 }

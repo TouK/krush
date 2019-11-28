@@ -1,21 +1,15 @@
 package pl.touk.krush.one2one
 
-import org.assertj.core.api.Assertions
-import org.jetbrains.exposed.sql.Database
+import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Test
+import pl.touk.krush.base.BaseDatabaseTest
 
-class EmployeeTest {
-
-    @Before
-    fun connect() {
-        Database.connect("jdbc:h2:mem:test", driver = "org.h2.Driver")
-    }
+class EmployeeTest : BaseDatabaseTest() {
 
     @Test
     fun shouldHandleOneToOne() {
@@ -38,7 +32,7 @@ class EmployeeTest {
             val fullEmployee = employee.copy(employeeInfo = employeeInfo)
 
             //then
-            Assertions.assertThat(employees).containsOnly(fullEmployee)
+            assertThat(employees).containsOnly(fullEmployee)
         }
     }
 
@@ -64,7 +58,7 @@ class EmployeeTest {
             val fullEmployee = employee.copy(employeeInfo = employeeInfo.copy(parkingSpot = parkingSpot))
 
             //then
-            Assertions.assertThat(employees).containsOnly(fullEmployee)
+            assertThat(employees).containsOnly(fullEmployee)
         }
     }
 }

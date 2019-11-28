@@ -2,11 +2,13 @@ package pl.touk.krush.model
 
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import pl.touk.krush.AnnotationProcessorTest
+import javax.lang.model.util.Elements
+import javax.lang.model.util.Types
 
 @KotlinPoetMetadataPreview
- class EntityGraphBuilderTest : AnnotationProcessorTest(), EntityGraphSampleData {
+ class EntityGraphBuilderTest(types: Types, elements: Elements) : AnnotationProcessorTest(types, elements), EntityGraphSampleData {
 
     @Test
     fun shouldPutEntityToGraph() {
