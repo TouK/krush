@@ -1,21 +1,15 @@
 package pl.touk.krush.types
 
-import org.assertj.core.api.Assertions
-import org.jetbrains.exposed.sql.Database
+import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Test
+import pl.touk.krush.base.BaseDatabaseTest
 import java.math.BigDecimal
 import java.math.RoundingMode
 
-class LineTest {
-
-    @Before
-    fun connect() {
-        Database.connect("jdbc:h2:mem:test", driver = "org.h2.Driver")
-    }
+class LineTest : BaseDatabaseTest() {
 
     @Test
     fun shouldHandleNumericTypes() {
@@ -32,7 +26,7 @@ class LineTest {
                     .toLineList()
 
             //then
-            Assertions.assertThat(lines).containsOnly(line)
+            assertThat(lines).containsOnly(line)
         }
     }
 }

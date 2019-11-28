@@ -1,24 +1,17 @@
 package pl.touk.krush.multipackage
 
 import org.assertj.core.api.Assertions.assertThat
-import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Test
+import pl.touk.krush.base.BaseDatabaseTest
 import pl.touk.krush.multipackage.b.TestB
 import pl.touk.krush.multipackage.b.TestBTable
 import pl.touk.krush.multipackage.b.insert
 
-class MultiPackageTest {
-
-    @Before
-    fun connect() {
-        Database.connect("jdbc:h2:mem:test", driver = "org.h2.Driver")
-    }
-
+class MultiPackageTest : BaseDatabaseTest() {
 
     @Test
     fun shouldHandleMultiPackageClasses() {

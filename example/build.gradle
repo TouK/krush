@@ -11,9 +11,14 @@ dependencies {
 
     implementation("com.h2database:h2:1.4.199")
 
-    testCompile 'junit:junit:4.12'
-    testCompile 'com.google.testing.compile:compile-testing:0.18'
-    testCompile 'org.assertj:assertj-core:3.13.2'
+    testCompile'org.junit.jupiter:junit-jupiter:5.5.2'
+    testCompile 'org.assertj:assertj-core:3.14.0'
     testRuntime 'ch.qos.logback:logback-classic:1.2.3'
+}
 
+tasks.test {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed")
+    }
 }

@@ -1,23 +1,17 @@
 package pl.touk.krush.enumtype
 
 import org.assertj.core.api.Assertions.assertThat
-import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Test
+import pl.touk.krush.base.BaseDatabaseTest
 import pl.touk.krush.enumtype.ContentType.XML
 import pl.touk.krush.enumtype.MessagePriority.HIGH
 import pl.touk.krush.enumtype.MessageStatus.NEW
 import pl.touk.krush.enumtype.MessageStatus.PENDING
 
-class MessageTest {
-
-    @Before
-    fun connect() {
-        Database.connect("jdbc:h2:mem:test", driver = "org.h2.Driver")
-    }
+class MessageTest : BaseDatabaseTest() {
 
     @Test
     fun shouldHandleEnumTypes() {
