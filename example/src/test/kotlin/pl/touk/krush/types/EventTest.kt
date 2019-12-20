@@ -14,7 +14,6 @@ import java.time.ZoneId.systemDefault
 import java.time.ZonedDateTime
 import java.util.UUID.randomUUID
 
-
 class EventTest : BaseDatabaseTest() {
 
     @Test

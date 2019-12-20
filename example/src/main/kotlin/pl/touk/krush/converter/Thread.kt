@@ -12,7 +12,6 @@ import kotlin.reflect.KProperty
 
 @Entity
 data class Thread(
-
         @Id @GeneratedValue
         @Convert(converter = ThreadConverter::class)
         val id: ThreadId = ThreadId.New,
@@ -35,10 +34,9 @@ sealed class ThreadId : RefId<Long>() {
 
 @Entity
 data class Comment(
-
-        @Id @GeneratedValue
-        @Convert(converter = IdConverter::class)
-        val id: String? = null,
+        @Id
+        @Convert(converter = CommentIdConverter::class)
+        val id: CommentId = CommentId.New,
 
         @Convert(converter = AuthorConverter::class)
         val author: Author,
@@ -48,8 +46,17 @@ data class Comment(
         val thread: Thread? = null
 )
 
-data class Author(
+sealed class CommentId : RefId<Long>() {
+    object New : CommentId() {
+        override val value: Long by IdNotPersistedDelegate<Long>()
+    }
 
+    data class Persisted(override val value: Long) : CommentId() {
+        override fun toString() = "CommentId(value=$value)"
+    }
+}
+
+data class Author(
         val name: String,
         val surname: String
 )
@@ -76,14 +83,14 @@ class AuthorConverter : AttributeConverter<Author, String> {
     }
 }
 
-class IdConverter : AttributeConverter<String, Long> {
+class CommentIdConverter : AttributeConverter<CommentId, Long> {
 
-    override fun convertToDatabaseColumn(attribute: String): Long {
-        return attribute.toLong()
+    override fun convertToDatabaseColumn(attribute: CommentId): Long {
+        return attribute.value
     }
 
-    override fun convertToEntityAttribute(dbData: Long): String {
-        return dbData.toString()
+    override fun convertToEntityAttribute(dbData: Long): CommentId {
+        return CommentId.Persisted(dbData)
     }
 
 }

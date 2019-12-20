@@ -18,7 +18,7 @@ class ThreadTest : BaseDatabaseTest() {
             val thread = ThreadTable.insert(Thread(name = "Test thread"))
 
             val author = Author("John", "Smith")
-            val comment = CommentTable.insert(Comment(author = author, thread = thread))
+            val comment = CommentTable.insert(Comment(id = CommentId.Persisted(123), author = author, thread = thread))
 
             // when
             val selectedThreads = (ThreadTable leftJoin CommentTable)

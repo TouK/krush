@@ -180,7 +180,8 @@ class TablesGenerator : SourceGenerator {
 
     private fun insertFunc(entityType: TypeElement, entity: EntityDefinition, fileSpec: FileSpec.Builder) {
         val entityName = entity.name.asVariable()
-        val persistedName = "persisted${entityName.capitalize()}"
+        val isGenerated = entity.id?.generatedValue ?: false
+        val persistedName = if (isGenerated) "persisted${entityName.capitalize()}" else entityName
         val func = FunSpec.builder("insert")
                 .receiver(Type(entityType.packageName, entity.tableName).asClassName())
                 .addParameter(entity.name.asVariable(), entityType.asType().asTypeName())
@@ -193,8 +194,12 @@ class TablesGenerator : SourceGenerator {
         val fromFuncParams = (listOf(entityName) + assocParams.map(ParameterSpec::name)).joinToString(separator = ", ")
         val fromFunc = if (entity.hasAssignableProperties()) "it.from(${fromFuncParams})" else ""
 
-        func.addStatement("val id = ${entity.tableName}.insert { $fromFunc }[${entity.tableName}.${entity.id?.name}]")
-        func.addStatement("val $persistedName = ${entityName.decapitalize()}.copy(${entity.id?.name} = id)")
+        if (isGenerated) {
+            func.addStatement("val id = ${entity.tableName}.insert { $fromFunc }[${entity.tableName}.${entity.id?.name}]")
+            func.addStatement("val $persistedName = $entityName.copy(${entity.id?.name} = id)")
+        } else {
+            func.addStatement("${entity.tableName}.insert { $fromFunc }")
+        }
 
         entity.getAssociations(AssociationType.MANY_TO_MANY).forEach { assoc ->
             val tableName = "${entity.name}${assoc.name.asObject()}Table"
