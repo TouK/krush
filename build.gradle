@@ -15,18 +15,21 @@ buildscript {
     }
 }
 
-apply plugin: 'kotlin'
-apply plugin: 'maven-publish'
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.3.60'
+    id 'pl.allegro.tech.build.axion-release' version '1.10.2'
+    id 'maven-publish'
+}
 
 group = 'pl.touk.krush'
-version = '0.1.0-SNAPSHOT'
+project.version = scmVersion.version
+
 sourceCompatibility = 1.8
 
 allprojects {
     repositories {
         jcenter()
         maven { url 'https://jitpack.io' }
-        maven { url 'https://philanthropist.touk.pl/nexus/content/repositories/snapshots' }
     }
 }
 
@@ -58,7 +61,10 @@ configure([project(':annotation-processor'), project(':runtime')]) {
                     username = project.properties["deployUsername"]?.toString() ?: System.getenv("DEPLOY_USERNAME")
                     password = project.properties["deployPassword"]?.toString() ?: System.getenv("DEPLOY_PASSWORD")
                 }
-                url = 'https://philanthropist.touk.pl/nexus/content/repositories/snapshots'
+                def baseUrl = 'https://philanthropist.touk.pl/nexus/content/repositories'
+                def releasesRepoUrl = "$baseUrl/releases"
+                def snapshotsRepoUrl = "$baseUrl/snapshots"
+                url = scmVersion.version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
             }
         }
     }

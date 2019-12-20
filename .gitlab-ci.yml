@@ -3,6 +3,7 @@ image: java:8-jdk
 stages:
   - test
   - build
+  - release
   - publish
 
 before_script:
@@ -32,4 +33,11 @@ publish_snapshot:
   only:
     - master
   script:
+    - ./gradlew publish
+
+release:
+  stage: release
+  when: manual
+  script:
+    - ./gradlew release
     - ./gradlew publish
