@@ -165,25 +165,25 @@ However, **Krush** is not a full-blown ORM library. This means following JPA fea
 @Entity
 @Table(name = "articles")
 data class Article(
-        @Id @GeneratedValue
-        val id: Long? = null,
+    @Id @GeneratedValue
+    val id: Long? = null,
 
-        @Column(name = "title")
-        val title: String,
+    @Column(name = "title")
+    val title: String,
 
-        @ManyToMany
-        @JoinTable(name = "article_tags")
-        val tags: List<Tag> = emptyList()
+    @ManyToMany
+    @JoinTable(name = "article_tags")
+    val tags: List<Tag> = emptyList()
 )
 
 @Entity
 @Table(name = "tags")
 data class Tag(
-        @Id @GeneratedValue
-        val id: Long? = null,
+    @Id @GeneratedValue
+    val id: Long? = null,
 
-        @Column(name = "name")
-        val name: String
+    @Column(name = "name")
+    val name: String
 )
 ```
 
@@ -201,8 +201,8 @@ val persistedArticle = ArticleTable.insert(article)
 Querying and fetching
 ```kotlin
 val (selectedArticle) = (ArticleTable leftJoin ArticleTagsTable leftJoin TagTable)
-        .select { TagTable.name inList listOf("jvm", "spring") }
-        .toArticleList()
+    .select { TagTable.name inList listOf("jvm", "spring") }
+    .toArticleList()
 
 assertThat(selectedArticle).isEqualTo(persistedArticle)
 ```
