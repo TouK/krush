@@ -1,8 +1,29 @@
+## Gragle 
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
+
+## Idea
 .idea
 *.iws
 *.iml
 *.ipr
 out/
+
+# Compiled class file
+*.class
+
+# Log file
+*.log
+
+# Package Files #
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
