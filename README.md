@@ -1,6 +1,6 @@
-## krush
+## Krush
 
-**krush** is a lightweight persistence layer for Kotlin based on [Exposed SQL DSL](https://github.com/JetBrains/Exposed/wiki/DSL). It’s similar to [requery](http://requery.io) and [micronaut-data jdbc](https://micronaut-projects.github.io/micronaut-data/latest/guide/#jdbc), but designed to work idiomatically with Kotlin and immutable data classes.
+**Krush** is a lightweight persistence layer for Kotlin based on [Exposed SQL DSL](https://github.com/JetBrains/Exposed/wiki/DSL). It’s similar to [Requery](http://requery.io) and [Micronaut-data jdbc](https://micronaut-projects.github.io/micronaut-data/latest/guide/#jdbc), but designed to work idiomatically with Kotlin and immutable data classes.
 
 It’s based on a compile-time JPA annotation processor that generates Exposed DSL table and objects mappings for you. This lets you instantly start writing type-safe SQL queries without need to write boilerplate infrastructure code.
 
@@ -24,7 +24,7 @@ data class Book(
 )
 ```
 
-we can turn it into **krush** entity by adding `@Entity` and `@Id` annotations:
+we can turn it into **Krush** entity by adding `@Entity` and `@Id` annotations:
 
 ```kotlin
 @Entity
@@ -140,7 +140,7 @@ Maven:
 
 ### Dependencies
 * Exposed >= 0.18.1
-* JPA 2.1
+* JPA annotations 2.1
 
 ### Features
 * generates table mappings and functions for mapping from/to data classes
@@ -150,7 +150,7 @@ Maven:
 * custom data type support (with `@Converter`), also for wrapped auto-generated ids
 * you can still persist associations not directly reflected in domain model (eq. article favorites) 
 
-However, **krush** is not a full-blown ORM library. This means following JPA features are not supported:
+However, **Krush** is not a full-blown ORM library. This means following JPA features are not supported:
 * lazy association fetching
 * dirty checking
 * caching
@@ -216,4 +216,4 @@ assertThat(selectedArticle).isEqualTo(persistedArticle)
 Special thanks to [Łukasz Jędrzejewski](https://github.com/jedrz) for original idea of using Exposed in our projects.
 
 ### Licence
-**krush** is published under Apache License 2.0.
+**Krush** is published under Apache License 2.0.
