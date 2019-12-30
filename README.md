@@ -10,7 +10,7 @@ It’s based on a compile-time JPA annotation processor that generates Exposed D
 ### Rationale 
 * **(type-safe) SQL-first** - use type-safe SQL-like DSL in your queries, no string or method name parsing 
 * **Minimal changes to your domain model** - no need to extend external interfaces and used special types - just add annotations to your existing domain model
-* **Explicit fetching** - you specify explicitly in query what data you want to fetch, no additional fetching after data is loader
+* **Explicit fetching** - you specify explicitly in query what data you want to fetch, no additional fetching after data is loaded
 * **No runtime magic** - no proxies, lazy loading, just data classes containing data fetched from DB
 * **Pragmatic** - easy to start, but powerful even in not trivial cases (associations, grouping queries)
 
