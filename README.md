@@ -1,4 +1,6 @@
 ## Krush
+[![CircleCI](https://circleci.com/gh/TouK/krush.svg?style=svg)](https://circleci.com/gh/TouK/krush)
+[![Sputnik](https://sputnik.ci/conf/badge)](https://sputnik.ci/app#/builds/TouK/krush)
 
 **Krush** is a lightweight persistence layer for Kotlin based on [Exposed SQL DSL](https://github.com/JetBrains/Exposed/wiki/DSL). It’s similar to [Requery](http://requery.io) and [Micronaut-data jdbc](https://micronaut-projects.github.io/micronaut-data/latest/guide/#jdbc), but designed to work idiomatically with Kotlin and immutable data classes.
 
