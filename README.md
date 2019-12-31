@@ -1,6 +1,6 @@
 ## Krush
 ![Sonatype Nexus (Repository)](https://img.shields.io/nexus/releases/pl.touk.krush/annotation-processor?label=maven&server=https%3A%2F%2Fphilanthropist.touk.pl%2Fnexus)
-[![CircleCI](https://circleci.com/gh/TouK/krush.svg?style=svg)](https://circleci.com/gh/TouK/krush)
+![CircleCI](https://img.shields.io/circleci/build/github/TouK/krush)
 [![Sputnik](https://sputnik.ci/conf/badge)](https://sputnik.ci/app#/builds/TouK/krush)
 
 **Krush** is a lightweight persistence layer for Kotlin based on [Exposed SQL DSL](https://github.com/JetBrains/Exposed/wiki/DSL). It’s similar to [Requery](http://requery.io) and [Micronaut-data jdbc](https://micronaut-projects.github.io/micronaut-data/latest/guide/#jdbc), but designed to work idiomatically with Kotlin and immutable data classes.
