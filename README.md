@@ -159,6 +159,50 @@ However, **Krush** is not a full-blown ORM library. This means following JPA fea
 * caching
 * versioning / optimistic locking
 
+### Updating
+Given following entity:
+```kotlin
+@Entity
+data class Reservation(
+    @Id
+    val uid: UUID = UUID.randomUUID(),
+
+    @Enumerated(EnumType.STRING)
+    val status: Status = Status.FREE,
+
+    val reservedAt: LocalDateTime? = null,
+    val freedAt: LocalDateTime? = null
+) {
+    fun reserve() = copy(status = Status.RESERVED, reservedAt = LocalDateTime.now())
+    fun free() = copy(status = Status.FREE, freedAt = LocalDateTime.now())
+}
+
+enum class Status { FREE, RESERVED }
+```
+you can call Exposed `update` with generated `from` metod to overwrite it's data:
+
+```kotlin
+val reservation = Reservation().reserve().let(ReservationTable::insert)
+
+val freedReservation = reservation.free()
+ReservationTable.update({ ReservationTable.uid eq reservation.uid }) { it.from(freedReservation) }
+
+val updatedReservation = ReservationTable.select({ ReservationTable.uid eq reservation.uid }).singleOrNull()?.toReservation()
+assertThat(updatedReservation?.status).isEqualTo(Status.FREE)
+assertThat(updatedReservation?.reservedAt).isEqualTo(reservation.reservedAt)
+assertThat(updatedReservation?.freedAt).isEqualTo(freedReservation.freedAt)
+```
+
+For simple cases you can still use Exposed native update syntax:
+```kotlin
+val freedAt = LocalDateTime.now()
+ReservationTable.update({ ReservationTable.uid eq reservation.uid }) {
+  it[ReservationTable.status] = Status.FREE
+  it[ReservationTable.freedAt] = freedAt
+}
+```
+[Complete example](https://github.com/TouK/krush-example/blob/master/src/test/kotlin/pl/touk/krush/ReservationTest.kt)
+
 ### Associations
 
 ```kotlin
@@ -206,6 +250,8 @@ val (selectedArticle) = (ArticleTable leftJoin ArticleTagsTable leftJoin TagTabl
 
 assertThat(selectedArticle).isEqualTo(persistedArticle)
 ```
+
+Update logic for associations not implemented (yet!) - you have to manually add/remove records from `ArticleTagsTable`.
 
 ### Example projects
 
