@@ -10,7 +10,9 @@ import javax.lang.model.element.TypeElement
 sealed class ValidationResult {
     object Success : ValidationResult()
 
-    class Error(val errors: List<ValidationErrorMessage>) : ValidationResult()
+    class Error(val errors: List<ValidationErrorMessage>) : ValidationResult() {
+        constructor(vararg errors: ValidationErrorMessage) : this(errors.asList())
+    }
 }
 
 data class ValidationErrorMessage(
@@ -37,7 +39,7 @@ class DataClassValidator : Validator<TypeElement> {
     @KotlinPoetMetadataPreview
     override fun validate(el: TypeElement): ValidationResult {
         if (!el.toImmutableKmClass().isData) {
-            return Error(listOf(ValidationErrorMessage("Entity ${el.qualifiedName} is not data class")))
+            return Error(ValidationErrorMessage("Entity ${el.qualifiedName} is not data class"))
         }
 
         return Success
@@ -49,7 +51,7 @@ class EntityIdValidator : Validator<EntityDefinition> {
 
     override fun validate(el: EntityDefinition): ValidationResult {
         if (el.id == null) {
-            return Error(listOf(ValidationErrorMessage("No id field specified for entity ${el.qualifiedName}")))
+            return Error(ValidationErrorMessage("No id field specified for entity ${el.qualifiedName}"))
         }
 
         return Success
@@ -69,7 +71,7 @@ class EntityIdTypeValidator : Validator<EntityDefinition> {
 
     override fun validate(el: EntityDefinition): ValidationResult {
         if (el.id!!.converter == null && el.id.type !in supportedIdTypes) {
-            return Error(listOf(ValidationErrorMessage("Entity ${el.qualifiedName} id type ${el.id.type} is unsupported. Use property converter instead.")))
+            return Error(ValidationErrorMessage("Entity ${el.qualifiedName} id type ${el.id.type} is unsupported. Use property converter instead."))
         }
 
         return Success

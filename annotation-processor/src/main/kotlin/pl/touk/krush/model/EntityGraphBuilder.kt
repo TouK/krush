@@ -27,8 +27,7 @@ class EntityGraphBuilder(
             is Error ->  throw EntityGraphValidationFailedException(annEnvValidation.errors)
         }
 
-        val graphs = EntityGraphs()
-        buildEntities(annEnv.entities, graphs)
+        val graphs = buildEntities(annEnv.entities)
 
         processors.forEach { it.process(graphs) }
 
@@ -39,7 +38,8 @@ class EntityGraphBuilder(
         return graphs
     }
 
-    private fun buildEntities(entityList: List<TypeElement>, graphs: EntityGraphs) {
+    private fun buildEntities(entityList: List<TypeElement>) : EntityGraphs {
+        val graphs = EntityGraphs()
         for (entityElt in entityList) {
             val graph = graphs.getOrDefault(entityElt.packageName, EntityGraph())
             graph[entityElt] = EntityDefinition(
@@ -47,26 +47,30 @@ class EntityGraphBuilder(
             )
             graphs[entityElt.packageName] = graph
         }
+        return graphs
     }
 
     private fun AnnotationEnvironment.validate(): ValidationResult {
-        return entities.doValidate { entityElt ->
-            entityTypeValidators.map { validator -> validator.validate(entityElt) }
-        }
+        return entities.doValidate(entityTypeValidators)
     }
 
     private fun EntityGraphs.validate(): ValidationResult {
-        return entities().doValidate { entityDefinition ->
-            entityDefValidators.map { validator -> validator.validate(entityDefinition) }
-        }
+        return entities().doValidate(entityDefValidators)
     }
 
-    private fun <T> Iterable<T>.doValidate(validationExpr: (T) -> List<ValidationResult>): ValidationResult {
+    private fun <T> Iterable<T>.doValidate(validators: List<Validator<T>>): ValidationResult {
         val errors = mutableListOf<ValidationErrorMessage>()
 
         this.forEach { el ->
-            val elValidationResults = validationExpr(el)
-            elValidationResults.filterIsInstance<Error>().forEach { errors.addAll(it.errors) }
+            validators.forEach { validator ->
+                try {
+                    when (val elValidationResult = validator.validate(el)) {
+                        is Error -> errors.addAll(elValidationResult.errors)
+                    }
+                } catch (ex: Exception) {
+                    errors.add(ValidationErrorMessage("Validation exception: $ex, element: $el, validator: $validator"))
+                }
+            }
         }
 
         return if (errors.isEmpty()) Success else Error(errors)
