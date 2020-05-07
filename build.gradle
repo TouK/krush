@@ -44,10 +44,9 @@ configure([project(':annotation-processor'), project(':runtime')]) {
     publishing {
         publications {
             mavenJava(MavenPublication) {
-                from components.java
-                groupId rootProject.group
+                groupId = "serious-cybernetics"
                 artifactId project.name
-                version rootProject.version
+                version '0.3.0'
 
                 artifact sourcesJar {
                     classifier "sources"
@@ -55,18 +54,18 @@ configure([project(':annotation-processor'), project(':runtime')]) {
             }
         }
 
-        repositories {
-            maven {
-                credentials {
-                    username = project.properties["deployUsername"]?.toString() ?: System.getenv("DEPLOY_USERNAME")
-                    password = project.properties["deployPassword"]?.toString() ?: System.getenv("DEPLOY_PASSWORD")
-                }
-                def baseUrl = 'https://philanthropist.touk.pl/nexus/content/repositories'
-                def releasesRepoUrl = "$baseUrl/releases"
-                def snapshotsRepoUrl = "$baseUrl/snapshots"
-                url = scmVersion.version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
-            }
-        }
+//        repositories {
+//            maven {
+//                credentials {
+//                    username = project.properties["deployUsername"]?.toString() ?: System.getenv("DEPLOY_USERNAME")
+//                    password = project.properties["deployPassword"]?.toString() ?: System.getenv("DEPLOY_PASSWORD")
+//                }
+//                def baseUrl = 'https://philanthropist.touk.pl/nexus/content/repositories'
+//                def releasesRepoUrl = "$baseUrl/releases"
+//                def snapshotsRepoUrl = "$baseUrl/snapshots"
+//                url = scmVersion.version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+//            }
+//        }
     }
 
 }
