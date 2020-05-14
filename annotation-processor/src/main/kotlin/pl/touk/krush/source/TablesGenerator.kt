@@ -1,25 +1,10 @@
 package pl.touk.krush.source
 
-import com.squareup.kotlinpoet.BOOLEAN
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.CodeBlock
-import com.squareup.kotlinpoet.DOUBLE
-import com.squareup.kotlinpoet.FLOAT
-import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.INT
-import com.squareup.kotlinpoet.LONG
-import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.PropertySpec
-import com.squareup.kotlinpoet.SHORT
-import com.squareup.kotlinpoet.STRING
-import com.squareup.kotlinpoet.TypeName
-import com.squareup.kotlinpoet.TypeSpec
-import com.squareup.kotlinpoet.asClassName
-import com.squareup.kotlinpoet.asTypeName
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.sql.Table.*
 import pl.touk.krush.env.TypeEnvironment
 import pl.touk.krush.model.AssociationDefinition
 import pl.touk.krush.model.AssociationType
@@ -50,7 +35,8 @@ class TablesGenerator : SourceGenerator {
 
     override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String, typeEnv: TypeEnvironment): FileSpec {
         val fileSpec = FileSpec.builder(packageName, fileName = "tables")
-                .addImport("org.jetbrains.exposed.sql", "Table", "date", "datetime", "insert")
+                .addImport("org.jetbrains.exposed.sql", "Table", "insert")
+                .addImport("org.jetbrains.exposed.sql.java-time", "date", "datetime")
                 .addImport("pl.touk.krush", "stringWrapper", "longWrapper", "zonedDateTime")
 
         graph.allAssociations().forEach { entity ->
@@ -78,6 +64,12 @@ class TablesGenerator : SourceGenerator {
 
                 idSpec.initializer(builder.build())
                 tableSpec.addProperty(idSpec.build())
+
+                val pkType = PrimaryKey::class.asTypeName()
+                val pkSpec = PropertySpec.builder("primaryKey", pkType, KModifier.OVERRIDE)
+                val pkInitializer = primaryKeyInitializer(id)
+                pkSpec.initializer(pkInitializer)
+                tableSpec.addProperty(pkSpec.build())
 
                 if (id.converter != null) {
                     val converterName: String = converterFuncName(entityName = entity.name, propertyName = id.name)
@@ -253,12 +245,18 @@ class TablesGenerator : SourceGenerator {
         }
 
         codeBlockBuilder.add(codeBlock)
-        codeBlockBuilder.add(CodeBlock.of(".primaryKey()"))
 
         if (id.generatedValue) {
             codeBlockBuilder.add(CodeBlock.of(".autoIncrement()")) //TODO disable autoIncrement when id is varchar
         }
 
+        return codeBlockBuilder.build()
+    }
+
+
+    private fun primaryKeyInitializer(id: IdDefinition): CodeBlock {
+        val codeBlockBuilder = CodeBlock.builder()
+        codeBlockBuilder.add("PrimaryKey(" + id.name + ")")
         return codeBlockBuilder.build()
     }
 
