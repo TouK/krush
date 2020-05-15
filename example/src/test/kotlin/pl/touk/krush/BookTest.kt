@@ -18,13 +18,16 @@ class BookTest : BaseDatabaseTest() {
 
             // given
             val book = Book(
-                    isbn = "1449373321", publishDate = LocalDate.of(2017, APRIL, 11),
-                    title = "Designing Data-Intensive Applications", author = "Martin Kleppmann"
+                    isbn = "1449373321",
+                    publishDate = LocalDate.of(2017, APRIL, 11),
+                    title = "Designing Data-Intensive Applications",
+                    author = "Martin Kleppmann"
             ).let(BookTable::insert)
 
             // then
             val bookId = book.id ?: throw IllegalArgumentException()
-            val fetchedBook = BookTable.select { BookTable.id eq bookId }.singleOrNull()?.toBook()
+            val fetchedBook = BookTable.select { BookTable.id eq bookId }
+                    .singleOrNull()?.toBook()
             assertThat(fetchedBook).isEqualTo(book)
 
             // when

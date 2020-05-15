@@ -1,13 +1,6 @@
 buildscript {
-    ext {
-        kotlin_version = '1.3.60'
-        exposed_version = '0.18.1'
-        kotlinpoet_version = '1.4.4'
-    }
-
     repositories {
         jcenter()
-        mavenLocal()
     }
 
     dependencies {
@@ -29,7 +22,6 @@ sourceCompatibility = 1.8
 allprojects {
     repositories {
         jcenter()
-        maven { url 'https://jitpack.io' }
     }
 }
 

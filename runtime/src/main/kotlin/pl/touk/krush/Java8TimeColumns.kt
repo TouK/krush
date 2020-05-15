@@ -1,7 +1,7 @@
 package pl.touk.krush
 
 import org.jetbrains.exposed.sql.Column
-import org.jetbrains.exposed.sql.JavaLocalDateTimeColumnType
+import org.jetbrains.exposed.sql.`java-time`.JavaLocalDateTimeColumnType
 import org.jetbrains.exposed.sql.Table
 import java.time.LocalDateTime
 import java.time.ZoneId.systemDefault
