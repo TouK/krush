@@ -146,7 +146,7 @@ Maven:
 ```
 
 ### Dependencies
-* Exposed >= 0.18.1
+* Exposed 0.3.0 -> 0.24.1, 0.2.0 -> 0.18.1
 * JPA annotations 2.1
 
 ### Features
