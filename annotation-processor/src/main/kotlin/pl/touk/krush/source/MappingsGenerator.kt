@@ -164,7 +164,7 @@ class MappingsGenerator : SourceGenerator {
                         val associationMapName = "${entity.name.asVariable()}_${assoc.name}"
                         val value = "$associationMapName[$rootVal.$rootIdName]"
 
-                        func.addStatement("\t\t${assoc.name} = $value$sep")
+                        func.addStatement("\t\t${assoc.name} = $value!!$sep")
 
                     }
             func.addStatement("\t)")
