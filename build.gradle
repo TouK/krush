@@ -36,6 +36,8 @@ configure([project(':annotation-processor'), project(':runtime')]) {
     publishing {
         publications {
             mavenJava(MavenPublication) {
+                from components.java
+
                 groupId rootProject.group
                 artifactId project.name
                 version rootProject.version
