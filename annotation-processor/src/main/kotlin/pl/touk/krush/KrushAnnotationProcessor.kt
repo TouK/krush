@@ -18,11 +18,15 @@ import javax.tools.Diagnostic.Kind.ERROR
 @KotlinPoetMetadataPreview
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 @SupportedAnnotationTypes("javax.persistence.*")
-@SupportedOptions(KrushAnnotationProcessor.KAPT_KOTLIN_GENERATED_OPTION_NAME)
+@SupportedOptions(
+        KrushAnnotationProcessor.KAPT_KOTLIN_GENERATED_OPTION_NAME,
+        KrushAnnotationProcessor.KRUSH_REFERENCES_OPTION_NAME
+)
 class KrushAnnotationProcessor : AbstractProcessor() {
 
     companion object {
         const val KAPT_KOTLIN_GENERATED_OPTION_NAME = "kapt.kotlin.generated"
+        const val KRUSH_REFERENCES_OPTION_NAME = "krush.references"
     }
 
     override fun process(annotations: MutableSet<out TypeElement>?, roundEnv: RoundEnvironment): Boolean {
@@ -31,6 +35,8 @@ class KrushAnnotationProcessor : AbstractProcessor() {
             processingEnv.messager.printMessage(ERROR, "Can't find the target directory for generated Kotlin files.")
             return false
         }
+
+        val generateRealReferences = (processingEnv.options[KRUSH_REFERENCES_OPTION_NAME] ?: "copy") == "real"
 
         val envBuilder = EnvironmentBuilder(roundEnv, processingEnv)
 
@@ -44,7 +50,7 @@ class KrushAnnotationProcessor : AbstractProcessor() {
         if (graphs.isEmpty()) return false
 
         try {
-            val generators = listOf(TablesGenerator(), MappingsGenerator())
+            val generators = listOf(TablesGenerator(), MappingsGenerator(generateRealReferences = generateRealReferences))
             generators.forEach { generator ->
                 graphs.entries.forEach { (packageName, graph) ->
                     val poetFile = generator.generate(graph, graphs, packageName, envBuilder.buildTypeEnv())

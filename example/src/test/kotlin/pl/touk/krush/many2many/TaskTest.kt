@@ -9,7 +9,8 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.Test
 import pl.touk.krush.base.BaseDatabaseTest
 
-class TaskTest : BaseDatabaseTest() {
+// Uncomment to test M2M with real references (requires krush.references to be set to real)
+/*class TaskTest : BaseDatabaseTest() {
 
     @Test
     fun shouldHandleSelfReferences(){
@@ -37,4 +38,4 @@ class TaskTest : BaseDatabaseTest() {
         }
     }
 
-}
+}*/
