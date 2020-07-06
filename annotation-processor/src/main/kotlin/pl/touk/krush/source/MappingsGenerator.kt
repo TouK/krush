@@ -68,14 +68,14 @@ class MappingsGenerator(private val generateRealReferences: Boolean) : SourceGen
                 .map { "\t${it.name} = this.to${it.target.simpleName}()"}
 
         val mapping: String
-        if(generateRealReferences){
+        if (generateRealReferences) {
             // Add empty but mutable lists for O2M and M2M connections, so that the relations can be filled in later
             // without possibly breaking existing references to this object
             val listAssociationMapping = entity.getAssociations(ONE_TO_MANY, MANY_TO_MANY)
                     .map { "\t${it.name} = mutableListOf()" }
 
             mapping = (propsMappings + embeddedMappings + associationsMappings + listAssociationMapping).joinToString(",\n")
-        }else{
+        } else {
             mapping = (propsMappings + embeddedMappings + associationsMappings).joinToString(",\n")
         }
 
@@ -95,9 +95,9 @@ class MappingsGenerator(private val generateRealReferences: Boolean) : SourceGen
     }
 
     private fun buildToEntityMapFunc(entityType: TypeElement, entity: EntityDefinition, graphs: EntityGraphs): FunSpec {
-        return if(generateRealReferences){
+        return if (generateRealReferences) {
             buildToEntityMapFuncWithRealReferences(entityType, entity, graphs)
-        }else{
+        } else {
             buildToEntityMapFuncWithCopiedReferences(entityType, entity, graphs)
         }
     }
@@ -222,7 +222,7 @@ class MappingsGenerator(private val generateRealReferences: Boolean) : SourceGen
 
                 // Prevent infinite recursions
                 // (when the table is self-referential, roots will be used as "foreign map" - see below)
-                if(!isSelfReferential){
+                if (!isSelfReferential) {
                     func.addStatement("val ${assoc.name}_map = this.to${assoc.target.simpleName}Map()")
                 }
 
@@ -230,12 +230,12 @@ class MappingsGenerator(private val generateRealReferences: Boolean) : SourceGen
         }
 
         // Add O2O relational data first, because it recreates the entity objects which destroys potential object references
-        if(associations.any { it.type == ONE_TO_ONE }){
+        if (associations.any { it.type == ONE_TO_ONE }) {
             func.addStatement("this.forEach { resultRow ->")
             func.addStatement("\tval $rootValId = resultRow.getOrNull(${entity.name}Table.${entity.id.name}) ?: return@forEach")
             func.addStatement("\tval $rootVal = roots[$rootValId] ?: resultRow.to${entity.name}()")
             associations.forEach { assoc ->
-                if(assoc.type != ONE_TO_ONE){
+                if (assoc.type != ONE_TO_ONE) {
                     return@forEach
                 }
 
@@ -272,7 +272,7 @@ class MappingsGenerator(private val generateRealReferences: Boolean) : SourceGen
         }
 
         // Add O2M and M2M relations
-        if(associations.any { it.type == ONE_TO_MANY || it.type == MANY_TO_MANY }){
+        if (associations.any { it.type == ONE_TO_MANY || it.type == MANY_TO_MANY }) {
 
             // Add list relational data (this is done in a separate step so that self-referential relations work)
             func.addStatement("this.forEach { resultRow ->")
@@ -288,9 +288,9 @@ class MappingsGenerator(private val generateRealReferences: Boolean) : SourceGen
                 val isSelfReferential = assoc.target == entityType
 
                 val foreignTableMap: String
-                if(!isSelfReferential){
+                if (!isSelfReferential) {
                     foreignTableMap = "${assoc.name}_map"
-                }else{
+                } else {
                     foreignTableMap = "roots"
                 }
 
@@ -327,13 +327,13 @@ class MappingsGenerator(private val generateRealReferences: Boolean) : SourceGen
 
             func.addStatement("roots.forEach { (_, $rootVal) ->")
             associations.forEach { assoc ->
-                if(assoc.type !in listOf(ONE_TO_MANY, MANY_TO_MANY)){
+                if (assoc.type !in listOf(ONE_TO_MANY, MANY_TO_MANY)) {
                     return@forEach
                 }
 
                 val associationMapName = "${entity.name.asVariable()}_${assoc.name}"
                 func.addStatement("\t\tval ${associationMapName}_relations = $associationMapName[$rootVal.$rootIdName]?.toList()")
-                func.addStatement("\t\tif(${associationMapName}_relations != null){")
+                func.addStatement("\t\tif (${associationMapName}_relations != null) {")
                 func.addStatement("\t\t\t($rootVal.${assoc.name} as MutableList).addAll(${associationMapName}_relations)")
                 func.addStatement("\t\t}")
             }

@@ -13,7 +13,7 @@ import pl.touk.krush.base.BaseDatabaseTest
 /*class TaskTest : BaseDatabaseTest() {
 
     @Test
-    fun shouldHandleSelfReferences(){
+    fun shouldHandleSelfReferences() {
         transaction {
             SchemaUtils.create(TaskTable, TaskRequirementsTable)
 
