@@ -89,7 +89,22 @@ abstract class MappingsGenerator : SourceGenerator {
         return func.build()
     }
 
-    protected abstract fun buildToEntityMapFunc(entityType: TypeElement, entity: EntityDefinition, graphs: EntityGraphs): FunSpec
+    private fun buildToEntityMapFunc(entityType: TypeElement, entity: EntityDefinition, graphs: EntityGraphs): FunSpec {
+        val rootKey = entity.id?.asTypeName() ?: throw MissingIdException(entity)
+
+        val rootVal = entity.name.asVariable()
+        val func = FunSpec.builder("to${entity.name}Map")
+                .receiver(Iterable::class.parameterizedBy(ResultRow::class))
+                .returns(ClassName("kotlin.collections", "MutableMap").parameterizedBy(rootKey, entityType.asType().asTypeName()))
+
+        val rootIdName = entity.id.name.asVariable()
+        val rootValId = "${rootVal}Id"
+
+        return buildToEntityMapFuncBody(entityType, entity, graphs, func, entity.id, rootKey, rootVal, rootIdName, rootValId)
+    }
+
+    abstract fun buildToEntityMapFuncBody(entityType: TypeElement, entity: EntityDefinition, graphs: EntityGraphs, func: FunSpec.Builder,
+                                          entityId: IdDefinition, rootKey: TypeName, rootVal: String, rootIdName: String, rootValId: String): FunSpec
 
     private fun buildFromEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec? {
         val param = entity.name.asVariable()

@@ -1,45 +1,41 @@
 package pl.touk.krush.source
 
-import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.asTypeName
-import org.jetbrains.exposed.sql.ResultRow
+import com.squareup.kotlinpoet.TypeName
 import pl.touk.krush.model.*
 import pl.touk.krush.model.AssociationType.*
 import pl.touk.krush.validation.EntityNotMappedException
-import pl.touk.krush.validation.MissingIdException
 import javax.lang.model.element.TypeElement
 
 class CopiedReferencesMappingsGenerator : MappingsGenerator() {
 
-    override fun buildToEntityMapFunc(entityType: TypeElement, entity: EntityDefinition, graphs: EntityGraphs): FunSpec {
-        val rootKey = entity.id?.asTypeName() ?: throw MissingIdException(entity)
-
-        val rootVal = entity.name.asVariable()
-        val func = FunSpec.builder("to${entity.name}Map")
-                .receiver(Iterable::class.parameterizedBy(ResultRow::class))
-                .returns(ClassName("kotlin.collections", "MutableMap").parameterizedBy(rootKey, entityType.asType().asTypeName()))
-
-        val rootIdName = entity.id.name.asVariable()
-        val rootValId = "${rootVal}Id"
-
+    override fun buildToEntityMapFuncBody(entityType: TypeElement, entity: EntityDefinition, graphs: EntityGraphs, func: FunSpec.Builder,
+                                          entityId: IdDefinition, rootKey: TypeName, rootVal: String, rootIdName: String, rootValId: String): FunSpec {
         func.addStatement("val roots = mutableMapOf<$rootKey, ${entity.name}>()")
         val associations = entity.getAssociations(ONE_TO_ONE, ONE_TO_MANY, MANY_TO_MANY)
         associations.forEach { assoc ->
             val target = graphs[assoc.target.packageName]?.get(assoc.target) ?: throw EntityNotMappedException(assoc.target)
-            val entityTypeName = entity.id.asTypeName()
+            val entityIdTypeName = entityId.asTypeName()
             val associationMapName = "${entity.name.asVariable()}_${assoc.name}"
             val associationMapValueType = if (assoc.type in listOf(ONE_TO_MANY, MANY_TO_MANY)) "MutableSet<${target.name}>" else "${target.name}"
 
-            func.addStatement("val $associationMapName = mutableMapOf<${entityTypeName}, $associationMapValueType>()")
+            func.addStatement("val $associationMapName = mutableMapOf<${entityIdTypeName}, $associationMapValueType>()")
             if (!(assoc.type == ONE_TO_ONE && assoc.mapped)) {
-                func.addStatement("val ${assoc.name}_map = this.to${assoc.target.simpleName}Map()")
+                val isSelfReferential = assoc.target == entityType
+
+                // Prevent infinite recursions
+                // (when the table is self-referential, roots will be used as "foreign map" - see below)
+                if (!isSelfReferential) {
+                    func.addStatement("val ${assoc.name}_map = this.to${assoc.target.simpleName}Map()")
+                } else {
+                    // TODO should be logged at validation phase
+                    func.addStatement("val ${assoc.name}_map = emptyMap<${entityIdTypeName}, $entityType>()")
+                }
             }
         }
 
         func.addStatement("this.forEach { resultRow ->")
-        func.addStatement("\tval $rootValId = resultRow.getOrNull(${entity.name}Table.${entity.id.name}) ?: return@forEach")
+        func.addStatement("\tval $rootValId = resultRow.getOrNull(${entity.name}Table.${entityId.name}) ?: return@forEach")
         func.addStatement("\tval $rootVal = roots[$rootValId] ?: resultRow.to${entity.name}()")
         func.addStatement("\troots[$rootValId] = $rootVal")
         associations.forEach { assoc ->
@@ -50,11 +46,12 @@ class CopiedReferencesMappingsGenerator : MappingsGenerator() {
 
             when (assoc.type) {
                 ONE_TO_MANY, MANY_TO_MANY -> {
+                    val isSelfReferential = assoc.target == entityType
                     func.addStatement("\tresultRow.getOrNull(${target.idColumn})?.let {")
                     func.addStatement("\t\tval $collName = ${assoc.name}_map.filter { $targetVal -> $targetVal.key == it }")
 
                     val isBidirectional = target.associations.find { it.target == entityType }?.mapped ?: false
-                    if (isBidirectional) {
+                    if (isBidirectional && !isSelfReferential) {
                         func.addStatement("\t\t\t.mapValues { (_, $targetVal) -> $targetVal.copy($rootVal = $rootVal) }")
                     }
 
