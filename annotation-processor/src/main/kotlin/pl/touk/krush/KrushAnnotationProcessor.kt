@@ -3,7 +3,9 @@ package pl.touk.krush
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import pl.touk.krush.env.EnvironmentBuilder
 import pl.touk.krush.model.EntityGraphBuilder
+import pl.touk.krush.source.CopiedReferencesMappingsGenerator
 import pl.touk.krush.source.MappingsGenerator
+import pl.touk.krush.source.RealReferencesMappingsGenerator
 import pl.touk.krush.source.TablesGenerator
 import java.io.File
 import javax.annotation.processing.AbstractProcessor
@@ -18,11 +20,15 @@ import javax.tools.Diagnostic.Kind.ERROR
 @KotlinPoetMetadataPreview
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 @SupportedAnnotationTypes("javax.persistence.*")
-@SupportedOptions(KrushAnnotationProcessor.KAPT_KOTLIN_GENERATED_OPTION_NAME)
+@SupportedOptions(
+        KrushAnnotationProcessor.KAPT_KOTLIN_GENERATED_OPTION_NAME,
+        KrushAnnotationProcessor.KRUSH_REFERENCES_OPTION_NAME
+)
 class KrushAnnotationProcessor : AbstractProcessor() {
 
     companion object {
         const val KAPT_KOTLIN_GENERATED_OPTION_NAME = "kapt.kotlin.generated"
+        const val KRUSH_REFERENCES_OPTION_NAME = "krush.references"
     }
 
     override fun process(annotations: MutableSet<out TypeElement>?, roundEnv: RoundEnvironment): Boolean {
@@ -31,6 +37,8 @@ class KrushAnnotationProcessor : AbstractProcessor() {
             processingEnv.messager.printMessage(ERROR, "Can't find the target directory for generated Kotlin files.")
             return false
         }
+
+        val generateRealReferences = (processingEnv.options[KRUSH_REFERENCES_OPTION_NAME] ?: "copy") == "real"
 
         val envBuilder = EnvironmentBuilder(roundEnv, processingEnv)
 
@@ -44,7 +52,14 @@ class KrushAnnotationProcessor : AbstractProcessor() {
         if (graphs.isEmpty()) return false
 
         try {
-            val generators = listOf(TablesGenerator(), MappingsGenerator())
+            val mappingsGenerator: MappingsGenerator
+            if (generateRealReferences) {
+                mappingsGenerator = RealReferencesMappingsGenerator()
+            } else {
+                mappingsGenerator = CopiedReferencesMappingsGenerator()
+            }
+
+            val generators = listOf(TablesGenerator(), mappingsGenerator)
             generators.forEach { generator ->
                 graphs.entries.forEach { (packageName, graph) ->
                     val poetFile = generator.generate(graph, graphs, packageName, envBuilder.buildTypeEnv())

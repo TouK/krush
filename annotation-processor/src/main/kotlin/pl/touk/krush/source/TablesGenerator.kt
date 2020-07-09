@@ -105,8 +105,8 @@ class TablesGenerator : SourceGenerator {
 
                 val sourceType = entity.id.type.asClassName()
                 manyToManyTableSpec.addProperty(
-                        PropertySpec.builder("${rootVal}Id", Column::class.asClassName().parameterizedBy(sourceType))
-                                .initializer(manyToManyPropertyInitializer(entity.id, entity))
+                        PropertySpec.builder("${rootVal}SourceId", Column::class.asClassName().parameterizedBy(sourceType))
+                                .initializer(manyToManyPropertyInitializer(entity.id, entity, "_source"))
                                 .build()
                 )
 
@@ -114,8 +114,8 @@ class TablesGenerator : SourceGenerator {
                 val targetEntityDef = graphs.entity(assoc.target.packageName, assoc.target) ?:
                     throw AssociationTargetEntityNotFoundException(assoc.target)
                 manyToManyTableSpec.addProperty(
-                        PropertySpec.builder("${targetVal}Id", Column::class.asClassName().parameterizedBy(targetIdType))
-                                .initializer(manyToManyPropertyInitializer(assoc.targetId, targetEntityDef))
+                        PropertySpec.builder("${targetVal}TargetId", Column::class.asClassName().parameterizedBy(targetIdType))
+                                .initializer(manyToManyPropertyInitializer(assoc.targetId, targetEntityDef, "_target"))
                                 .build()
                 )
 
@@ -306,8 +306,8 @@ class TablesGenerator : SourceGenerator {
                 .build()
     }
 
-    private fun manyToManyPropertyInitializer(id: IdDefinition, entity: EntityDefinition) : CodeBlock {
-        val columnName = entity.name.asVariable() + "_id"
+    private fun manyToManyPropertyInitializer(id: IdDefinition, entity: EntityDefinition, differentiatior: String) : CodeBlock {
+        val columnName = entity.name.asVariable() + differentiatior + "_id"
         val idCodeBlock = idCodeBlock(id, entity.name, columnName)
 
         return CodeBlock.builder().add(idCodeBlock)
