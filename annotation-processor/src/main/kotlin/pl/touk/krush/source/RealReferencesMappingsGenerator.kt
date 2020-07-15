@@ -11,7 +11,7 @@ class RealReferencesMappingsGenerator : MappingsGenerator() {
 
     override fun buildToEntityMapFuncBody(entityType: TypeElement, entity: EntityDefinition, graphs: EntityGraphs, func: FunSpec.Builder,
                                           entityId: IdDefinition, rootKey: TypeName, rootVal: String, rootIdName: String, rootValId: String): FunSpec {
-        func.addStatement("val roots = mutableMapOf<$rootKey, ${entity.name}>()")
+        func.addStatement("var roots = mutableMapOf<$rootKey, ${entity.name}>()")
 
         // Add all non-relational data
         func.addStatement("this.forEach { resultRow ->")
