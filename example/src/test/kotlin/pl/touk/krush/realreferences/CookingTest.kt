@@ -6,13 +6,15 @@ import org.jetbrains.exposed.sql.JoinType
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import pl.touk.krush.base.BaseDatabaseTest
 
 class CookingTest : BaseDatabaseTest() {
 
     @Test
-    fun shouldCreateMultilevelObjects() {
+    @Disabled("Enable to test O2O lists with real references (requires krush.references to be set to real)")
+    fun shouldCreateMultilevelLists() {
         transaction {
             SchemaUtils.create(MealPlanTable, RecipeTable, RecipeIngredientsTable, IngredientTable)
 
