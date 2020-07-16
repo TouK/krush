@@ -21,7 +21,7 @@ abstract class MappingsGenerator : SourceGenerator {
         graph.allAssociations().forEach { entity ->
             if (entity.packageName != packageName) {
                 fileSpec.addImport(entity.packageName, "${entity.simpleName}", "${entity.simpleName}Table",
-                        "to${entity.simpleName}", "to${entity.simpleName}Map")
+                        "to${entity.simpleName}", "to${entity.simpleName}Map", "to${entity.simpleName}List")
             }
         }
 

@@ -41,9 +41,10 @@ class RealReferencesMappingsGenerator : MappingsGenerator() {
 
         // Add O2O relational data first, because it recreates the entity objects which destroys potential object references
         if (associations.any { it.type == ONE_TO_ONE }) {
-            func.addStatement("this.forEach { resultRow ->")
-            func.addStatement("\tval $rootValId = resultRow.getOrNull(${entity.name}Table.${entityId.name}) ?: return@forEach")
-            func.addStatement("\tval $rootVal = roots[$rootValId] ?: resultRow.to${entity.name}()")
+
+            func.addStatement("this.groupBy { it.getOrNull(${entity.name}Table.${entityId.name}) }.forEach { ($rootValId, resultRows) ->")
+            func.addStatement("\tif($rootValId == null) return@forEach")
+
             associations.forEach { assoc ->
                 if (assoc.type != ONE_TO_ONE) {
                     return@forEach
@@ -53,16 +54,18 @@ class RealReferencesMappingsGenerator : MappingsGenerator() {
                 val associationMapName = "${entity.name.asVariable()}_${assoc.name}"
 
                 if (!assoc.mapped) {
-                    func.addStatement("\tresultRow.getOrNull(${target.idColumn})?.let {")
+                    func.addStatement("\tresultRows.first().getOrNull(${target.idColumn})?.let {")
                     func.addStatement("\t\t${assoc.name}_map.get(it)?.let {")
                     func.addStatement("\t\t\t$associationMapName[$rootValId] = it")
                     func.addStatement("\t\t}")
                     func.addStatement("\t}")
                 } else {
-                    func.addStatement("\tval ${assoc.name.asVariable()} = resultRow.to${target.name}()")
+
+                    func.addStatement("\tval ${assoc.name.asVariable()} = resultRows.to${target.name}List().single()")
                     func.addStatement("\t$associationMapName[${rootValId}] =  ${assoc.name.asVariable()}")
                 }
             }
+
             func.addStatement("}")
 
             func.addStatement("roots = roots.mapValues { (_, $rootVal) ->")
