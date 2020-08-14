@@ -140,5 +140,21 @@ import javax.lang.model.util.Types
                 .containsKey(enumPropertyEntity(getTypeEnv()))
                 .containsValue(enumPropertyEntityDefinition(getTypeEnv()))
     }
+
+    @Test
+    fun shouldHandleTypeAliases(){
+        //given
+        val typealiasGraphBuilder = typealiasGraphBuilder(getTypeEnv())
+
+        //when
+        val graphs = typealiasGraphBuilder.build()
+
+        //then
+        assertThat(graphs).containsKey("pl.touk.example")
+
+        assertThat(graphs["pl.touk.example"])
+                .containsKey(typealiasEntity(getTypeEnv()))
+                .containsValue(typealiasEntityDefinition(getTypeEnv()))
+    }
 }
 

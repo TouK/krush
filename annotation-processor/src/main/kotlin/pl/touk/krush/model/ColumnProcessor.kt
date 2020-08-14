@@ -155,8 +155,15 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
     }
 
     private fun ImmutableKmType.toModelType(): Type? {
-        return (this.classifier as KmClassifier.Class).name
-                .split("/").let { Type(it.dropLast(1).joinToString(separator = "."), it.last()) }
+        return when(val classifier = (this.abbreviatedType?.classifier ?: this.classifier)){
+            is KmClassifier.Class -> {
+                classifier.name
+                    .split("/").let { Type(it.dropLast(1).joinToString(separator = "."), it.last()) }
+            }
+            is KmClassifier.TypeAlias -> classifier.name
+                    .split("/").let { Type(it.dropLast(1).joinToString(separator = "."), it.last(), this.copy(abbreviatedType = null).toModelType()) }
+            is KmClassifier.TypeParameter -> TODO()
+        }
     }
 
     private fun String.name(): Name = typeEnv.elementUtils.getName(this)
