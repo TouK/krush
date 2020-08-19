@@ -265,6 +265,7 @@ Update logic for associations not implemented (yet!) - you have to manually add/
 ### Contributors
 * [Mateusz Śledź](https://github.com/mateuszsledz)
 * [Piotr Jagielski](https://github.com/pjagielski)
+* [Namnodorel](https://github.com/Namnodorel)
 
 Special thanks to [Łukasz Jędrzejewski](https://github.com/jedrz) for original idea of using Exposed in our projects.
 
