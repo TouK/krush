@@ -66,6 +66,17 @@ class StringWrapperColumnType<out Wrapper : Any>(
         is String -> instanceCreator(rawColumnType.valueFromDB(value) as String)
         else -> error("Database value $value of class ${value::class.qualifiedName} is not valid $rawClazz")
     }
+
+    /*
+     * Essentially the same implementation as the superclass however it doesn't auto-unwrap Iterable objects
+     */
+    override fun valueToString(value: Any?): String = when (value) {
+        null -> {
+            check(nullable) { "NULL in non-nullable column" }
+            "NULL"
+        }
+        else -> nonNullValueToString(value)
+    }
 }
 
 inline fun <reified Wrapper : Any> Table.longWrapper(
