@@ -3,17 +3,8 @@ package pl.touk.example
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
-import javax.persistence.Column
-import javax.persistence.Embeddable
-import javax.persistence.Embedded
-import javax.persistence.Entity
+import javax.persistence.*
 import javax.persistence.EnumType.STRING
-import javax.persistence.Enumerated
-import javax.persistence.GeneratedValue
-import javax.persistence.Id
-import javax.persistence.JoinColumn
-import javax.persistence.OneToOne
-import javax.persistence.Table
 
 @Entity
 data class DefaultPropertyNameEntity(
@@ -47,6 +38,29 @@ data class NullablePropertyEntity(
 
         val prop1: String?
 )
+
+typealias StringMap = Map<String, String>
+typealias PlainString = String
+
+@Entity
+data class TypeAliasEntity(
+        @Id @GeneratedValue
+        val id: Long?,
+        @Convert(converter = StringMapConverter::class)
+        val aliased: StringMap,
+        val justAString: PlainString
+)
+
+@Converter
+class StringMapConverter : AttributeConverter<StringMap, String> {
+    override fun convertToDatabaseColumn(attribute: StringMap?): String {
+        return attribute?.map { it.key + ":" + it.value }?.joinToString("\n") ?: ""
+    }
+
+    override fun convertToEntityAttribute(dbData: String?): StringMap {
+        return dbData?.splitToSequence("\n")?.associate { Pair(it.split(":")[0], it.split(":")[1]) } ?: HashMap()
+    }
+}
 
 @Entity
 data class OneToOneSourceEntity(

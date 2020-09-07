@@ -95,7 +95,8 @@ enum class EnumType {
 
 data class Type(
         val packageName: String,
-        val simpleName: String
+        val simpleName: String,
+        val aliasOf: Type? = null
 )
 
 data class EmbeddableDefinition(

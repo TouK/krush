@@ -79,6 +79,10 @@ interface EntityGraphSampleData {
         return getTypeElement("pl.touk.example.PropertyTypeUnsupportedEntity", typeEnvironment.elementUtils)
     }
 
+    fun typealiasEntity(typeEnvironment: TypeEnvironment): TypeElement {
+        return getTypeElement("pl.touk.example.TypeAliasEntity", typeEnvironment.elementUtils)
+    }
+
     fun customerGraphBuilder(typeEnvironment: TypeEnvironment): EntityGraphBuilder {
         val entity = customerTestEntity(typeEnvironment)
         val id = getVariableElement(entity, typeEnvironment.elementUtils, "id")
@@ -449,6 +453,56 @@ interface EntityGraphSampleData {
                 ),
                 embeddables = emptyList()
         )
+    }
+
+    fun typealiasGraphBuilder(typeEnvironment: TypeEnvironment): EntityGraphBuilder {
+        val elements = typeEnvironment.elementUtils
+
+        val entity = typealiasEntity(typeEnvironment)
+        val id = getVariableElement(entity, elements, "id")
+        val aliased = getVariableElement(entity, elements, "aliased")
+        val plainString = getVariableElement(entity, elements, "justAString")
+
+        val annEnv = AnnotationEnvironment(entities = listOf(entity), ids = listOf(id),
+                columns = listOf(aliased, plainString), oneToMany = emptyList(), manyToOne = emptyList(),
+                manyToMany = emptyList(), oneToOne = emptyList(), embedded = emptyList(), embeddedColumn = emptyList())
+
+        return EntityGraphBuilder(typeEnvironment, annEnv)
+    }
+
+    fun typealiasEntityDefinition(typeEnvironment: TypeEnvironment): EntityDefinition {
+        val entity = typealiasEntity(typeEnvironment)
+        val id = getVariableElement(entity, typeEnvironment.elementUtils, "id")
+        val prop1 = getVariableElement(entity, typeEnvironment.elementUtils, "aliased")
+        val plainString = getVariableElement(entity, typeEnvironment.elementUtils, "justAString")
+
+        return EntityDefinition(
+                name = entity.simpleName, qualifiedName = entity.qualifiedName,
+                table = entity.simpleName.asVariable(),
+                id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
+                properties = listOf(
+                        propertyDefinition(
+                                typeEnvironment,
+                                prop1,
+                                "aliased",
+                                Type(
+                                        packageName = "pl.touk.example",
+                                        simpleName = "StringMap",
+                                        aliasOf = Type("kotlin.collections","Map")),
+                                false)
+                                .copy(converter = ConverterDefinition(
+                                        name = "pl.touk.example.StringMapConverter",
+                                        targetType = Type(packageName = "kotlin", simpleName = "String"
+                                        ))),
+                        propertyDefinition(
+                                typeEnvironment,
+                                plainString,
+                                "justAString",
+                                Type(
+                                        packageName = "pl.touk.example",
+                                        simpleName = "PlainString",
+                                        aliasOf = Type("kotlin", "String")),
+                                false)))
     }
 
     private fun autoGenIdDefinition(id: VariableElement, name: Name): IdDefinition {

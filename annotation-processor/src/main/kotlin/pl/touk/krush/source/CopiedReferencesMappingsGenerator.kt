@@ -15,7 +15,7 @@ class CopiedReferencesMappingsGenerator : MappingsGenerator() {
         val associations = entity.getAssociations(ONE_TO_ONE, ONE_TO_MANY, MANY_TO_MANY)
         associations.forEach { assoc ->
             val target = graphs[assoc.target.packageName]?.get(assoc.target) ?: throw EntityNotMappedException(assoc.target)
-            val entityIdTypeName = entityId.asTypeName()
+            val entityIdTypeName = entityId.asUnderlyingTypeName()
             val associationMapName = "${entity.name.asVariable()}_${assoc.name}"
             val associationMapValueType = if (assoc.type in listOf(ONE_TO_MANY, MANY_TO_MANY)) "MutableSet<${target.name}>" else "${target.name}"
 

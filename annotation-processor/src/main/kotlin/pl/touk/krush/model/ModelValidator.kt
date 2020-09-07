@@ -97,7 +97,7 @@ class EntityPropertyTypeValidator : Validator<EntityDefinition> {
 
     override fun validate(el: EntityDefinition): ValidationResult {
         val errors = mutableListOf<ValidationErrorMessage>()
-        el.properties.filter { !it.hasConverter() && !it.isEnumerated() && it.type !in supportedPropertyTypes }.forEach {
+        el.properties.filter { !it.hasConverter() && !it.isEnumerated() && it.type !in supportedPropertyTypes && it.type.aliasOf !in supportedPropertyTypes }.forEach {
             errors.add(ValidationErrorMessage("Entity ${el.qualifiedName} has unsupported property type ${it.type}"))
         }
 

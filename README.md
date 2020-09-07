@@ -153,7 +153,7 @@ Maven:
 * generates table mappings and functions for mapping from/to data classes
 * type-safe SQL DSL without reading schema from existing database (code-first)
 * explicit association fetching (via `leftJoin` / `innerJoin`)
-* multiple data types support
+* multiple data types support, including type aliases
 * custom data type support (with `@Converter`), also for wrapped auto-generated ids
 * you can still persist associations not directly reflected in domain model (eq. article favorites) 
 

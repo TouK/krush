@@ -90,7 +90,7 @@ abstract class MappingsGenerator : SourceGenerator {
     }
 
     private fun buildToEntityMapFunc(entityType: TypeElement, entity: EntityDefinition, graphs: EntityGraphs): FunSpec {
-        val rootKey = entity.id?.asTypeName() ?: throw MissingIdException(entity)
+        val rootKey = entity.id?.asUnderlyingTypeName() ?: throw MissingIdException(entity)
 
         val rootVal = entity.name.asVariable()
         val func = FunSpec.builder("to${entity.name}Map")

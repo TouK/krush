@@ -71,7 +71,7 @@ class TablesGenerator : SourceGenerator {
             entity.getAssociations(AssociationType.MANY_TO_ONE).forEach { assoc ->
                 val name = assoc.name.toString()
 
-                val columnType = assoc.targetId.type.asClassName()
+                val columnType = assoc.targetId.type.asUnderlyingClassName()
                 CodeBlock.builder()
                 val initializer = associationInitializer(assoc, name)
                 tableSpec.addProperty(
@@ -84,7 +84,7 @@ class TablesGenerator : SourceGenerator {
             entity.getAssociations(AssociationType.ONE_TO_ONE).filter {it.mapped}.forEach {assoc ->
                 val name = assoc.name.toString()
 
-                val columnType = assoc.targetId.type.asClassName()
+                val columnType = assoc.targetId.type.asUnderlyingClassName()
                 CodeBlock.builder()
                 val initializer = associationInitializer(assoc, name)
                 tableSpec.addProperty(
@@ -103,14 +103,14 @@ class TablesGenerator : SourceGenerator {
                         .superclass(Table::class)
                         .addSuperclassConstructorParameter(CodeBlock.of("%S", assoc.joinTable))
 
-                val sourceType = entity.id.type.asClassName()
+                val sourceType = entity.id.type.asUnderlyingClassName()
                 manyToManyTableSpec.addProperty(
                         PropertySpec.builder("${rootVal}SourceId", Column::class.asClassName().parameterizedBy(sourceType))
                                 .initializer(manyToManyPropertyInitializer(entity.id, entity, "_source"))
                                 .build()
                 )
 
-                val targetIdType = assoc.targetId.type.asClassName()
+                val targetIdType = assoc.targetId.type.asUnderlyingClassName()
                 val targetEntityDef = graphs.entity(assoc.target.packageName, assoc.target) ?:
                     throw AssociationTargetEntityNotFoundException(assoc.target)
                 manyToManyTableSpec.addProperty(
@@ -155,7 +155,7 @@ class TablesGenerator : SourceGenerator {
         val isGenerated = entity.id?.generatedValue ?: false
         val persistedName = if (isGenerated) "persisted${entityName.capitalize()}" else entityName
         val func = FunSpec.builder("insert")
-                .receiver(Type(entityType.packageName, entity.tableName).asClassName())
+                .receiver(Type(entityType.packageName, entity.tableName).asUnderlyingClassName())
                 .addParameter(entity.name.asVariable(), entityType.asType().asTypeName())
                 .returns(entityType.asType().asTypeName())
 
@@ -195,7 +195,7 @@ class TablesGenerator : SourceGenerator {
     }
 
     private fun converterFunc(name: String, type: TypeName, it: ConverterDefinition, fileSpec: FileSpec.Builder) {
-        val wrapperName = when (it.targetType.asClassName()) {
+        val wrapperName = when (it.targetType.asUnderlyingClassName()) {
             STRING -> "stringWrapper"
             LONG -> "longWrapper"
             else -> throw TypeConverterNotSupportedException(it.targetType)
@@ -215,7 +215,7 @@ class TablesGenerator : SourceGenerator {
 
         val codeBlock = if (id.converter != null) {
             converterPropInitializer(entityName = entity.name, propertyName = id.name, columnName = id.columnName.asVariable())
-        } else when (id.asTypeName()) {
+        } else when (id.asUnderlyingTypeName()) {
             STRING -> CodeBlock.of("varchar(%S, %L)", id.columnName, id.annotation?.length ?: 255)
             LONG -> CodeBlock.of("long(%S)", id.columnName)
             INT -> CodeBlock.of("integer(%S)", id.columnName)
@@ -263,7 +263,7 @@ class TablesGenerator : SourceGenerator {
 
     private fun enumPropInitializer(property: PropertyDefinition): CodeBlock {
         val columnName = property.columnName
-        val enumType = property.type.asClassName()
+        val enumType = property.type.asUnderlyingClassName()
 
         return when (property.enumerated!!.enumType) {
             EnumType.STRING -> {
@@ -275,7 +275,7 @@ class TablesGenerator : SourceGenerator {
     }
 
     private fun typePropInitializer(property: PropertyDefinition): CodeBlock {
-        return when (property.asTypeName()) {
+        return when (property.asUnderlyingTypeName()) {
             STRING -> CodeBlock.of("varchar(%S, %L)", property.columnName, property.annotation?.length ?: 255)
             LONG -> CodeBlock.of("long(%S)", property.columnName)
             BOOLEAN -> CodeBlock.of("bool(%S)", property.columnName)
@@ -318,7 +318,7 @@ class TablesGenerator : SourceGenerator {
     private fun idCodeBlock(id: IdDefinition, entityName: Name, columnName: String): CodeBlock {
         return if (id.converter != null) {
             converterPropInitializer(entityName = entityName, propertyName = id.name, columnName = columnName)
-        } else when (id.asTypeName()) {
+        } else when (id.asUnderlyingTypeName()) {
             STRING -> CodeBlock.of("varchar(%S, %L)", columnName, id.annotation?.length ?: 255)
             LONG -> CodeBlock.of("long(%S)", columnName)
             INT -> CodeBlock.of("integer(%S)", columnName)
@@ -326,6 +326,22 @@ class TablesGenerator : SourceGenerator {
             SHORT -> CodeBlock.of("short(%S)", columnName)
             else -> throw IdTypeNotSupportedException(id.type)
         }
+    }
+}
+
+fun IdDefinition.asUnderlyingTypeName(): TypeName {
+    return this.type.asUnderlyingClassName()
+}
+
+fun PropertyDefinition.asUnderlyingTypeName(): TypeName {
+    return this.type.asUnderlyingClassName()
+}
+
+fun Type.asUnderlyingClassName(): ClassName {
+    return if(this.aliasOf !=null) {
+        ClassName(this.aliasOf.packageName, this.aliasOf.simpleName)
+    }else{
+        ClassName(this.packageName, this.simpleName)
     }
 }
 
