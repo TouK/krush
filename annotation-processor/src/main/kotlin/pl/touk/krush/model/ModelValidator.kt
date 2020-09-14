@@ -92,6 +92,7 @@ class EntityPropertyTypeValidator : Validator<EntityDefinition> {
             Type("java.math", "BigDecimal"),
             Type("java.time", "LocalDate"),
             Type("java.time", "LocalDateTime"),
+            Type("java.time", "Instant"),
             Type("java.time", "ZonedDateTime")
     )
 

@@ -1,5 +1,6 @@
 package pl.touk.example
 
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
@@ -104,6 +105,7 @@ data class DatePropertyEntity(
 
         val localDate: LocalDate,
         val localDateTime: LocalDateTime,
+        val instant: Instant,
         val zonedDateTime: ZonedDateTime
 )
 

@@ -316,10 +316,11 @@ interface EntityGraphSampleData {
         val datePropertyEntityId = getVariableElement(datePropertyEntity, elements, "id")
         val localDate = getVariableElement(datePropertyEntity, typeEnvironment.elementUtils,"localDate")
         val localDateTime = getVariableElement(datePropertyEntity, typeEnvironment.elementUtils,"localDateTime")
+        val instant = getVariableElement(datePropertyEntity, typeEnvironment.elementUtils,"instant")
         val zonedDateTime = getVariableElement(datePropertyEntity, typeEnvironment.elementUtils,"zonedDateTime")
 
         val annEnv = AnnotationEnvironment(entities =  listOf(datePropertyEntity), ids = listOf(datePropertyEntityId),
-                columns = listOf(localDate, localDateTime, zonedDateTime), oneToMany = emptyList(), manyToOne = emptyList(),
+                columns = listOf(localDate, localDateTime, instant, zonedDateTime), oneToMany = emptyList(), manyToOne = emptyList(),
                 manyToMany =  emptyList(), oneToOne = emptyList(), embedded = emptyList(), embeddedColumn = emptyList())
 
         return EntityGraphBuilder(typeEnvironment, annEnv)
@@ -332,6 +333,7 @@ interface EntityGraphSampleData {
         val id = getVariableElement(entity, elements, "id")
         val localDate = getVariableElement(entity, typeEnvironment.elementUtils,"localDate")
         val localDateTime = getVariableElement(entity, typeEnvironment.elementUtils,"localDateTime")
+        val instant = getVariableElement(entity, typeEnvironment.elementUtils,"instant")
         val zonedDateTime = getVariableElement(entity, typeEnvironment.elementUtils,"zonedDateTime")
 
         return EntityDefinition(
@@ -342,6 +344,7 @@ interface EntityGraphSampleData {
                 properties = listOf(
                         propertyDefinition(typeEnvironment, localDate, "localDate", LOCAL_DATE, false),
                         propertyDefinition(typeEnvironment, localDateTime, "localDateTime", LOCAL_DATE_TIME, false),
+                        propertyDefinition(typeEnvironment, instant, "instant", INSTANT, false),
                         propertyDefinition(typeEnvironment, zonedDateTime, "zonedDateTime", ZONED_DATE_TIME, false)
                 )
         )
@@ -551,3 +554,4 @@ private const val JAVA_TIME_PKG = "java.time"
 @JvmField val LOCAL_DATE = Type(JAVA_TIME_PKG, "LocalDate")
 @JvmField val LOCAL_DATE_TIME = Type(JAVA_TIME_PKG, "LocalDateTime")
 @JvmField val ZONED_DATE_TIME = Type(JAVA_TIME_PKG, "ZonedDateTime")
+@JvmField val INSTANT = Type(JAVA_TIME_PKG, "Instant")
