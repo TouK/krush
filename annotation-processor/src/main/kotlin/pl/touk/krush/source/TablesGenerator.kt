@@ -17,7 +17,13 @@ class TablesGenerator : SourceGenerator {
         val fileSpec = FileSpec.builder(packageName, fileName = "tables")
                 .addImport("org.jetbrains.exposed.sql", "Table", "insert")
                 .addImport("org.jetbrains.exposed.sql.java-time", "date", "datetime", "timestamp")
-                .addImport("pl.touk.krush", "stringWrapper", "longWrapper", "instantWrapper", "zonedDateTime")
+                .addImport("pl.touk.krush",
+                        "stringWrapper",
+                        "longWrapper",
+                        "instantWrapper",
+                        "zonedDateTime",
+                        "booleanWrapper"
+                )
 
         graph.allAssociations().forEach { entity ->
             if (entity.packageName != packageName) {
@@ -199,6 +205,7 @@ class TablesGenerator : SourceGenerator {
             STRING -> "stringWrapper"
             LONG -> "longWrapper"
             INSTANT -> "instantWrapper"
+            BOOLEAN -> "booleanWrapper"
             else -> throw TypeConverterNotSupportedException(it.targetType)
         }
 

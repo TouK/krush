@@ -1,13 +1,6 @@
 package pl.touk.krush.converter
 
-import javax.persistence.AttributeConverter
-import javax.persistence.Convert
-import javax.persistence.Entity
-import javax.persistence.GeneratedValue
-import javax.persistence.Id
-import javax.persistence.JoinColumn
-import javax.persistence.ManyToOne
-import javax.persistence.OneToMany
+import javax.persistence.*
 import kotlin.reflect.KProperty
 
 @Entity
@@ -40,6 +33,9 @@ data class Comment(
 
         @Convert(converter = AuthorConverter::class)
         val author: Author,
+
+        @Convert(converter = StringBooleanConverter::class)
+        val isVisible: StringBoolean,
 
         @ManyToOne
         @JoinColumn(name = "thread_id")
@@ -103,5 +99,22 @@ class ThreadConverter : AttributeConverter<ThreadId, Long> {
 
     override fun convertToEntityAttribute(dbData: Long): ThreadId {
         return ThreadId.Persisted(dbData)
+    }
+}
+
+data class StringBoolean(val boolStr: String)
+
+@Converter
+class StringBooleanConverter : AttributeConverter<StringBoolean, Boolean> {
+    override fun convertToDatabaseColumn(attribute: StringBoolean): Boolean {
+        return when (attribute.boolStr) {
+            "true" -> true
+            "false" -> false
+            else -> throw IllegalArgumentException("Could not convert ${attribute.boolStr}")
+        }
+    }
+
+    override fun convertToEntityAttribute(dbData: Boolean): StringBoolean {
+        return if (dbData) StringBoolean("true") else StringBoolean("false")
     }
 }
