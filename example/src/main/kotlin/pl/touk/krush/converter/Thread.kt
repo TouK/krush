@@ -1,13 +1,6 @@
 package pl.touk.krush.converter
 
-import javax.persistence.AttributeConverter
-import javax.persistence.Convert
-import javax.persistence.Entity
-import javax.persistence.GeneratedValue
-import javax.persistence.Id
-import javax.persistence.JoinColumn
-import javax.persistence.ManyToOne
-import javax.persistence.OneToMany
+import javax.persistence.*
 import kotlin.reflect.KProperty
 
 @Entity
@@ -40,6 +33,8 @@ data class Comment(
 
         @Convert(converter = AuthorConverter::class)
         val author: Author,
+
+        val isVisible: Boolean,
 
         @ManyToOne
         @JoinColumn(name = "thread_id")

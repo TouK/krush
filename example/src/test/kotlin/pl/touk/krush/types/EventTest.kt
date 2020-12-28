@@ -25,8 +25,14 @@ class EventTest : BaseDatabaseTest() {
             val clock = Clock.fixed(Instant.parse("2019-10-22T09:00:00.000Z"), systemDefault())
 
             val createTime = ZonedDateTime.now(clock)
-            val event = EventTable.insert(Event(eventDate = LocalDate.now(clock), processTime = LocalDateTime.now(clock),
-                    createTime = createTime, externalId = randomUUID()))
+            val event = EventTable.insert(Event(
+                    eventDate = LocalDate.now(clock),
+                    processTime = LocalDateTime.now(clock),
+                    createTime = createTime,
+                    updateTime = Instant.now(clock),
+                    otherUpdateTime = ExampleInstantWrapper(Instant.now(clock)),
+                    externalId = randomUUID()
+            ))
 
             //when
             val events = (EventTable)

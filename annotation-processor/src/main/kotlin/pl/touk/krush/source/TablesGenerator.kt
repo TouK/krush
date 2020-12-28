@@ -16,8 +16,14 @@ class TablesGenerator : SourceGenerator {
     override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String, typeEnv: TypeEnvironment): FileSpec {
         val fileSpec = FileSpec.builder(packageName, fileName = "tables")
                 .addImport("org.jetbrains.exposed.sql", "Table", "insert")
-                .addImport("org.jetbrains.exposed.sql.java-time", "date", "datetime")
-                .addImport("pl.touk.krush", "stringWrapper", "longWrapper", "zonedDateTime")
+                .addImport("org.jetbrains.exposed.sql.java-time", "date", "datetime", "timestamp")
+                .addImport("pl.touk.krush",
+                        "stringWrapper",
+                        "longWrapper",
+                        "instantWrapper",
+                        "zonedDateTime",
+                        "booleanWrapper"
+                )
 
         graph.allAssociations().forEach { entity ->
             if (entity.packageName != packageName) {
@@ -198,6 +204,8 @@ class TablesGenerator : SourceGenerator {
         val wrapperName = when (it.targetType.asUnderlyingClassName()) {
             STRING -> "stringWrapper"
             LONG -> "longWrapper"
+            INSTANT -> "instantWrapper"
+            BOOLEAN -> "booleanWrapper"
             else -> throw TypeConverterNotSupportedException(it.targetType)
         }
 
@@ -292,6 +300,7 @@ class TablesGenerator : SourceGenerator {
             LOCAL_DATE -> CodeBlock.of("date(%S)", property.columnName)
             LOCAL_DATE_TIME -> CodeBlock.of("datetime(%S)", property.columnName)
             ZONED_DATE_TIME -> CodeBlock.of("zonedDateTime(%S)", property.columnName)
+            INSTANT -> CodeBlock.of("timestamp(%S)", property.columnName)
             else -> throw PropertyTypeNotSupportedExpcetion(property.type)
         }
     }
@@ -369,4 +378,5 @@ private fun converterFuncName(entityName: Name, propertyName: Name) =
 @JvmField val LOCAL_DATE =  ClassName("java.time", "LocalDate")
 @JvmField val LOCAL_DATE_TIME =  ClassName("java.time", "LocalDateTime")
 @JvmField val ZONED_DATE_TIME =  ClassName("java.time", "ZonedDateTime")
+@JvmField val INSTANT =  ClassName("java.time", "Instant")
 @JvmField val UUID =  ClassName("java.util", "UUID")

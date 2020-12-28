@@ -1,11 +1,8 @@
 package pl.touk.krush
 
-import org.jetbrains.exposed.sql.Column
-import org.jetbrains.exposed.sql.ColumnType
-import org.jetbrains.exposed.sql.LongColumnType
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.TextColumnType
+import org.jetbrains.exposed.sql.*
 import java.math.BigDecimal
+import java.time.Instant
 import kotlin.reflect.KClass
 
 @Suppress("UNCHECKED_CAST")
@@ -79,6 +76,15 @@ class StringWrapperColumnType<out Wrapper : Any>(
     }
 }
 
+class BooleanWrapperColumnType<out Wrapper : Any>(
+        wrapperClazz: KClass<Wrapper>,
+        instanceCreator: (Boolean) -> Wrapper,
+        valueExtractor: (Wrapper) -> Boolean
+) : WrapperColumnType<Boolean, Wrapper>(BooleanColumnType(), Boolean::class, wrapperClazz, instanceCreator, valueExtractor) {
+
+    // Superclass works OK
+}
+
 inline fun <reified Wrapper : Any> Table.longWrapper(
     name: String,
     noinline instanceCreator: (Long) -> Wrapper,
@@ -93,4 +99,12 @@ inline fun <reified Wrapper : Any> Table.stringWrapper(
         noinline valueExtractor: (Wrapper) -> String
 ): Column<Wrapper> = registerColumn(
         name, StringWrapperColumnType(Wrapper::class, instanceCreator, valueExtractor)
+)
+
+inline fun <reified Wrapper : Any> Table.booleanWrapper(
+        name: String,
+        noinline instanceCreator: (Boolean) -> Wrapper,
+        noinline valueExtractor: (Wrapper) -> Boolean
+): Column<Wrapper> = registerColumn(
+        name, BooleanWrapperColumnType(Wrapper::class, instanceCreator, valueExtractor)
 )

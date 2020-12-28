@@ -1,5 +1,6 @@
 package pl.touk.example
 
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
@@ -41,6 +42,7 @@ data class NullablePropertyEntity(
 
 typealias StringMap = Map<String, String>
 typealias PlainString = String
+data class StringBoolean(val boolStr: String)
 
 @Entity
 data class TypeAliasEntity(
@@ -48,8 +50,24 @@ data class TypeAliasEntity(
         val id: Long?,
         @Convert(converter = StringMapConverter::class)
         val aliased: StringMap,
-        val justAString: PlainString
+        val justAString: PlainString,
+        val wrappedBoolean: StringBoolean
 )
+
+@Converter
+class StringBooleanConverter : AttributeConverter<StringBoolean, Boolean> {
+    override fun convertToDatabaseColumn(attribute: StringBoolean): Boolean {
+        return when (attribute.boolStr) {
+            "true" -> true
+            "false" -> false
+            else -> throw IllegalArgumentException("Could not convert ${attribute.boolStr}")
+        }
+    }
+
+    override fun convertToEntityAttribute(dbData: Boolean): StringBoolean {
+        return if (dbData) StringBoolean("true") else StringBoolean("false")
+    }
+}
 
 @Converter
 class StringMapConverter : AttributeConverter<StringMap, String> {
@@ -104,6 +122,7 @@ data class DatePropertyEntity(
 
         val localDate: LocalDate,
         val localDateTime: LocalDateTime,
+        val instant: Instant,
         val zonedDateTime: ZonedDateTime
 )
 
