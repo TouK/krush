@@ -34,8 +34,7 @@ data class Comment(
         @Convert(converter = AuthorConverter::class)
         val author: Author,
 
-        @Convert(converter = StringBooleanConverter::class)
-        val isVisible: StringBoolean,
+        val isVisible: Boolean,
 
         @ManyToOne
         @JoinColumn(name = "thread_id")
@@ -99,22 +98,5 @@ class ThreadConverter : AttributeConverter<ThreadId, Long> {
 
     override fun convertToEntityAttribute(dbData: Long): ThreadId {
         return ThreadId.Persisted(dbData)
-    }
-}
-
-data class StringBoolean(val boolStr: String)
-
-@Converter
-class StringBooleanConverter : AttributeConverter<StringBoolean, Boolean> {
-    override fun convertToDatabaseColumn(attribute: StringBoolean): Boolean {
-        return when (attribute.boolStr) {
-            "true" -> true
-            "false" -> false
-            else -> throw IllegalArgumentException("Could not convert ${attribute.boolStr}")
-        }
-    }
-
-    override fun convertToEntityAttribute(dbData: Boolean): StringBoolean {
-        return if (dbData) StringBoolean("true") else StringBoolean("false")
     }
 }

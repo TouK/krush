@@ -24,13 +24,13 @@ class ThreadTest : BaseDatabaseTest() {
                             id = CommentId.Persisted(123),
                             author = author,
                             thread = thread,
-                            isVisible = StringBoolean("true")
+                            isVisible = true
                     )
             )
 
             // when
             val selectedThreads = (ThreadTable leftJoin CommentTable)
-                    .select { (CommentTable.author eq author) and (CommentTable.isVisible eq StringBoolean("true")) }
+                    .select { (CommentTable.author eq author) and (CommentTable.isVisible eq true) }
                     .toThreadList()
 
             val fullThread = thread.copy(comments = listOf(comment))
