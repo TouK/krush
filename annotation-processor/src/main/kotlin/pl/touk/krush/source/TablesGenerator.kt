@@ -2,15 +2,19 @@ package pl.touk.krush.source
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
+import com.squareup.kotlinpoet.metadata.toImmutableKmClass
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.Table.PrimaryKey
 import pl.touk.krush.env.TypeEnvironment
 import pl.touk.krush.model.*
+import pl.touk.krush.poet.toClassName
 import pl.touk.krush.validation.*
 import javax.lang.model.element.Name
 import javax.lang.model.element.TypeElement
 
+@KotlinPoetMetadataPreview
 class TablesGenerator : SourceGenerator {
 
     override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String, typeEnv: TypeEnvironment): FileSpec {
@@ -160,10 +164,11 @@ class TablesGenerator : SourceGenerator {
         val entityName = entity.name.asVariable()
         val isGenerated = entity.id?.generatedValue ?: false
         val persistedName = if (isGenerated) "persisted${entityName.capitalize()}" else entityName
+        val entityClass = entityType.toImmutableKmClass().toClassName()
         val func = FunSpec.builder("insert")
                 .receiver(Type(entityType.packageName, entity.tableName).asUnderlyingClassName())
-                .addParameter(entity.name.asVariable(), entityType.asType().asTypeName())
-                .returns(entityType.asType().asTypeName())
+                .addParameter(entity.name.asVariable(), entityClass)
+                .returns(entityClass)
 
         val assocParams = entityAssocParams(entity)
 

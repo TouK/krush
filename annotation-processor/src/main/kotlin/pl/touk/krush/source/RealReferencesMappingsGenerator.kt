@@ -2,11 +2,13 @@ package pl.touk.krush.source
 
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import pl.touk.krush.model.*
 import pl.touk.krush.model.AssociationType.*
 import pl.touk.krush.validation.EntityNotMappedException
 import javax.lang.model.element.TypeElement
 
+@KotlinPoetMetadataPreview
 class RealReferencesMappingsGenerator : MappingsGenerator() {
 
     override fun buildToEntityMapFuncBody(entityType: TypeElement, entity: EntityDefinition, graphs: EntityGraphs, func: FunSpec.Builder,
