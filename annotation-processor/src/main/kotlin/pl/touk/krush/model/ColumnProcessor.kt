@@ -1,32 +1,21 @@
 package pl.touk.krush.model
 
-import com.squareup.kotlinpoet.metadata.ImmutableKmType
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import com.squareup.kotlinpoet.metadata.toImmutableKmClass
-import kotlinx.metadata.KmClassifier
 import org.jetbrains.annotations.NotNull
 import org.jetbrains.annotations.Nullable
 import pl.touk.krush.env.AnnotationEnvironment
 import pl.touk.krush.env.TypeEnvironment
 import pl.touk.krush.env.enclosingTypeElement
 import pl.touk.krush.env.toTypeElement
+import pl.touk.krush.poet.toModelType
 import pl.touk.krush.validation.ConverterTypeNotFoundException
 import pl.touk.krush.validation.ElementTypeNotFoundException
 import pl.touk.krush.validation.EntityNotMappedException
-import javax.lang.model.element.AnnotationMirror
-import javax.lang.model.element.AnnotationValue
-import javax.lang.model.element.Name
-import javax.lang.model.element.TypeElement
-import javax.lang.model.element.VariableElement
+import javax.lang.model.element.*
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeMirror
-import javax.persistence.AttributeConverter
-import javax.persistence.AttributeOverride
-import javax.persistence.AttributeOverrides
-import javax.persistence.Column
-import javax.persistence.Convert
-import javax.persistence.Enumerated
-import javax.persistence.GeneratedValue
+import javax.persistence.*
 
 @KotlinPoetMetadataPreview
 class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv: AnnotationEnvironment) : ElementProcessor {
@@ -152,18 +141,6 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
     private fun VariableElement.mappingOverride(): List<AttributeOverride> {
         return (this.getAnnotation(AttributeOverrides::class.java)?.value?.toList() ?: emptyList()) +
                 (this.getAnnotation(AttributeOverride::class.java)?.let { listOf(it) } ?: emptyList())
-    }
-
-    private fun ImmutableKmType.toModelType(): Type? {
-        return when(val classifier = (this.abbreviatedType?.classifier ?: this.classifier)){
-            is KmClassifier.Class -> {
-                classifier.name
-                    .split("/").let { Type(it.dropLast(1).joinToString(separator = "."), it.last()) }
-            }
-            is KmClassifier.TypeAlias -> classifier.name
-                    .split("/").let { Type(it.dropLast(1).joinToString(separator = "."), it.last(), this.copy(abbreviatedType = null).toModelType()) }
-            is KmClassifier.TypeParameter -> TODO()
-        }
     }
 
     private fun String.name(): Name = typeEnv.elementUtils.getName(this)

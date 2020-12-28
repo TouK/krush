@@ -1,7 +1,8 @@
 package pl.touk.krush.validation
 
-import java.lang.RuntimeException
 import javax.lang.model.element.TypeElement
 
-class EntityNotMappedException(target: TypeElement) :
-        RuntimeException("Class ${target.simpleName} in missing @Entity annotation")
+class EntityNotMappedException(targetClass: String) :
+        RuntimeException("Class $targetClass is missing @Entity annotation") {
+                constructor(target: TypeElement) : this("Class ${target.simpleName} is missing @Entity annotation")
+        }

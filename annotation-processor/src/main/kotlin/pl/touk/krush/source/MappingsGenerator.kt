@@ -2,15 +2,24 @@ package pl.touk.krush.source
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.metadata.ImmutableKmClass
+import com.squareup.kotlinpoet.metadata.ImmutableKmType
+import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
+import com.squareup.kotlinpoet.metadata.specs.toTypeSpec
+import com.squareup.kotlinpoet.metadata.toImmutableKmClass
+import kotlinx.metadata.KmClassifier
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.statements.UpdateBuilder
 import pl.touk.krush.env.TypeEnvironment
+import pl.touk.krush.env.toTypeElement
 import pl.touk.krush.model.*
 import pl.touk.krush.model.AssociationType.*
+import pl.touk.krush.poet.toClassName
 import pl.touk.krush.validation.EntityNotMappedException
 import pl.touk.krush.validation.MissingIdException
 import javax.lang.model.element.TypeElement
 
+@KotlinPoetMetadataPreview
 abstract class MappingsGenerator : SourceGenerator {
 
     override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String, typeEnv: TypeEnvironment): FileSpec {
@@ -45,9 +54,10 @@ abstract class MappingsGenerator : SourceGenerator {
     }
 
     private fun buildToEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
+        val entityClass = entityType.toImmutableKmClass().toClassName()
         val func = FunSpec.builder("to${entity.name}")
                 .receiver(ResultRow::class.java)
-                .returns(entityType.asType().asTypeName())
+                .returns(entityClass)
 
         val propsMappings = entity.getPropertyAndIdNames().map { name ->
             "\t$name = this[${entity.name}Table.${name}]"
@@ -74,7 +84,7 @@ abstract class MappingsGenerator : SourceGenerator {
 
         val mapping = (propsMappings + embeddedMappings + associationsMappings + listAssociationMapping).joinToString(",\n")
 
-        func.addStatement("return %T(\n$mapping\n)", entityType.asType().asTypeName())
+        func.addStatement("return %T(\n$mapping\n)", entityClass)
 
         return func.build()
     }
@@ -82,7 +92,7 @@ abstract class MappingsGenerator : SourceGenerator {
     private fun buildToEntityListFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
         val func = FunSpec.builder("to${entity.name}List")
                 .receiver(Iterable::class.parameterizedBy(ResultRow::class))
-                .returns(List::class.asClassName().parameterizedBy(entityType.asType().asTypeName()))
+                .returns(List::class.asClassName().parameterizedBy(entityType.toImmutableKmClass().toClassName()))
 
         func.addStatement("return this.to${entity.name}Map().values.toList()")
 
@@ -95,7 +105,7 @@ abstract class MappingsGenerator : SourceGenerator {
         val rootVal = entity.name.asVariable()
         val func = FunSpec.builder("to${entity.name}Map")
                 .receiver(Iterable::class.parameterizedBy(ResultRow::class))
-                .returns(ClassName("kotlin.collections", "MutableMap").parameterizedBy(rootKey, entityType.asType().asTypeName()))
+                .returns(ClassName("kotlin.collections", "MutableMap").parameterizedBy(rootKey, entityType.toImmutableKmClass().toClassName()))
 
         val rootIdName = entity.id.name.asVariable()
         val rootValId = "${rootVal}Id"
@@ -112,7 +122,7 @@ abstract class MappingsGenerator : SourceGenerator {
 
         val func = FunSpec.builder("from")
                 .receiver(UpdateBuilder::class.parameterizedBy(Any::class))
-                .addParameter(param, entityType.asType().asTypeName())
+                .addParameter(param, entityType.toImmutableKmClass().toClassName())
 
         entityAssocParams(entity).forEach { func.addParameter(it) }
 
@@ -166,8 +176,8 @@ abstract class MappingsGenerator : SourceGenerator {
 
         val func = FunSpec.builder("from")
                 .receiver(UpdateBuilder::class.parameterizedBy(Any::class))
-                .addParameter(param, entityType.asType().asTypeName())
-                .addParameter(param2, targetType.asClassName())
+                .addParameter(param, entityType.toImmutableKmClass().toClassName())
+                .addParameter(param2, targetType.toImmutableKmClass().toClassName())
 
         listOf(Pair(param, entityId), Pair(param2, assoc.targetId)).forEach { side ->
             when (side.second.nullable) {
@@ -184,7 +194,7 @@ abstract class MappingsGenerator : SourceGenerator {
         return entity.associations.filter { !it.mapped }.map { assoc ->
             ParameterSpec.builder(
                     assoc.target.simpleName.asVariable(),
-                    assoc.target.asType().asTypeName().copy(nullable = true)
+                    assoc.target.toImmutableKmClass().toClassName().copy(nullable = true)
             ).defaultValue("null").build()
         }
     }
