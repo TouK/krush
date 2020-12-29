@@ -9,7 +9,7 @@ import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.Table.PrimaryKey
 import pl.touk.krush.env.TypeEnvironment
 import pl.touk.krush.model.*
-import pl.touk.krush.poet.toClassName
+import pl.touk.krush.meta.toClassName
 import pl.touk.krush.validation.*
 import javax.lang.model.element.Name
 import javax.lang.model.element.TypeElement
@@ -200,7 +200,7 @@ class TablesGenerator : SourceGenerator {
         return entity.associations.filter { !it.mapped }.map { assoc ->
             ParameterSpec.builder(
                     assoc.target.simpleName.asVariable(),
-                    assoc.target.asType().asTypeName().copy(nullable = true)
+                    assoc.target.toImmutableKmClass().toClassName().copy(nullable = true)
             ).defaultValue("null").build()
         }
     }

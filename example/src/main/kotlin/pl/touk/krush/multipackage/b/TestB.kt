@@ -9,8 +9,8 @@ import javax.persistence.Table
 @Entity
 @Table(name = "test_b")
 data class TestB(
-        @Id @GeneratedValue
-        val id: Long? = null,
+    @Id @GeneratedValue
+    val id: Long? = null,
 
-        @Column val text: String
+    @Column val text: String
 )

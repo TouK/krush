@@ -9,19 +9,19 @@ import javax.persistence.Id
 @Entity
 data class Line(
 
-        @Id @GeneratedValue
-        val id: Long? = null,
+    @Id @GeneratedValue
+    val id: Long? = null,
 
-        val x1: Long,
+    val x1: Long,
 
-        val y1: Int,
+    val y1: Int,
 
-        val z1: Short,
+    val z1: Short,
 
-        val x2: Float,
+    val x2: Float,
 
-        val y2: Double,
+    val y2: Double,
 
-        @Column(precision = 6, scale = 3)
-        val z2: BigDecimal
+    @Column(precision = 6, scale = 3)
+    val z2: BigDecimal
 )

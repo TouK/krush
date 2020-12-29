@@ -7,11 +7,11 @@ typealias PlainString = String
 
 @Entity
 data class VisitorLog(
-        @Id @GeneratedValue
-        val id: Long? = null,
-        @Convert(converter = VisitorListConverter::class)
-        val visitors: VisitorList,
-        val guard: PlainString
+    @Id @GeneratedValue
+    val id: Long? = null,
+    @Convert(converter = VisitorListConverter::class)
+    val visitors: VisitorList,
+    val guard: PlainString
 )
 
 @Converter

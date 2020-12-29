@@ -4,6 +4,7 @@ import pl.touk.krush.env.AnnotationEnvironment
 import pl.touk.krush.env.TypeEnvironment
 import pl.touk.krush.env.toTypeElement
 import pl.touk.krush.env.toVariableElement
+import pl.touk.krush.meta.isNullable
 import javax.persistence.JoinColumn
 import javax.persistence.OneToOne
 
@@ -17,8 +18,9 @@ class OneToOneProcessor(override val typeEnv: TypeEnvironment, private val annEn
                 val mappedBy: String? = oneToOneElt.getAnnotation(OneToOne::class.java)?.mappedBy?.ifBlank { null }
 
                 val associationDef = AssociationDefinition(
-                        name = oneToOneElt.simpleName, type = AssociationType.ONE_TO_ONE, mapped = mappedBy.isNullOrEmpty(),
-                        mappedBy = mappedBy, target = target, joinColumn = join?.name, targetId = parentEntityId
+                    name = oneToOneElt.simpleName, type = AssociationType.ONE_TO_ONE, mapped = mappedBy.isNullOrEmpty(),
+                    mappedBy = mappedBy, target = target, joinColumn = join?.name, targetId = parentEntityId,
+                    nullable = oneToOneElt.isNullable()
                 )
                 entity.addAssociation(associationDef)
             }

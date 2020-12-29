@@ -13,8 +13,8 @@ class ManyToManyProcessor(override val typeEnv: TypeEnvironment, private val ann
                 val target = manyToManyElt.asType().getTypeArgument().asElement().toTypeElement()
                 val targetId = graphs.entityId(target)
                 val associationDef = AssociationDefinition(
-                        name = manyToManyElt.simpleName, type = AssociationType.MANY_TO_MANY,
-                        target = target, joinTable = joinTableAnn.name, targetId = targetId
+                    name = manyToManyElt.simpleName, type = AssociationType.MANY_TO_MANY,
+                    target = target, joinTable = joinTableAnn.name, targetId = targetId
                 )
                 entity.addAssociation(associationDef)
             }

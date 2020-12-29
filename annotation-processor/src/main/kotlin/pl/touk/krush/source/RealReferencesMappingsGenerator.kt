@@ -62,9 +62,9 @@ class RealReferencesMappingsGenerator : MappingsGenerator() {
                     func.addStatement("\t\t}")
                     func.addStatement("\t}")
                 } else {
-
-                    func.addStatement("\tval ${assoc.name.asVariable()} = resultRows.to${target.name}List().single()")
-                    func.addStatement("\t$associationMapName[${rootValId}] =  ${assoc.name.asVariable()}")
+                    val assocVar = assoc.name.asVariable()
+                    func.addStatement("\tval $assocVar = resultRows.to${target.name}List().firstOrNull()")
+                    func.addStatement("\t$assocVar?.let { $associationMapName[${rootValId}] = it }")
                 }
             }
 

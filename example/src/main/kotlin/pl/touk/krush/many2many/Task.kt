@@ -6,12 +6,12 @@ import javax.persistence.*
 @Table(name = "tasks")
 data class Task(
 
-        @Id @GeneratedValue
-        val id: Long? = null,
+    @Id @GeneratedValue
+    val id: Long? = null,
 
-        val description: String = "",
+    val description: String = "",
 
-        @JoinTable(name = "task_requirements")
-        @ManyToMany
-        val requirements: Collection<Task> = emptyList()
+    @JoinTable(name = "task_requirements")
+    @ManyToMany
+    val requirements: Collection<Task> = emptyList()
 )

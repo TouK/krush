@@ -1,11 +1,14 @@
-package pl.touk.krush.poet
+package pl.touk.krush.meta
 
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.metadata.ImmutableKmClass
 import com.squareup.kotlinpoet.metadata.ImmutableKmType
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import kotlinx.metadata.KmClassifier
+import org.jetbrains.annotations.NotNull
+import org.jetbrains.annotations.Nullable
 import pl.touk.krush.model.Type
+import javax.lang.model.element.VariableElement
 
 private fun List<String>.packageName() = this.dropLast(1).joinToString(separator = ".")
 
@@ -26,3 +29,6 @@ fun ImmutableKmType.toModelType(): Type {
         is KmClassifier.TypeParameter -> TODO()
     }
 }
+
+fun VariableElement.isNullable() =
+    this.getAnnotation(NotNull::class.java) == null && this.getAnnotation(Nullable::class.java) != null
