@@ -2,19 +2,14 @@ package pl.touk.krush.source
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.metadata.ImmutableKmClass
-import com.squareup.kotlinpoet.metadata.ImmutableKmType
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
-import com.squareup.kotlinpoet.metadata.specs.toTypeSpec
 import com.squareup.kotlinpoet.metadata.toImmutableKmClass
-import kotlinx.metadata.KmClassifier
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.statements.UpdateBuilder
 import pl.touk.krush.env.TypeEnvironment
-import pl.touk.krush.env.toTypeElement
 import pl.touk.krush.model.*
 import pl.touk.krush.model.AssociationType.*
-import pl.touk.krush.poet.toClassName
+import pl.touk.krush.meta.toClassName
 import pl.touk.krush.validation.EntityNotMappedException
 import pl.touk.krush.validation.MissingIdException
 import javax.lang.model.element.TypeElement
@@ -73,9 +68,20 @@ abstract class MappingsGenerator : SourceGenerator {
             "\t$embeddableName = ${embeddable.qualifiedName}(\n$embeddableMapping\n\t)"
         }
 
-        val associationsMappings = entity.getAssociations(MANY_TO_ONE, ONE_TO_ONE)
-                .filter { assoc -> assoc.mapped }
-                .map { "\t${it.name} = this.to${it.target.simpleName}()"}
+        val associationsMappings = entity.getAssociations(MANY_TO_ONE)
+            .filter { assoc -> assoc.mapped }
+            .map { "\t${it.name} = this.to${it.target.simpleName}()"}
+            .toMutableList()
+
+        associationsMappings += entity.getAssociations(ONE_TO_ONE)
+            .filter { assoc -> assoc.mapped }
+            .map {
+                if (!it.nullable) {
+                    "\t${it.name} = this.to${it.target.simpleName}()"
+                } else {
+                    "\t${it.name} = this[${entity.name}Table.${it.name}]?.let { this.to${it.target.simpleName}() }"
+                }
+            }
 
         // Add empty but mutable lists for O2M and M2M connections, so that the relations can be filled in later
         // without possibly breaking existing references to this object

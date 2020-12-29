@@ -11,28 +11,26 @@ import javax.persistence.Id
 
 @Entity
 data class Message(
+    @Id @GeneratedValue
+    val id: Long? = null,
 
-        @Id @GeneratedValue
-        val id: Long? = null,
+    @Enumerated(STRING)
+    val status: MessageStatus,
 
-        @Enumerated(STRING)
-        val status: MessageStatus,
+    @Enumerated(ORDINAL)
+    val previousStatus: MessageStatus,
 
-        @Enumerated(ORDINAL)
-        val previousStatus: MessageStatus,
-
-        @Embedded
-        val info: MessageInfo
+    @Embedded
+    val info: MessageInfo
 )
 
 @Embeddable
 data class MessageInfo(
+    @Enumerated(STRING)
+    val contentType: ContentType,
 
-        @Enumerated(STRING)
-        val contentType: ContentType,
-
-        @Enumerated(ORDINAL)
-        val priority: MessagePriority
+    @Enumerated(ORDINAL)
+    val priority: MessagePriority
 )
 
 enum class MessageStatus {

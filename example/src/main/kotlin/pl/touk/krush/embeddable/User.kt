@@ -12,20 +12,19 @@ import javax.persistence.Id
 
 @Entity
 data class User(
+    @Id @GeneratedValue
+    val id: Long? = null,
 
-        @Id @GeneratedValue
-        val id: Long? = null,
+    @Embedded
+    @AttributeOverride(name = "houseNumber", column = Column(name = "house_no"))
+    val contactAddress: ContactAddress,
 
-        @Embedded
-        @AttributeOverride(name = "houseNumber", column = Column(name = "house_no"))
-        val contactAddress: ContactAddress,
-
-        @Embedded
-        @AttributeOverrides(
-                AttributeOverride(name = "city", column = Column(name = "inv_city")),
-                AttributeOverride(name = "street", column = Column(name = "inv_street"))
-        )
-        val invoiceAddress: InvoiceAddress
+    @Embedded
+    @AttributeOverrides(
+            AttributeOverride(name = "city", column = Column(name = "inv_city")),
+            AttributeOverride(name = "street", column = Column(name = "inv_street"))
+    )
+    val invoiceAddress: InvoiceAddress
 )
 
 sealed class Address {

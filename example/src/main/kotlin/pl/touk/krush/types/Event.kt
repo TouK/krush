@@ -14,15 +14,15 @@ data class Event(
     @GeneratedValue
     val id: Long? = null,
 
-        val eventDate: LocalDate,
-        val processTime: LocalDateTime,
-        val createTime: ZonedDateTime,
-        val updateTime: Instant,
+    val eventDate: LocalDate,
+    val processTime: LocalDateTime,
+    val createTime: ZonedDateTime,
+    val updateTime: Instant,
 
-        @Convert(converter = ExampleInstantWrapperAttributeConverter::class)
-        val otherUpdateTime: ExampleInstantWrapper,
+    @Convert(converter = ExampleInstantWrapperAttributeConverter::class)
+    val otherUpdateTime: ExampleInstantWrapper,
 
-        val externalId: UUID
+    val externalId: UUID
 )
 
 data class ExampleInstantWrapper(val value: Instant)

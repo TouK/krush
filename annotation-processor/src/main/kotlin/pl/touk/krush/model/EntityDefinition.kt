@@ -58,6 +58,7 @@ data class AssociationDefinition(
         val mappedBy: String? = null,
         val joinColumn: String? = null,
         val joinTable: String? = null,
+        val nullable: Boolean = false,
         val type: AssociationType,
         val targetId: IdDefinition
 )

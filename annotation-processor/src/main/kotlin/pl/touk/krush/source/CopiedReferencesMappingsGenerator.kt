@@ -63,15 +63,19 @@ class CopiedReferencesMappingsGenerator : MappingsGenerator() {
                 }
 
                 ONE_TO_ONE -> {
+                    val assocVar = assoc.name.asVariable()
                     if (!assoc.mapped) {
                         func.addStatement("\tresultRow.getOrNull(${target.idColumn})?.let {")
                         func.addStatement("\t\t${assoc.name}_map.get(it)?.let {")
                         func.addStatement("\t\t\t$associationMapName[$rootValId] = it")
                         func.addStatement("\t\t}")
                         func.addStatement("\t}")
+                    } else if (assoc.nullable) {
+                        func.addStatement("\tval $assocVar = resultRow[${entity.name}Table.${assoc.name}]?.let { resultRow.to${target.name}() }")
+                        func.addStatement("\t$assocVar?.let { $associationMapName[${rootValId}] = it }")
                     } else {
-                        func.addStatement("\tval ${assoc.name.asVariable()} = resultRow.to${target.name}()")
-                        func.addStatement("\t$associationMapName[${rootValId}] =  ${assoc.name.asVariable()}")
+                        func.addStatement("\tval $assocVar = resultRow.to${target.name}()")
+                        func.addStatement("\t$associationMapName[${rootValId}] = $assocVar")
                     }
                 }
 

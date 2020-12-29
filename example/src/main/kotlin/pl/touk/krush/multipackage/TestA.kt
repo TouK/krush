@@ -11,10 +11,10 @@ import javax.persistence.Table
 @Entity
 @Table(name = "test_a")
 data class TestA(
-        @Id @GeneratedValue
-        val id: Long? = null,
+    @Id @GeneratedValue
+    val id: Long? = null,
 
-        @OneToMany
-        @JoinColumn(name = "testA_id")
-        val b: List<TestB> = emptyList()
+    @OneToMany
+    @JoinColumn(name = "testA_id")
+    val b: List<TestB> = emptyList()
 )

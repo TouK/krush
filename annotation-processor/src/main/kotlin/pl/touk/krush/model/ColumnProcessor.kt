@@ -8,7 +8,8 @@ import pl.touk.krush.env.AnnotationEnvironment
 import pl.touk.krush.env.TypeEnvironment
 import pl.touk.krush.env.enclosingTypeElement
 import pl.touk.krush.env.toTypeElement
-import pl.touk.krush.poet.toModelType
+import pl.touk.krush.meta.isNullable
+import pl.touk.krush.meta.toModelType
 import pl.touk.krush.validation.ConverterTypeNotFoundException
 import pl.touk.krush.validation.ElementTypeNotFoundException
 import pl.touk.krush.validation.EntityNotMappedException
@@ -38,7 +39,7 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
                 val idDef = IdDefinition(
                         name = idElt.simpleName, columnName = columnName, converter = converter,
                         annotation = columnAnn, type = type, generatedValue = generatedValue,
-                        nullable = isNullable(idElt)
+                        nullable = idElt.isNullable()
                 )
                 entity.copy(id = idDef)
             }
@@ -60,7 +61,7 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
                 //User
                 val columnDefs = columns.map { column -> propertyDefinition(column, element.mappingOverride()) }
                 val embeddable = EmbeddableDefinition(propertyName = element.simpleName,
-                        qualifiedName = embeddableType.qualifiedName, nullable = isNullable(element), properties = columnDefs)
+                        qualifiedName = embeddableType.qualifiedName, nullable = element.isNullable(), properties = columnDefs)
 
                 entity.addEmbeddable(embeddable)
             }
@@ -75,11 +76,8 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
         val enumerated = getEnumeratedDefinition(columnElt)
         val type = columnElt.toModelType() ?: throw ElementTypeNotFoundException(columnElt)
         return PropertyDefinition(name = name, columnName = columnName, annotation = columnAnn, type = type,
-                nullable = isNullable(columnElt), converter = converter, enumerated = enumerated)
+                nullable = columnElt.isNullable(), converter = converter, enumerated = enumerated)
     }
-
-    private fun isNullable(columnElt: VariableElement) =
-            columnElt.getAnnotation(NotNull::class.java) == null && columnElt.getAnnotation(Nullable::class.java) != null
 
     private fun getColumnName(columnAnn: Column?, columnElt: VariableElement): Name = when {
         columnAnn == null || columnAnn.name.isEmpty() -> columnElt.simpleName
