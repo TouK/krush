@@ -68,12 +68,7 @@ abstract class MappingsGenerator : SourceGenerator {
             "\t$embeddableName = ${embeddable.qualifiedName}(\n$embeddableMapping\n\t)"
         }
 
-        val associationsMappings = entity.getAssociations(MANY_TO_ONE)
-            .filter { assoc -> assoc.mapped }
-            .map { "\t${it.name} = this.to${it.target.simpleName}()"}
-            .toMutableList()
-
-        associationsMappings += entity.getAssociations(ONE_TO_ONE)
+        val associationsMappings = entity.getAssociations(MANY_TO_ONE, ONE_TO_ONE)
             .filter { assoc -> assoc.mapped }
             .map {
                 if (!it.nullable) {

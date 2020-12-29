@@ -14,11 +14,14 @@ class ItemTest : BaseDatabaseTest()  {
         transaction {
             SchemaUtils.create(ItemTable, BoxTable)
 
+            // given
             val item = Item(size = 2).let(ItemTable::insert)
 
+            // when
             val boxWithItem = Box(item = item).let(BoxTable::insert)
             val emptyBox = Box().let(BoxTable::insert)
 
+            // then
             val boxes = (BoxTable leftJoin ItemTable).selectAll().toBoxList()
             assertThat(boxes).containsExactlyInAnyOrder(boxWithItem, emptyBox)
         }
