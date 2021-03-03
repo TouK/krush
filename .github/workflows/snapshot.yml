@@ -1,0 +1,29 @@
+name: Snapshot
+on:
+  push:
+    branches:
+      - 'sonatype*'
+      - 'master'
+
+jobs:
+  build:
+    name: Build and upload snapshot
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.11
+      - name: Build project
+        run: ./gradlew build --stacktrace
+      - name: Publish package
+        run: ./gradlew publish
+        env:
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          SIGNING_PRIVATE_KEY: ${{ secrets.SIGNING_PRIVATE_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}

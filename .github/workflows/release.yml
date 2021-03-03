@@ -1,0 +1,39 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'krush*'
+
+jobs:
+  build:
+    name: Upload Release Asset
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Set up Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Extract version
+        run: echo "##[set-output name=version;]$(echo ${GITHUB_REF#refs/tags/krush-})"
+        id: extract_version
+      - name: Build project
+        run: ./gradlew -Pversion=${{ steps.extract_version.outputs.version }} build
+      - name: Publish package
+        run: ./gradlew -Pversion=${{ steps.extract_version.outputs.version }} publish
+        env:
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          SIGNING_PRIVATE_KEY: ${{ secrets.SIGNING_PRIVATE_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Sputnik ${{ steps.extract_version.outputs.version }}
+          draft: true
+          prerelease: false
