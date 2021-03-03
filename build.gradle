@@ -9,7 +9,7 @@ buildscript {
 }
 
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.4.10'
+    id 'org.jetbrains.kotlin.jvm' version '1.4.31'
     id 'pl.allegro.tech.build.axion-release' version '1.10.2'
     id 'maven-publish'
 }
@@ -28,6 +28,7 @@ allprojects {
 configure([project(':annotation-processor'), project(':runtime')]) {
     apply plugin: 'java'
     apply plugin: 'maven-publish'
+    apply plugin: 'signing'
 
     task sourcesJar(type: Jar) {
         from sourceSets.main.allSource
@@ -39,7 +40,7 @@ configure([project(':annotation-processor'), project(':runtime')]) {
                 from components.java
 
                 groupId rootProject.group
-                artifactId project.name
+                artifactId "krush-${project.name}"
                 version rootProject.version
 
                 artifact sourcesJar {
@@ -51,15 +52,19 @@ configure([project(':annotation-processor'), project(':runtime')]) {
         repositories {
             maven {
                 credentials {
-                    username = project.properties["deployUsername"]?.toString() ?: System.getenv("DEPLOY_USERNAME")
-                    password = project.properties["deployPassword"]?.toString() ?: System.getenv("DEPLOY_PASSWORD")
+                    username = System.getenv("SONATYPE_USERNAME")
+                    password = System.getenv("SONATYPE_PASSWORD")
                 }
-                def baseUrl = 'https://philanthropist.touk.pl/nexus/content/repositories'
-                def releasesRepoUrl = "$baseUrl/releases"
-                def snapshotsRepoUrl = "$baseUrl/snapshots"
+                def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+                def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
                 url = scmVersion.version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
             }
         }
+    }
+
+    signing {
+        useInMemoryPgpKeys(System.getenv('SIGNING_PRIVATE_KEY'), System.getenv('SIGNING_PASSWORD'))
+        sign publishing.publications.mavenJava
     }
 
 }
