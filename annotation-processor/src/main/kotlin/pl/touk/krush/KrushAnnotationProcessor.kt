@@ -18,7 +18,7 @@ import javax.lang.model.element.TypeElement
 import javax.tools.Diagnostic.Kind.ERROR
 
 @KotlinPoetMetadataPreview
-@SupportedSourceVersion(SourceVersion.RELEASE_8)
+@SupportedSourceVersion(SourceVersion.RELEASE_11)
 @SupportedAnnotationTypes("javax.persistence.*")
 @SupportedOptions(
         KrushAnnotationProcessor.KAPT_KOTLIN_GENERATED_OPTION_NAME,
