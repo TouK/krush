@@ -19,6 +19,12 @@ project.version = scmVersion.version
 
 sourceCompatibility = 1.8
 
+scmVersion {
+    tag {
+        prefix = 'krush'
+    }
+}
+
 allprojects {
     repositories {
         jcenter()
