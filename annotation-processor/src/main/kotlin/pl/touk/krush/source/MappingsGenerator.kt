@@ -148,7 +148,11 @@ abstract class MappingsGenerator : SourceGenerator {
             val name = assoc.name
             val targetParam = assoc.target.simpleName.asVariable()
             if (assoc.mapped) {
-                "\tthis[$tableName.$name] = $param.$name?.${assoc.targetId.name.asVariable()}"
+                if (assoc.nullable) {
+                    "\tthis[$tableName.$name] = $param.$name?.${assoc.targetId.name.asVariable()}"
+                } else {
+                    "\tthis[$tableName.$name] = $param.$name.${assoc.targetId.name.asVariable()}"
+                }
             } else {
                 "\t${targetParam}?.let { this[$tableName.$name] = it.${assoc.targetId.name} }"
             }
@@ -156,7 +160,11 @@ abstract class MappingsGenerator : SourceGenerator {
 
         val oneToOneMappings = entity.getAssociations(ONE_TO_ONE).filter { it.mapped }.map { assoc ->
             val name = assoc.name
-            "\tthis[$tableName.$name] = $param.$name?.${assoc.targetId.name.asVariable()}"
+            if (assoc.nullable) {
+                "\tthis[$tableName.$name] = $param.$name?.${assoc.targetId.name.asVariable()}"
+            } else {
+                "\tthis[$tableName.$name] = $param.$name.${assoc.targetId.name.asVariable()}"
+            }
         }
 
         val statements = (idMapping + propsMappings + embeddedMappings + assocMappings + oneToOneMappings)

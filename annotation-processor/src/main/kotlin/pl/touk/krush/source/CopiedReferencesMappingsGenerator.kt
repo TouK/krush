@@ -52,9 +52,12 @@ class CopiedReferencesMappingsGenerator : MappingsGenerator() {
                     func.addStatement("\tresultRow.getOrNull(${target.idColumn})?.let {")
                     func.addStatement("\t\tval $collName = ${assoc.name}_map.filter { $targetVal -> $targetVal.key == it }")
 
-                    val isBidirectional = target.associations.find { it.target == entityType }?.mapped ?: false
-                    if (isBidirectional && !isSelfReferential) {
-                        func.addStatement("\t\t\t.mapValues { (_, $targetVal) -> $targetVal.copy($rootVal = $rootVal) }")
+                    val otherSide = target.associations.find { it.target == entityType }
+                    otherSide?.let {
+                        val isBidirectional = otherSide.mapped
+                        if (isBidirectional && !isSelfReferential) {
+                            func.addStatement("\t\t\t.mapValues { (_, $targetVal) -> $targetVal.copy(${otherSide.name} = $rootVal) }")
+                        }
                     }
 
                     func.addStatement("\t\t\t.values.toMutableSet()")
@@ -90,8 +93,10 @@ class CopiedReferencesMappingsGenerator : MappingsGenerator() {
             val associationMapName = "${entity.name.asVariable()}_${assoc.name}"
             val value = if (assoc.type in listOf(ONE_TO_MANY, MANY_TO_MANY)) {
                 "$associationMapName[$rootVal.$rootIdName]?.toList() ?: emptyList()"
-            } else {
+            } else if (assoc.nullable) {
                 "$associationMapName[$rootVal.$rootIdName]"
+            } else {
+                "$associationMapName[$rootVal.$rootIdName]!!"
             }
 
             func.addStatement("\t\t${assoc.name} = $value$sep")
