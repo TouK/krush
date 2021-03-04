@@ -60,12 +60,24 @@ abstract class MappingsGenerator : SourceGenerator {
 
         val embeddedMappings = entity.embeddables.map { embeddable ->
             val embeddableName = embeddable.propertyName.asVariable()
-            val embeddableMapping = embeddable.getPropertyNames().joinToString(", \n") { name ->
-                val tablePropName = embeddable.propertyName.asVariable() + name.asVariable().capitalize()
-                "\t\t$name = this[${entity.name}Table.${tablePropName}]"
-            }
 
-            "\t$embeddableName = ${embeddable.qualifiedName}(\n$embeddableMapping\n\t)"
+            if (embeddable.nullable) {
+                val embeddableMapping = embeddable.getPropertyNames().joinToString(", \n") { name ->
+                    val tablePropName = embeddable.propertyName.asVariable() + name.asVariable().capitalize()
+                    "\t\t$name = this[${entity.name}Table.${tablePropName}]!!"
+                }
+                val condition = embeddable.getPropertyNames().map { name ->
+                    val tablePropName = embeddable.propertyName.asVariable() + name.asVariable().capitalize()
+                    "\t\tthis[${entity.name}Table.${tablePropName}] != null"
+                }.joinToString(" &&\n")
+                "\t$embeddableName = if (\n$condition\n\t) ${embeddable.qualifiedName}(\n$embeddableMapping\n\t) else null"
+            } else {
+                val embeddableMapping = embeddable.getPropertyNames().joinToString(", \n") { name ->
+                    val tablePropName = embeddable.propertyName.asVariable() + name.asVariable().capitalize()
+                    "\t\t$name = this[${entity.name}Table.${tablePropName}]"
+                }
+                "\t$embeddableName = ${embeddable.qualifiedName}(\n$embeddableMapping\n\t)"
+            }
         }
 
         val associationsMappings = entity.getAssociations(MANY_TO_ONE, ONE_TO_ONE)
@@ -138,9 +150,10 @@ abstract class MappingsGenerator : SourceGenerator {
 
         val embeddedMappings = entity.embeddables.map { embeddable ->
             val embeddableName = embeddable.propertyName.asVariable()
+            val nullCheck = if (embeddable.nullable) "?" else ""
             embeddable.getPropertyNames().map { name ->
                 val tablePropName = embeddable.propertyName.asVariable() + name.asVariable().capitalize()
-                "\tthis[$tableName.$tablePropName] = $param.$embeddableName.$name"
+                "\tthis[$tableName.$tablePropName] = $param.$embeddableName$nullCheck.$name"
             }
         }.flatten()
 
@@ -176,19 +189,19 @@ abstract class MappingsGenerator : SourceGenerator {
     }
 
     private fun buildFromManyToManyFunc(entityType: TypeElement, entity: EntityDefinition, assoc: AssociationDefinition): FunSpec {
-        val param = entity.name.asVariable() + "Source"
+        val sourceParam = entity.name.asVariable() + "Source"
         val targetVal = assoc.target.simpleName.asVariable()
-        val param2 = targetVal + "Target"
+        val targetParam = targetVal + "Target"
         val targetType = assoc.target
         val tableName = "${entity.name}${assoc.name.asObject()}Table"
         val entityId = entity.id ?: throw EntityNotMappedException(entityType)
 
         val func = FunSpec.builder("from")
                 .receiver(UpdateBuilder::class.parameterizedBy(Any::class))
-                .addParameter(param, entityType.toImmutableKmClass().toClassName())
-                .addParameter(param2, targetType.toImmutableKmClass().toClassName())
+                .addParameter(sourceParam, entityType.toImmutableKmClass().toClassName())
+                .addParameter(targetParam, targetType.toImmutableKmClass().toClassName())
 
-        listOf(Pair(param, entityId), Pair(param2, assoc.targetId)).forEach { side ->
+        listOf(Pair(sourceParam, entityId), Pair(targetParam, assoc.targetId)).forEach { side ->
             when (side.second.nullable) {
                 true -> func.addStatement("\t${side.first}.id?.let { id -> this[$tableName.${side.first}Id] = id }")
                 false -> func.addStatement("\tthis[$tableName.${side.first}Id] = ${side.first}.id")

@@ -140,7 +140,7 @@ class TablesGenerator : SourceGenerator {
 
     private fun addEmbeddedTableProperty(embeddable: EmbeddableDefinition, column: PropertyDefinition, entity: EntityDefinition, tableSpec: TypeSpec.Builder, fileSpec: FileSpec.Builder, typeEnvironment: TypeEnvironment) {
         val name =  typeEnvironment.elementUtils.getName(embeddable.propertyName.asVariable() + column.name.asVariable().capitalize())
-        val embeddedProperty = column.copy(name = name)
+        val embeddedProperty = column.copy(name = name, nullable = embeddable.nullable)
         addTableProperty(embeddedProperty, entity, tableSpec, fileSpec)
     }
 
@@ -306,7 +306,7 @@ class TablesGenerator : SourceGenerator {
             LOCAL_DATE_TIME -> CodeBlock.of("datetime(%S)", property.columnName)
             ZONED_DATE_TIME -> CodeBlock.of("zonedDateTime(%S)", property.columnName)
             INSTANT -> CodeBlock.of("timestamp(%S)", property.columnName)
-            else -> throw PropertyTypeNotSupportedExpcetion(property.type)
+            else -> throw PropertyTypeNotSupportedException(property.type)
         }
     }
 
