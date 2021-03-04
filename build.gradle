@@ -40,6 +40,12 @@ configure([project(':annotation-processor'), project(':runtime')]) {
         from sourceSets.main.allSource
     }
 
+    def snapshot = scmVersion.version.endsWith('SNAPSHOT')
+
+    tasks.withType(Sign) {
+        onlyIf { !snapshot }
+    }
+
     publishing {
         publications {
             mavenJava(MavenPublication) {
@@ -63,7 +69,7 @@ configure([project(':annotation-processor'), project(':runtime')]) {
                 }
                 def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
                 def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
-                url = scmVersion.version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+                url = snapshot ? snapshotsRepoUrl : releasesRepoUrl
             }
         }
     }

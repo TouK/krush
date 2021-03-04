@@ -1,14 +1,6 @@
 package pl.touk.krush.embeddable
 
-import pl.touk.krush.embeddable.Address.*
-import javax.persistence.AttributeOverride
-import javax.persistence.AttributeOverrides
-import javax.persistence.Column
-import javax.persistence.Embeddable
-import javax.persistence.Embedded
-import javax.persistence.Entity
-import javax.persistence.GeneratedValue
-import javax.persistence.Id
+import javax.persistence.*
 
 @Entity
 data class User(
@@ -17,36 +9,25 @@ data class User(
 
     @Embedded
     @AttributeOverride(name = "houseNumber", column = Column(name = "house_no"))
-    val contactAddress: ContactAddress,
+    val contactAddress: Address,
 
     @Embedded
     @AttributeOverrides(
-            AttributeOverride(name = "city", column = Column(name = "inv_city")),
-            AttributeOverride(name = "street", column = Column(name = "inv_street"))
+        AttributeOverride(name = "city", column = Column(name = "inv_city")),
+        AttributeOverride(name = "street", column = Column(name = "inv_street"))
     )
-    val invoiceAddress: InvoiceAddress
+    val invoiceAddress: Address? = null
 )
 
-sealed class Address {
+@Embeddable
+data class Address(
 
-    @Embeddable
-    data class ContactAddress(
+    @Column(name = "city")
+    val city: String,
 
-            val city: String,
+    @Column(name = "street")
+    val street: String,
 
-            @Column
-            val street: String,
-
-            val houseNumber: Int
-    ) : Address()
-
-    @Embeddable
-    data class InvoiceAddress(
-
-            val city: String,
-
-            val street: String,
-
-            val houseNumber: Int
-    ) : Address()
-}
+    @Column(name = "house_number")
+    val houseNumber: Int
+)
