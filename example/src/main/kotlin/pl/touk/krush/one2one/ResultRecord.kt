@@ -1,9 +1,9 @@
-package pl.touk.tmpl.rafm.ra.model
+package pl.touk.krush.one2one
 
 import javax.persistence.*
 
 enum class RecordType {
-    MSS_CALL, MSS_SMS, UDR
+    CALL
 }
 
 @Embeddable
@@ -17,7 +17,7 @@ data class RecordId(
 )
 
 @Entity
-@Table(name = "UR_RESULTS_RECORDS")
+@Table(name = "RESULTS_RECORDS")
 data class ResultRecord(
     @Id @GeneratedValue
     var id: Long? = null,

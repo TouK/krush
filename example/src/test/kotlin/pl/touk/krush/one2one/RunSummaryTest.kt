@@ -7,7 +7,6 @@ import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.Test
 import pl.touk.krush.base.BaseDatabaseTest
-import pl.touk.tmpl.rafm.ra.model.*
 
 class RunSummaryTest : BaseDatabaseTest() {
 
@@ -20,8 +19,8 @@ class RunSummaryTest : BaseDatabaseTest() {
             val summary = RunSummary(run = run, records = emptyList()).let {
                 it.copy(
                     records = listOf(
-                        ResultRecord(recordId = RecordId("id1", RecordType.MSS_CALL), summary = it),
-                        ResultRecord(recordId = RecordId("id2", RecordType.MSS_CALL), summary = it)
+                        ResultRecord(recordId = RecordId("id1", RecordType.CALL), summary = it),
+                        ResultRecord(recordId = RecordId("id2", RecordType.CALL), summary = it)
                     )
                 )
             }
@@ -41,8 +40,8 @@ class RunSummaryTest : BaseDatabaseTest() {
                 .flatExtracting("records")
                 .extracting("recordId")
                 .containsExactly(
-                    RecordId("id1", RecordType.MSS_CALL),
-                    RecordId("id2", RecordType.MSS_CALL)
+                    RecordId("id1", RecordType.CALL),
+                    RecordId("id2", RecordType.CALL)
                 )
 
         }

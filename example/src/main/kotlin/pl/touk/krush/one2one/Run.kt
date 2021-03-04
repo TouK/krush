@@ -1,4 +1,4 @@
-package pl.touk.tmpl.rafm.ra.model
+package pl.touk.krush.one2one
 
 import javax.persistence.*
 
