@@ -62,12 +62,14 @@ abstract class MappingsGenerator : SourceGenerator {
             val embeddableName = embeddable.propertyName.asVariable()
 
             if (embeddable.nullable) {
-                val embeddableMapping = embeddable.getPropertyNames().joinToString(", \n") { name ->
+                val embeddableMapping = embeddable.properties.joinToString(", \n") { property ->
+                    val name = property.name
                     val tablePropName = embeddable.propertyName.asVariable() + name.asVariable().capitalize()
-                    "\t\t$name = this[${entity.name}Table.${tablePropName}]!!"
+                    val denull = if (!property.nullable) "!!" else ""
+                    "\t\t$name = this[${entity.name}Table.${tablePropName}]$denull"
                 }
-                val condition = embeddable.getPropertyNames().map { name ->
-                    val tablePropName = embeddable.propertyName.asVariable() + name.asVariable().capitalize()
+                val condition = embeddable.properties.filterNot(PropertyDefinition::nullable).map { property ->
+                    val tablePropName = embeddable.propertyName.asVariable() + property.name.asVariable().capitalize()
                     "\t\tthis[${entity.name}Table.${tablePropName}] != null"
                 }.joinToString(" &&\n")
                 "\t$embeddableName = if (\n$condition\n\t) ${embeddable.qualifiedName}(\n$embeddableMapping\n\t) else null"

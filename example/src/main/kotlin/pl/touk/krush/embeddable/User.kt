@@ -14,7 +14,9 @@ data class User(
     @Embedded
     @AttributeOverrides(
         AttributeOverride(name = "city", column = Column(name = "inv_city")),
-        AttributeOverride(name = "street", column = Column(name = "inv_street"))
+        AttributeOverride(name = "street", column = Column(name = "inv_street")),
+        AttributeOverride(name = "houseNumber", column = Column(name = "inv_house_no")),
+        AttributeOverride(name = "apartmentNumber", column = Column(name = "inv_apartment_no"))
     )
     val invoiceAddress: Address? = null
 )
@@ -29,5 +31,8 @@ data class Address(
     val street: String,
 
     @Column(name = "house_number")
-    val houseNumber: Int
+    val houseNumber: Int,
+
+    @Column(name = "apartment_number")
+    val apartmentNumber: Int? = null
 )

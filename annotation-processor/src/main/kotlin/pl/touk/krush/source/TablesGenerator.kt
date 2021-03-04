@@ -139,8 +139,8 @@ class TablesGenerator : SourceGenerator {
     }
 
     private fun addEmbeddedTableProperty(embeddable: EmbeddableDefinition, column: PropertyDefinition, entity: EntityDefinition, tableSpec: TypeSpec.Builder, fileSpec: FileSpec.Builder, typeEnvironment: TypeEnvironment) {
-        val name =  typeEnvironment.elementUtils.getName(embeddable.propertyName.asVariable() + column.name.asVariable().capitalize())
-        val embeddedProperty = column.copy(name = name, nullable = embeddable.nullable)
+        val name = typeEnvironment.elementUtils.getName(embeddable.propertyName.asVariable() + column.name.asVariable().capitalize())
+        val embeddedProperty = column.copy(name = name, nullable = embeddable.nullable || column.nullable)
         addTableProperty(embeddedProperty, entity, tableSpec, fileSpec)
     }
 
