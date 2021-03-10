@@ -46,7 +46,8 @@ data class IdDefinition (
     val properties: List<PropertyDefinition> = emptyList(),
     val generatedValue: Boolean = false,
     val nullable: Boolean,
-    val embedded: Boolean = false
+    val embedded: Boolean = false,
+    val sharedAssoc: AssociationDefinition? = null
 ) {
 
     fun propName(prop: PropertyDefinition): String {
@@ -68,7 +69,8 @@ data class AssociationDefinition(
     val joinTable: String? = null,
     val nullable: Boolean = false,
     val type: AssociationType,
-    val targetId: IdDefinition
+    val targetId: IdDefinition,
+    val sharedId: IdDefinition? = null
 ) {
     val targetTable: String get() = "${target.simpleName}Table"
 
@@ -82,10 +84,11 @@ data class PropertyDefinition(
     val name: Name,
     val columnName: Name,
     val column: Column?,
+    val sharedColumn: JoinColumn? = null,
     val type: Type,
     val nullable: Boolean,
     val converter: ConverterDefinition? = null,
-    val enumerated: EnumeratedDefinition? = null
+    val enumerated: EnumeratedDefinition? = null,
 ) {
     val valName: String get() = name.asVariable()
 

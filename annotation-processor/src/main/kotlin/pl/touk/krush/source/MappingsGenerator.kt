@@ -194,7 +194,10 @@ abstract class MappingsGenerator : SourceGenerator {
             }
         }
 
-        val assocMappings = (entity.getAssociations(MANY_TO_ONE) + entity.getAssociations(ONE_TO_ONE).filter { it.mapped }).flatMap { assoc ->
+        val assocToProcess = entity.getAssociations(MANY_TO_ONE) +
+                    entity.getAssociations(ONE_TO_ONE).filter { it.mapped && it.sharedId == null }
+
+        val assocMappings = assocToProcess.flatMap { assoc ->
             val name = assoc.name
             val targetIdVal = assoc.targetId.name.asVariable()
             if (assoc.mapped) {

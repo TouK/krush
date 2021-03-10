@@ -67,8 +67,8 @@ class TablesGenerator : SourceGenerator {
 
             } ?: throw MissingIdException(entity)
 
-            entity.properties.forEach { column ->
-                addTableProperty(column, entity, tableSpec, fileSpec)
+            entity.properties.forEach { property ->
+                addTableProperty(property, entity, tableSpec, fileSpec)
             }
 
             entity.embeddables.forEach { embeddable ->
@@ -81,7 +81,7 @@ class TablesGenerator : SourceGenerator {
                 addAssociationProperty(assoc, tableSpec)
             }
 
-            entity.getAssociations(AssociationType.ONE_TO_ONE).filter { it.mapped }.forEach { assoc ->
+            entity.getAssociations(AssociationType.ONE_TO_ONE).filter { it.mapped && it.sharedId == null }.forEach { assoc ->
                 addAssociationProperty(assoc, tableSpec)
             }
 
@@ -249,6 +249,15 @@ class TablesGenerator : SourceGenerator {
 
         if (id.generatedValue) {
             codeBlockBuilder.add(CodeBlock.of(".autoIncrement()")) //TODO disable autoIncrement when id is varchar
+        }
+
+        if (id.sharedAssoc != null && prop.sharedColumn != null) {
+            val targetIdProp = id.sharedAssoc.targetId.properties.find { it.columnName.toString() == prop.sharedColumn.name }
+            targetIdProp?.let {
+                codeBlockBuilder
+                    .add(".references(%L)", "${id.sharedAssoc.targetTable}.${id.sharedAssoc.targetId.propName(targetIdProp)}")
+                    .build()
+            }
         }
 
         return codeBlockBuilder.build()
