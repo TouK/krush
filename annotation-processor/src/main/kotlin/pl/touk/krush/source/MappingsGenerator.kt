@@ -54,8 +54,21 @@ abstract class MappingsGenerator : SourceGenerator {
                 .receiver(ResultRow::class.java)
                 .returns(entityClass)
 
-        val propsMappings = entity.getPropertyAndIdNames().map { name ->
-            "\t$name = this[${entity.name}Table.${name}]"
+        val idMapping = entity.id?.let { id ->
+            if (id.embedded) {
+                val embeddableIdName = id.name.asVariable()
+                val embeddableIdMapping = id.properties.joinToString(", \n") { property ->
+                    val name = property.name
+                    "\t\t$name = this[${entity.tableName}.${id.propName(property)}]"
+                }
+                "\t$embeddableIdName = ${id.qualifiedName}(\n$embeddableIdMapping\n\t)"
+            } else {
+                "\t${id.name} = this[${entity.tableName}.${id.name}]"
+            }
+        }?.let { listOf(it) } ?: emptyList()
+
+        val propsMappings = entity.getPropertyNames().map { name ->
+            "\t$name = this[${entity.tableName}.${name}]"
         }
 
         val embeddedMappings = entity.embeddables.map { embeddable ->
@@ -66,17 +79,17 @@ abstract class MappingsGenerator : SourceGenerator {
                     val name = property.name
                     val tablePropName = embeddable.propertyName.asVariable() + name.asVariable().capitalize()
                     val denull = if (!property.nullable) "!!" else ""
-                    "\t\t$name = this[${entity.name}Table.${tablePropName}]$denull"
+                    "\t\t$name = this[${entity.tableName}.${tablePropName}]$denull"
                 }
                 val condition = embeddable.properties.filterNot(PropertyDefinition::nullable).map { property ->
                     val tablePropName = embeddable.propertyName.asVariable() + property.name.asVariable().capitalize()
-                    "\t\tthis[${entity.name}Table.${tablePropName}] != null"
+                    "\t\tthis[${entity.tableName}.${tablePropName}] != null"
                 }.joinToString(" &&\n")
                 "\t$embeddableName = if (\n$condition\n\t) ${embeddable.qualifiedName}(\n$embeddableMapping\n\t) else null"
             } else {
                 val embeddableMapping = embeddable.getPropertyNames().joinToString(", \n") { name ->
                     val tablePropName = embeddable.propertyName.asVariable() + name.asVariable().capitalize()
-                    "\t\t$name = this[${entity.name}Table.${tablePropName}]"
+                    "\t\t$name = this[${entity.tableName}.${tablePropName}]"
                 }
                 "\t$embeddableName = ${embeddable.qualifiedName}(\n$embeddableMapping\n\t)"
             }
@@ -84,11 +97,11 @@ abstract class MappingsGenerator : SourceGenerator {
 
         val associationsMappings = entity.getAssociations(MANY_TO_ONE, ONE_TO_ONE)
             .filter { assoc -> assoc.mapped }
-            .map {
-                if (!it.nullable) {
-                    "\t${it.name} = this.to${it.target.simpleName}()"
+            .map { assoc ->
+                if (!assoc.nullable) {
+                    "\t${assoc.name} = this.to${assoc.target.simpleName}()"
                 } else {
-                    "\t${it.name} = this[${entity.name}Table.${it.name}]?.let { this.to${it.target.simpleName}() }"
+                    "\t${assoc.name} = this[${entity.tableName}.${assoc.defaultIdPropName()}]?.let { this.to${assoc.target.simpleName}() }"
                 }
             }
 
@@ -97,7 +110,7 @@ abstract class MappingsGenerator : SourceGenerator {
         val listAssociationMapping = entity.getAssociations(ONE_TO_MANY, MANY_TO_MANY)
                 .map { "\t${it.name} = mutableListOf()" }
 
-        val mapping = (propsMappings + embeddedMappings + associationsMappings + listAssociationMapping).joinToString(",\n")
+        val mapping = (idMapping + propsMappings + embeddedMappings + associationsMappings + listAssociationMapping).joinToString(",\n")
 
         func.addStatement("return %T(\n$mapping\n)", entityClass)
 
@@ -128,12 +141,27 @@ abstract class MappingsGenerator : SourceGenerator {
         return buildToEntityMapFuncBody(entityType, entity, graphs, func, entity.id, rootKey, rootVal, rootIdName, rootValId)
     }
 
+    protected fun addIdStatement(entity: EntityDefinition, id: IdDefinition, idVal: String, func: FunSpec.Builder)  {
+        if (id.embedded) {
+            id.properties.forEach { property ->
+                val propName = id.propName(property)
+                func.addStatement("\tval $propName = resultRow.getOrNull(${entity.tableName}.$propName)")
+            }
+            val condition = id.properties.filterNot(PropertyDefinition::nullable).map { property ->
+                "\t${id.propName(property)} != null"
+            }.joinToString(" &&\n").takeIf { it.isNotBlank() } ?: "false"
+            func.addStatement("\tval $idVal = if (\n$condition\n\t) ${id.qualifiedName}(${id.propsAsArgs}) else null")
+        } else {
+            func.addStatement("\tval $idVal = resultRow.getOrNull(${entity.tableName}.${id.name})")
+        }
+    }
+
     abstract fun buildToEntityMapFuncBody(entityType: TypeElement, entity: EntityDefinition, graphs: EntityGraphs, func: FunSpec.Builder,
                                           entityId: IdDefinition, rootKey: TypeName, rootVal: String, rootIdName: String, rootValId: String): FunSpec
 
     private fun buildFromEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec? {
         val param = entity.name.asVariable()
-        val tableName = "${entity.name}Table"
+        val tableName = entity.tableName
 
         val func = FunSpec.builder("from")
                 .receiver(UpdateBuilder::class.parameterizedBy(Any::class))
@@ -141,48 +169,53 @@ abstract class MappingsGenerator : SourceGenerator {
 
         entityAssocParams(entity).forEach { func.addParameter(it) }
 
-        val idMapping = when (entity.id?.generatedValue) {
-            false -> listOf("\tthis[$tableName.${entity.id.name}] = $param.${entity.id.name}")
-            else -> emptyList()
-        }
+        val idMapping = entity.id?.let { id ->
+            if (id.embedded) {
+                val embeddableIdName = id.name.asVariable()
+                id.properties.map { property ->
+                    val name = property.name
+                    "\tthis[$tableName.${id.propName(property)}] = $param.$embeddableIdName.$name"
+                }
+            } else if (!id.generatedValue) {
+                listOf("\tthis[$tableName.${entity.id.name}] = $param.${entity.id.name}")
+            } else emptyList()
+        } ?: emptyList()
 
         val propsMappings = entity.getPropertyNames().map { name ->
             "\tthis[$tableName.$name] = $param.$name"
         }
 
-        val embeddedMappings = entity.embeddables.map { embeddable ->
+        val embeddedMappings = entity.embeddables.flatMap { embeddable ->
             val embeddableName = embeddable.propertyName.asVariable()
             val nullCheck = if (embeddable.nullable) "?" else ""
             embeddable.getPropertyNames().map { name ->
                 val tablePropName = embeddable.propertyName.asVariable() + name.asVariable().capitalize()
                 "\tthis[$tableName.$tablePropName] = $param.$embeddableName$nullCheck.$name"
             }
-        }.flatten()
+        }
 
-        val assocMappings = entity.getAssociations(MANY_TO_ONE).map { assoc ->
+        val assocMappings = (entity.getAssociations(MANY_TO_ONE) + entity.getAssociations(ONE_TO_ONE).filter { it.mapped }).flatMap { assoc ->
             val name = assoc.name
-            val targetParam = assoc.target.simpleName.asVariable()
+            val targetIdVal = assoc.targetId.name.asVariable()
             if (assoc.mapped) {
-                if (assoc.nullable) {
-                    "\tthis[$tableName.$name] = $param.$name?.${assoc.targetId.name.asVariable()}"
-                } else {
-                    "\tthis[$tableName.$name] = $param.$name.${assoc.targetId.name.asVariable()}"
+                val sep = if (assoc.nullable) "?" else ""
+                assoc.targetId.properties.map { targetIdProp ->
+                    val targetIdPropVal = targetIdProp.name.asVariable()
+                    val targetIdPropName = assoc.targetIdPropName(targetIdProp)
+                    val path = when {
+                        assoc.targetId.embedded -> "$param.$name$sep.$targetIdVal$sep.$targetIdPropVal"
+                        else -> "$param.$name$sep.$targetIdVal"
+                    }
+                    "\tthis[$tableName.$targetIdPropName] = $path"
                 }
             } else {
-                "\t${targetParam}?.let { this[$tableName.$name] = it.${assoc.targetId.name} }"
+                val targetParam = assoc.target.simpleName.asVariable()
+                val defaultIdPropName = assoc.defaultIdPropName()
+                listOf("\t${targetParam}?.let { this[$tableName.$defaultIdPropName] = it.${assoc.targetId.name} }")
             }
         }
 
-        val oneToOneMappings = entity.getAssociations(ONE_TO_ONE).filter { it.mapped }.map { assoc ->
-            val name = assoc.name
-            if (assoc.nullable) {
-                "\tthis[$tableName.$name] = $param.$name?.${assoc.targetId.name.asVariable()}"
-            } else {
-                "\tthis[$tableName.$name] = $param.$name.${assoc.targetId.name.asVariable()}"
-            }
-        }
-
-        val statements = (idMapping + propsMappings + embeddedMappings + assocMappings + oneToOneMappings)
+        val statements = (idMapping + propsMappings + embeddedMappings + assocMappings)
         if (statements.isEmpty()) return null
 
         statements.forEach { func.addStatement(it) }
@@ -203,10 +236,22 @@ abstract class MappingsGenerator : SourceGenerator {
                 .addParameter(sourceParam, entityType.toImmutableKmClass().toClassName())
                 .addParameter(targetParam, targetType.toImmutableKmClass().toClassName())
 
-        listOf(Pair(sourceParam, entityId), Pair(targetParam, assoc.targetId)).forEach { side ->
-            when (side.second.nullable) {
-                true -> func.addStatement("\t${side.first}.id?.let { id -> this[$tableName.${side.first}Id] = id }")
-                false -> func.addStatement("\tthis[$tableName.${side.first}Id] = ${side.first}.id")
+        listOf(Triple(entityType, entityId, "Source"), Triple(targetType, assoc.targetId, "Target")).forEach { (type, id, side) ->
+            val rootVal = type.simpleName.asVariable()
+            val rootPath = if (id.embedded) "$rootVal$side.${id.name.asVariable()}" else rootVal + side
+            when (id.nullable) {
+                true -> {
+                    id.properties.forEach { idProp ->
+                        val propName = "$rootVal$side${idProp.valName.capitalize()}"
+                        func.addStatement("\t$rootPath.${idProp.valName}?.let { v -> this[$tableName.$propName] = v }")
+                    }
+                }
+                false -> {
+                    id.properties.forEach { idProp ->
+                        val propName = "$rootVal$side${idProp.valName.capitalize()}"
+                        func.addStatement("\tthis[$tableName.$propName] = $rootPath.${idProp.valName}")
+                    }
+                }
             }
         }
 

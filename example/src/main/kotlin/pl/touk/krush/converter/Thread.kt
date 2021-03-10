@@ -1,7 +1,8 @@
 package pl.touk.krush.converter
 
+import pl.touk.krush.common.IdNotPersistedDelegate
+import pl.touk.krush.common.RefId
 import javax.persistence.*
-import kotlin.reflect.KProperty
 
 @Entity
 data class Thread(
@@ -55,16 +56,6 @@ data class Author(
         val name: String,
         val surname: String
 )
-
-abstract class RefId<T : Comparable<T>> : Comparable<RefId<T>> {
-    abstract val value: T
-
-    override fun compareTo(other: RefId<T>) = value.compareTo(other.value)
-}
-
-class IdNotPersistedDelegate<T> {
-    operator fun getValue(thisRef: Any?, property: KProperty<*>): Nothing = throw IllegalStateException("Id not persisted yet")
-}
 
 class AuthorConverter : AttributeConverter<Author, String> {
 

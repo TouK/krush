@@ -5,27 +5,23 @@ import pl.touk.krush.validation.MissingIdException
 import javax.lang.model.element.Name
 import javax.lang.model.element.TypeElement
 import javax.persistence.Column
+import javax.persistence.JoinColumn
 import javax.persistence.Table
 
 data class EntityDefinition(
-        val name: Name,
-        val qualifiedName: Name,
-        val table: String,
-        val id: IdDefinition? = null,
-        val properties: List<PropertyDefinition> = emptyList(),
-        val associations: List<AssociationDefinition> = emptyList(),
-        val embeddables: List<EmbeddableDefinition> = emptyList()
+    val name: Name,
+    val qualifiedName: Name,
+    val table: String,
+    val id: IdDefinition? = null,
+    val properties: List<PropertyDefinition> = emptyList(),
+    val associations: List<AssociationDefinition> = emptyList(),
+    val embeddables: List<EmbeddableDefinition> = emptyList()
 ) {
     fun addProperty(column: PropertyDefinition) = this.copy(properties = this.properties + column)
 
     fun addAssociation(association: AssociationDefinition) = this.copy(associations = this.associations + association)
 
     fun addEmbeddable(embeddable: EmbeddableDefinition) = this.copy(embeddables = this.embeddables + embeddable)
-
-    fun getPropertyAndIdNames() : List<Name> {
-        val props = properties.map(PropertyDefinition::name)
-        id?.let { id -> return listOf(id.name) + props } ?: return props
-    }
 
     fun getPropertyNames() = properties.map(PropertyDefinition::name)
 
@@ -42,36 +38,57 @@ data class EntityDefinition(
 }
 
 data class IdDefinition (
-        val name: Name,
-        val columnName: Name,
-        val annotation: Column?,
-        val type: Type,
-        val generatedValue: Boolean = false,
-        val converter: ConverterDefinition? = null,
-        val nullable: Boolean
-)
+    val name: Name,
+    val type: Type,
+    // for composite id
+    val qualifiedName: Name? = null,
+    // for non-composite id just single property
+    val properties: List<PropertyDefinition> = emptyList(),
+    val generatedValue: Boolean = false,
+    val nullable: Boolean,
+    val embedded: Boolean = false
+) {
+
+    fun propName(prop: PropertyDefinition): String {
+        return if (embedded) {
+            val idTypeName = type.simpleName.decapitalize()
+            "$idTypeName${prop.name.asVariable().capitalize()}"
+        } else name.asVariable()
+    }
+
+    val propsAsArgs: String get() = this.properties.map { this.propName(it) }.joinToString(", ")
+}
 
 data class AssociationDefinition(
-        val name: Name,
-        val target: TypeElement,
-        val mapped: Boolean = true,
-        val mappedBy: String? = null,
-        val joinColumn: String? = null,
-        val joinTable: String? = null,
-        val nullable: Boolean = false,
-        val type: AssociationType,
-        val targetId: IdDefinition
-)
+    val name: Name,
+    val target: TypeElement,
+    val mapped: Boolean = true,
+    val mappedBy: String? = null,
+    val joinColumns: List<JoinColumn> = emptyList(),
+    val joinTable: String? = null,
+    val nullable: Boolean = false,
+    val type: AssociationType,
+    val targetId: IdDefinition
+) {
+    val targetTable: String get() = "${target.simpleName}Table"
+
+    fun targetIdPropName(targetIdProp: PropertyDefinition) =
+        "${name.asVariable()}${targetIdProp.valName.capitalize()}"
+
+    fun defaultIdPropName() = targetIdPropName(targetId.properties[0])
+}
 
 data class PropertyDefinition(
-        val name: Name,
-        val columnName: Name,
-        val annotation: Column?,
-        val type: Type,
-        val nullable: Boolean,
-        val converter: ConverterDefinition? = null,
-        val enumerated: EnumeratedDefinition? = null
+    val name: Name,
+    val columnName: Name,
+    val column: Column?,
+    val type: Type,
+    val nullable: Boolean,
+    val converter: ConverterDefinition? = null,
+    val enumerated: EnumeratedDefinition? = null
 ) {
+    val valName: String get() = name.asVariable()
+
     fun hasConverter(): Boolean {
         return converter != null
     }
@@ -82,12 +99,12 @@ data class PropertyDefinition(
 }
 
 data class ConverterDefinition(
-        val name: String,
-        val targetType: Type
+    val name: String,
+    val targetType: Type
 )
 
 data class EnumeratedDefinition(
-        val enumType: EnumType
+    val enumType: EnumType
 )
 
 enum class EnumType {
@@ -95,16 +112,16 @@ enum class EnumType {
 }
 
 data class Type(
-        val packageName: String,
-        val simpleName: String,
-        val aliasOf: Type? = null
+    val packageName: String,
+    val simpleName: String,
+    val aliasOf: Type? = null
 )
 
 data class EmbeddableDefinition(
-        val propertyName: Name,
-        val qualifiedName: Name,
-        val nullable: Boolean,
-        val properties: List<PropertyDefinition> = emptyList()
+    val propertyName: Name,
+    val qualifiedName: Name,
+    val nullable: Boolean,
+    val properties: List<PropertyDefinition> = emptyList()
 ) {
     fun getPropertyNames() = properties.map(PropertyDefinition::name)
 }

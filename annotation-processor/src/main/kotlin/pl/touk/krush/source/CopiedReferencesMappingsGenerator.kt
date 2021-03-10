@@ -36,20 +36,26 @@ class CopiedReferencesMappingsGenerator : MappingsGenerator() {
             }
         }
 
+        val rootIdVal = "${rootVal}Id"
         func.addStatement("this.forEach { resultRow ->")
-        func.addStatement("\tval $rootValId = resultRow.getOrNull(${entity.name}Table.${entityId.name}) ?: return@forEach")
-        func.addStatement("\tval $rootVal = roots[$rootValId] ?: resultRow.to${entity.name}()")
-        func.addStatement("\troots[$rootValId] = $rootVal")
+        addIdStatement(entity, entityId, rootIdVal, func)
+        func.addStatement("\tif ($rootIdVal == null) return@forEach")
+        func.addStatement("\tval $rootVal = roots[$rootIdVal] ?: resultRow.to${entity.name}()")
+        func.addStatement("\troots[$rootIdVal] = $rootVal")
+
         associations.forEach { assoc ->
             val target = graphs[assoc.target.packageName]?.get(assoc.target) ?: throw EntityNotMappedException(assoc.target)
             val targetVal = target.name.asVariable()
             val collName = "${assoc.name}_$rootVal"
-            val associationMapName = "${entity.name.asVariable()}_${assoc.name}"
+            val assocMapName = "${entity.name.asVariable()}_${assoc.name}"
 
             when (assoc.type) {
                 ONE_TO_MANY, MANY_TO_MANY -> {
                     val isSelfReferential = assoc.target == entityType
-                    func.addStatement("\tresultRow.getOrNull(${target.idColumn})?.let {")
+
+                    val targetIdVal = "${targetVal}TargetId"
+                    addIdStatement(target, assoc.targetId, targetIdVal, func)
+                    func.addStatement("\t$targetIdVal?.let {")
                     func.addStatement("\t\tval $collName = ${assoc.name}_map.filter { $targetVal -> $targetVal.key == it }")
 
                     val otherSide = target.associations.find { it.target == entityType }
@@ -61,7 +67,7 @@ class CopiedReferencesMappingsGenerator : MappingsGenerator() {
                     }
 
                     func.addStatement("\t\t\t.values.toMutableSet()")
-                    func.addStatement("\t\t$associationMapName[$rootValId]?.addAll($collName) ?: $associationMapName.put($rootValId, $collName)")
+                    func.addStatement("\t\t$assocMapName[$rootIdVal]?.addAll($collName) ?: $assocMapName.put($rootIdVal, $collName)")
                     func.addStatement("\t}")
                 }
 
@@ -70,15 +76,15 @@ class CopiedReferencesMappingsGenerator : MappingsGenerator() {
                     if (!assoc.mapped) {
                         func.addStatement("\tresultRow.getOrNull(${target.idColumn})?.let {")
                         func.addStatement("\t\t${assoc.name}_map.get(it)?.let {")
-                        func.addStatement("\t\t\t$associationMapName[$rootValId] = it")
+                        func.addStatement("\t\t\t$assocMapName[$rootIdVal] = it")
                         func.addStatement("\t\t}")
                         func.addStatement("\t}")
                     } else if (assoc.nullable) {
-                        func.addStatement("\tval $assocVar = resultRow[${entity.name}Table.${assoc.name}]?.let { resultRow.to${target.name}() }")
-                        func.addStatement("\t$assocVar?.let { $associationMapName[${rootValId}] = it }")
+                        func.addStatement("\tval $assocVar = resultRow[${entity.name}Table.${assoc.defaultIdPropName()}]?.let { resultRow.to${target.name}() }")
+                        func.addStatement("\t$assocVar?.let { $assocMapName[${rootIdVal}] = it }")
                     } else {
                         func.addStatement("\tval $assocVar = resultRow.to${target.name}()")
-                        func.addStatement("\t$associationMapName[${rootValId}] = $assocVar")
+                        func.addStatement("\t$assocMapName[${rootIdVal}] = $assocVar")
                     }
                 }
 

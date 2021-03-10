@@ -1,5 +1,6 @@
 package pl.touk.krush.model
 
+import joinColumns
 import pl.touk.krush.env.AnnotationEnvironment
 import pl.touk.krush.env.TypeEnvironment
 import pl.touk.krush.env.enclosingTypeElement
@@ -13,7 +14,6 @@ class OneToManyPostProcessor(override val typeEnv: TypeEnvironment, private val 
     override fun process(graphs: EntityGraphs) {
         for (oneToMany in annEnv.oneToMany) {
             val entityType = oneToMany.enclosingTypeElement()
-            val joinColumnAnn = oneToMany.getAnnotation(JoinColumn::class.java) ?: continue
             val targetType = oneToMany.asType().getTypeArgument().asElement().toTypeElement()
 
             val graph = graphs[targetType.packageName] ?: throw EntityNotMappedException(targetType)
@@ -25,7 +25,7 @@ class OneToManyPostProcessor(override val typeEnv: TypeEnvironment, private val 
                     val parentEntityId = graphs.entityId(entityType)
                     val associationDef = AssociationDefinition(
                             name = entityType.simpleName.decapitalize(), type = AssociationType.MANY_TO_ONE,
-                            target = entityType, joinColumn = joinColumnAnn.name, mapped = false, targetId = parentEntityId
+                            target = entityType, joinColumns = oneToMany.joinColumns(), mapped = false, targetId = parentEntityId
                     )
                     entity.addAssociation(associationDef)
                 }

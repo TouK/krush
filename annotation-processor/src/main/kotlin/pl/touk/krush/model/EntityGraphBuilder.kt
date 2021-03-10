@@ -14,12 +14,12 @@ class EntityGraphBuilder(
 ) {
 
     private val processors = listOf(
-            ColumnProcessor(typeEnv, annEnv),
-            OneToOneProcessor(typeEnv, annEnv),
-            OneToManyProcessor(typeEnv, annEnv),
-            ManyToOneProcessor(typeEnv, annEnv),
-            ManyToManyProcessor(typeEnv, annEnv),
-            OneToManyPostProcessor(typeEnv, annEnv)
+        ColumnProcessor(typeEnv, annEnv),
+        OneToOneProcessor(typeEnv, annEnv),
+        OneToManyProcessor(typeEnv, annEnv),
+        ManyToOneProcessor(typeEnv, annEnv),
+        ManyToManyProcessor(typeEnv, annEnv),
+        OneToManyPostProcessor(typeEnv, annEnv)
     )
 
     fun build(): EntityGraphs {

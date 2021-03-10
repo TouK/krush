@@ -33,7 +33,7 @@ class CookingTest : BaseDatabaseTest() {
                     table = MealPlanTable,
                     otherTable = RecipeTable,
                     joinType = JoinType.LEFT,
-                    onColumn = MealPlanTable.recipe,
+                    onColumn = MealPlanTable.recipeId,
                     otherColumn = RecipeTable.id
             ).join(
                     otherTable = RecipeIngredientsTable,

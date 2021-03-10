@@ -1,17 +1,8 @@
 package pl.touk.krush.many2many
 
-import pl.touk.krush.converter.IdNotPersistedDelegate
-import pl.touk.krush.converter.RefId
-import javax.persistence.AttributeConverter
-import javax.persistence.Column
-import javax.persistence.Convert
-import javax.persistence.Entity
-import javax.persistence.GeneratedValue
-import javax.persistence.Id
-import javax.persistence.JoinTable
-import javax.persistence.ManyToMany
-import javax.persistence.Table
-import kotlin.reflect.KProperty
+import pl.touk.krush.common.IdNotPersistedDelegate
+import pl.touk.krush.common.RefId
+import javax.persistence.*
 
 @Entity
 @Table(name = "students")
@@ -83,15 +74,4 @@ class CourseIdConverter : AttributeConverter<CourseId, Long> {
     override fun convertToEntityAttribute(dbData: Long): CourseId {
         return CourseId.Persisted(dbData)
     }
-}
-
-
-abstract class RefId<T : Comparable<T>> : Comparable<RefId<T>> {
-    abstract val value: T
-
-    override fun compareTo(other: RefId<T>) = value.compareTo(other.value)
-}
-
-class IdNotPersistedDelegate<T> {
-    operator fun getValue(thisRef: Any?, property: KProperty<*>): Nothing = throw IllegalStateException("Id not persisted yet")
 }

@@ -52,6 +52,8 @@ class EntityIdValidator : Validator<EntityDefinition> {
     override fun validate(el: EntityDefinition): ValidationResult {
         if (el.id == null) {
             return Error(ValidationErrorMessage("No id field specified for entity ${el.qualifiedName}"))
+        } else if (el.id.nullable && !el.id.generatedValue) {
+            return Error(ValidationErrorMessage("Nullable id field without @GeneratedValue specified for entity ${el.qualifiedName}"))
         }
 
         return Success
@@ -62,18 +64,19 @@ class EntityIdValidator : Validator<EntityDefinition> {
 class EntityIdTypeValidator : Validator<EntityDefinition> {
 
     private val supportedIdTypes = listOf(
-            Type("kotlin", "String"),
-            Type("kotlin", "Long"),
-            Type("kotlin", "Int"),
-            Type("kotlin", "Short"),
-            Type("java.util", "UUID")
+        Type("kotlin", "String"),
+        Type("kotlin", "Long"),
+        Type("kotlin", "Int"),
+        Type("kotlin", "Short"),
+        Type("java.util", "UUID")
     )
 
     override fun validate(el: EntityDefinition): ValidationResult {
-        if (el.id!!.converter == null && el.id.type !in supportedIdTypes) {
-            return Error(ValidationErrorMessage("Entity ${el.qualifiedName} id type ${el.id.type} is unsupported. Use property converter instead."))
+        el.id!!.properties.forEach { prop ->
+            if (prop.converter == null && prop.type !in supportedIdTypes) {
+                return Error(ValidationErrorMessage("Entity ${el.qualifiedName} id type ${prop.type} is unsupported. Use property converter instead."))
+            }
         }
-
         return Success
     }
 }
@@ -81,25 +84,27 @@ class EntityIdTypeValidator : Validator<EntityDefinition> {
 class EntityPropertyTypeValidator : Validator<EntityDefinition> {
 
     private val supportedPropertyTypes = listOf(
-            Type("kotlin", "String"),
-            Type("kotlin", "Long"),
-            Type("kotlin", "Boolean"),
-            Type("java.util", "UUID"),
-            Type("kotlin", "Int"),
-            Type("kotlin", "Short"),
-            Type("kotlin", "Float"),
-            Type("kotlin", "Double"),
-            Type("java.math", "BigDecimal"),
-            Type("java.time", "LocalDate"),
-            Type("java.time", "LocalDateTime"),
-            Type("java.time", "Instant"),
-            Type("java.time", "ZonedDateTime")
+        Type("kotlin", "String"),
+        Type("kotlin", "Long"),
+        Type("kotlin", "Boolean"),
+        Type("java.util", "UUID"),
+        Type("kotlin", "Int"),
+        Type("kotlin", "Short"),
+        Type("kotlin", "Float"),
+        Type("kotlin", "Double"),
+        Type("java.math", "BigDecimal"),
+        Type("java.time", "LocalDate"),
+        Type("java.time", "LocalDateTime"),
+        Type("java.time", "Instant"),
+        Type("java.time", "ZonedDateTime")
     )
 
     override fun validate(el: EntityDefinition): ValidationResult {
         val errors = mutableListOf<ValidationErrorMessage>()
-        el.properties.filter { !it.hasConverter() && !it.isEnumerated() && it.type !in supportedPropertyTypes && it.type.aliasOf !in supportedPropertyTypes }.forEach {
-            errors.add(ValidationErrorMessage("Entity ${el.qualifiedName} has unsupported property type ${it.type}"))
+        el.properties
+            .filter { !it.hasConverter() && !it.isEnumerated() && it.type !in supportedPropertyTypes && it.type.aliasOf !in supportedPropertyTypes }
+            .forEach {
+                errors.add(ValidationErrorMessage("Entity ${el.qualifiedName} has unsupported property type ${it.type}"))
         }
 
         return if (errors.isEmpty()) Success else Error(errors)

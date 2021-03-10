@@ -26,7 +26,7 @@ class TreeTest : BaseDatabaseTest() {
 
             // then
             val (trees) = (TreeTable leftJoin BranchTable leftJoin LeafTable)
-                    .select { BranchTable.tree eq tree.id }
+                    .select { BranchTable.treeId eq tree.id }
                     .toTreeList()
 
             // then

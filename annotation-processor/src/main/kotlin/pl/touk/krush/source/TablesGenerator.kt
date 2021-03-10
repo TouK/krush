@@ -36,35 +36,34 @@ class TablesGenerator : SourceGenerator {
         }
 
         graph.traverse { entityType, entity ->
-            val rootVal = entity.name.asVariable()
-
             val tableSpec = TypeSpec.objectBuilder("${entity.name}Table")
                     .superclass(Table::class)
                     .addSuperclassConstructorParameter(CodeBlock.of("%S", entity.table))
 
             entity.id?.let { id ->
-                val name = id.name
-                val typeName = ClassName(id.type.packageName, id.type.simpleName)
+                id.properties.forEach { prop ->
+                    val typeName = ClassName(prop.type.packageName, prop.type.simpleName)
 
-                val type = Column::class.asTypeName().parameterizedBy(typeName)
-                val idSpec = PropertySpec.builder(name.asVariable(), type)
-                val builder = CodeBlock.builder()
-                val initializer = idInitializer(id, entity)
-                builder.add(initializer)
+                    val type = Column::class.asTypeName().parameterizedBy(typeName)
+                    val idSpec = PropertySpec.builder(id.propName(prop), type)
+                    val builder = CodeBlock.builder()
+                    val initializer = idInitializer(id, prop, entity)
+                    builder.add(initializer)
 
-                idSpec.initializer(builder.build())
-                tableSpec.addProperty(idSpec.build())
+                    idSpec.initializer(builder.build())
+                    tableSpec.addProperty(idSpec.build())
+
+                    if (prop.converter != null) {
+                        val converterName: String = converterFuncName(entityName = entity.name, propertyName = id.name)
+                        converterFunc(converterName, typeName, prop.converter, fileSpec)
+                    }
+                }
 
                 val pkType = PrimaryKey::class.asTypeName()
                 val pkSpec = PropertySpec.builder("primaryKey", pkType, KModifier.OVERRIDE)
                 val pkInitializer = primaryKeyInitializer(id)
                 pkSpec.initializer(pkInitializer)
                 tableSpec.addProperty(pkSpec.build())
-
-                if (id.converter != null) {
-                    val converterName: String = converterFuncName(entityName = entity.name, propertyName = id.name)
-                    converterFunc(converterName, typeName, id.converter, fileSpec)
-                }
 
             } ?: throw MissingIdException(entity)
 
@@ -79,63 +78,72 @@ class TablesGenerator : SourceGenerator {
             }
 
             entity.getAssociations(AssociationType.MANY_TO_ONE).forEach { assoc ->
-                val name = assoc.name.toString()
-
-                val columnType = assoc.targetId.type.asUnderlyingClassName()
-                CodeBlock.builder()
-                val initializer = associationInitializer(assoc, name)
-                tableSpec.addProperty(
-                        PropertySpec.builder(name, Column::class.asClassName().parameterizedBy(columnType.copy(nullable = true)))
-                                .initializer(initializer)
-                                .build()
-                )
+                addAssociationProperty(assoc, tableSpec)
             }
 
-            entity.getAssociations(AssociationType.ONE_TO_ONE).filter {it.mapped}.forEach {assoc ->
-                val name = assoc.name.toString()
-
-                val columnType = assoc.targetId.type.asUnderlyingClassName()
-                CodeBlock.builder()
-                val initializer = associationInitializer(assoc, name)
-                tableSpec.addProperty(
-                        PropertySpec.builder(name, Column::class.asClassName().parameterizedBy(columnType.copy(nullable = true)))
-                                .initializer(initializer)
-                                .build()
-                )
+            entity.getAssociations(AssociationType.ONE_TO_ONE).filter { it.mapped }.forEach { assoc ->
+                addAssociationProperty(assoc, tableSpec)
             }
 
             fileSpec.addType(tableSpec.build())
 
             entity.getAssociations(AssociationType.MANY_TO_MANY).forEach { assoc ->
-                val targetVal = assoc.target.simpleName.asVariable()
-                val manyToManyTableName = "${entity.name}${assoc.name.asObject()}Table"
-                val manyToManyTableSpec = TypeSpec.objectBuilder(manyToManyTableName)
-                        .superclass(Table::class)
-                        .addSuperclassConstructorParameter(CodeBlock.of("%S", assoc.joinTable))
-
-                val sourceType = entity.id.type.asUnderlyingClassName()
-                manyToManyTableSpec.addProperty(
-                        PropertySpec.builder("${rootVal}SourceId", Column::class.asClassName().parameterizedBy(sourceType))
-                                .initializer(manyToManyPropertyInitializer(entity.id, entity, "_source"))
-                                .build()
-                )
-
-                val targetIdType = assoc.targetId.type.asUnderlyingClassName()
-                val targetEntityDef = graphs.entity(assoc.target.packageName, assoc.target) ?:
-                    throw AssociationTargetEntityNotFoundException(assoc.target)
-                manyToManyTableSpec.addProperty(
-                        PropertySpec.builder("${targetVal}TargetId", Column::class.asClassName().parameterizedBy(targetIdType))
-                                .initializer(manyToManyPropertyInitializer(assoc.targetId, targetEntityDef, "_target"))
-                                .build()
-                )
-
-                fileSpec.addType(manyToManyTableSpec.build())
+                val targetEntity =
+                    graphs.entity(assoc.target.packageName, assoc.target) ?: throw AssociationTargetEntityNotFoundException(assoc.target)
+                addManyToManyAssociationTable(assoc, entity, entity.id, targetEntity, fileSpec)
             }
 
-            insertFunc(entityType = entityType, entity = entity, fileSpec = fileSpec)
+            addInsertFunc(entityType, entity, fileSpec)
         }
 
         return fileSpec.build()
+    }
+
+    private fun addAssociationProperty(assoc: AssociationDefinition, tableSpec: TypeSpec.Builder) {
+        assoc.targetId.properties.forEach { targetIdProp ->
+            val name = assoc.targetIdPropName(targetIdProp)
+            val columnType = targetIdProp.type.asUnderlyingClassName()
+            CodeBlock.builder()
+            val initializer = associationInitializer(assoc, targetIdProp, name)
+            tableSpec.addProperty(
+                PropertySpec.builder(name, Column::class.asClassName().parameterizedBy(columnType.copy(nullable = true)))
+                    .initializer(initializer)
+                    .build()
+            )
+        }
+    }
+
+    private fun addManyToManyAssociationTable(
+        assoc: AssociationDefinition, entity: EntityDefinition, id: IdDefinition, targetEntity: EntityDefinition, fileSpec: FileSpec.Builder
+    ) {
+        val manyToManyTableName = "${entity.name}${assoc.name.asObject()}Table"
+        val manyToManyTableSpec = TypeSpec.objectBuilder(manyToManyTableName)
+            .superclass(Table::class)
+            .addSuperclassConstructorParameter(CodeBlock.of("%S", assoc.joinTable))
+
+        id.properties.forEach { sourceIdProp ->
+            val sourceType = sourceIdProp.type.asUnderlyingClassName()
+            val rootVal = entity.name.asVariable()
+            val propName = "${rootVal}Source${sourceIdProp.valName.capitalize()}"
+            manyToManyTableSpec.addProperty(
+                PropertySpec.builder(propName, Column::class.asClassName().parameterizedBy(sourceType))
+                    .initializer(manyToManyPropertyInitializer(id, sourceIdProp, entity, "_source"))
+                    .build()
+            )
+        }
+
+        assoc.targetId.properties.forEach { targetIdProp ->
+            val targetIdType = targetIdProp.type.asUnderlyingClassName()
+            val rootVal = targetEntity.name.asVariable()
+            val propName = "${rootVal}Target${targetIdProp.valName.capitalize()}"
+            manyToManyTableSpec.addProperty(
+                PropertySpec.builder(propName, Column::class.asClassName().parameterizedBy(targetIdType))
+                    .initializer(manyToManyPropertyInitializer(assoc.targetId, targetIdProp, targetEntity, "_target"))
+                    .build()
+            )
+        }
+
+        fileSpec.addType(manyToManyTableSpec.build())
     }
 
     private fun addEmbeddedTableProperty(embeddable: EmbeddableDefinition, column: PropertyDefinition, entity: EntityDefinition, tableSpec: TypeSpec.Builder, fileSpec: FileSpec.Builder, typeEnvironment: TypeEnvironment) {
@@ -160,7 +168,7 @@ class TablesGenerator : SourceGenerator {
         }
     }
 
-    private fun insertFunc(entityType: TypeElement, entity: EntityDefinition, fileSpec: FileSpec.Builder) {
+    private fun addInsertFunc(entityType: TypeElement, entity: EntityDefinition, fileSpec: FileSpec.Builder) {
         val entityName = entity.name.asVariable()
         val isGenerated = entity.id?.generatedValue ?: false
         val persistedName = if (isGenerated) "persisted${entityName.capitalize()}" else entityName
@@ -223,18 +231,18 @@ class TablesGenerator : SourceGenerator {
         fileSpec.addFunction(converterSpec)
     }
 
-    private fun idInitializer(id: IdDefinition, entity: EntityDefinition) : CodeBlock {
+    private fun idInitializer(id: IdDefinition, prop: PropertyDefinition, entity: EntityDefinition) : CodeBlock {
         val codeBlockBuilder = CodeBlock.builder()
 
-        val codeBlock = if (id.converter != null) {
-            converterPropInitializer(entityName = entity.name, propertyName = id.name, columnName = id.columnName.asVariable())
-        } else when (id.asUnderlyingTypeName()) {
-            STRING -> CodeBlock.of("varchar(%S, %L)", id.columnName, id.annotation?.length ?: 255)
-            LONG -> CodeBlock.of("long(%S)", id.columnName)
-            INT -> CodeBlock.of("integer(%S)", id.columnName)
-            UUID -> CodeBlock.of("uuid(%S)", id.columnName)
-            SHORT -> CodeBlock.of("short(%S)", id.columnName)
-            else -> throw IdTypeNotSupportedException(id.type)
+        val codeBlock = if (prop.converter != null) {
+            converterPropInitializer(entityName = entity.name, propertyName = prop.name, columnName = prop.columnName.asVariable())
+        } else when (prop.asUnderlyingTypeName()) {
+            STRING -> CodeBlock.of("varchar(%S, %L)", prop.columnName, prop.column?.length ?: 255)
+            LONG -> CodeBlock.of("long(%S)", prop.columnName)
+            INT -> CodeBlock.of("integer(%S)", prop.columnName)
+            UUID -> CodeBlock.of("uuid(%S)", prop.columnName)
+            SHORT -> CodeBlock.of("short(%S)", prop.columnName)
+            else -> throw IdTypeNotSupportedException(prop.type)
         }
 
         codeBlockBuilder.add(codeBlock)
@@ -246,10 +254,9 @@ class TablesGenerator : SourceGenerator {
         return codeBlockBuilder.build()
     }
 
-
     private fun primaryKeyInitializer(id: IdDefinition): CodeBlock {
         val codeBlockBuilder = CodeBlock.builder()
-        codeBlockBuilder.add("PrimaryKey(" + id.name + ")")
+        codeBlockBuilder.add("PrimaryKey(" + id.properties.joinToString(", ") { id.propName(it) } + ")")
         return codeBlockBuilder.build()
     }
 
@@ -280,7 +287,7 @@ class TablesGenerator : SourceGenerator {
 
         return when (property.enumerated!!.enumType) {
             EnumType.STRING -> {
-                val size: Any? = property.annotation?.length ?: 255
+                val size: Int = property.column?.length ?: 255
                 CodeBlock.of("enumerationByName(%S, %L, %L)", columnName, size, "$enumType::class")
             }
             EnumType.ORDINAL -> CodeBlock.of("enumeration(%S, %L)", columnName, "$enumType::class")
@@ -289,7 +296,7 @@ class TablesGenerator : SourceGenerator {
 
     private fun typePropInitializer(property: PropertyDefinition): CodeBlock {
         return when (property.asUnderlyingTypeName()) {
-            STRING -> CodeBlock.of("varchar(%S, %L)", property.columnName, property.annotation?.length ?: 255)
+            STRING -> CodeBlock.of("varchar(%S, %L)", property.columnName, property.column?.length ?: 255)
             LONG -> CodeBlock.of("long(%S)", property.columnName)
             BOOLEAN -> CodeBlock.of("bool(%S)", property.columnName)
             UUID -> CodeBlock.of("uuid(%S)", property.columnName)
@@ -298,8 +305,8 @@ class TablesGenerator : SourceGenerator {
             FLOAT -> CodeBlock.of("float(%S)", property.columnName)
             DOUBLE -> CodeBlock.of("double(%S)", property.columnName)
             BIG_DECIMAL -> {
-                val precision = property.annotation?.precision ?: 0
-                val scale = property.annotation?.scale ?: 0
+                val precision = property.column?.precision ?: 0
+                val scale = property.column?.scale ?: 0
                 CodeBlock.of("decimal(%S, %L, %L)", property.columnName, precision, scale)
             }
             LOCAL_DATE -> CodeBlock.of("date(%S)", property.columnName)
@@ -310,35 +317,38 @@ class TablesGenerator : SourceGenerator {
         }
     }
 
-    private fun associationInitializer(association: AssociationDefinition, idName: String) : CodeBlock {
-        val columnName = association.joinColumn ?: "${idName}_${association.targetId.name.asVariable()}"
-        val targetTable = "${association.target.simpleName}Table"
-        val idCodeBlock = idCodeBlock(association.targetId, association.target.simpleName, columnName)
+    private fun associationInitializer(assoc: AssociationDefinition, idProp: PropertyDefinition, idName: String) : CodeBlock {
+        val columnName = assoc.joinColumns.find { it.name == idProp.columnName.toString() }?.name
+            ?: "${idName}_${assoc.targetId.name.asVariable()}"
+        val idCodeBlock = idCodeBlock(idProp, assoc.target.simpleName, columnName)
 
         return CodeBlock.builder().add(idCodeBlock)
-                .add(".references(%L).nullable()", "$targetTable.${association.targetId.name.asVariable()}")
+            .add(".references(%L).nullable()", "${assoc.targetTable}.${assoc.targetId.propName(idProp)}")
+            .build()
+    }
+
+    private fun manyToManyPropertyInitializer(
+        id: IdDefinition, idProp: PropertyDefinition, entity: EntityDefinition, differentiatior: String
+    ) : CodeBlock {
+        val targetTable = entity.tableName
+        val columnName = id.propName(idProp) + differentiatior + "_id"
+        val idCodeBlock = idCodeBlock(idProp, entity.name, columnName)
+
+        return CodeBlock.builder().add(idCodeBlock)
+                .add(".references(%L)", "$targetTable.${id.propName(idProp)}")
                 .build()
     }
 
-    private fun manyToManyPropertyInitializer(id: IdDefinition, entity: EntityDefinition, differentiatior: String) : CodeBlock {
-        val columnName = entity.name.asVariable() + differentiatior + "_id"
-        val idCodeBlock = idCodeBlock(id, entity.name, columnName)
-
-        return CodeBlock.builder().add(idCodeBlock)
-                .add(".references(%L)", "${entity.tableName}.id")
-                .build()
-    }
-
-    private fun idCodeBlock(id: IdDefinition, entityName: Name, columnName: String): CodeBlock {
-        return if (id.converter != null) {
-            converterPropInitializer(entityName = entityName, propertyName = id.name, columnName = columnName)
-        } else when (id.asUnderlyingTypeName()) {
-            STRING -> CodeBlock.of("varchar(%S, %L)", columnName, id.annotation?.length ?: 255)
+    private fun idCodeBlock(prop: PropertyDefinition, entityName: Name, columnName: String): CodeBlock {
+        return if (prop.converter != null) {
+            converterPropInitializer(entityName = entityName, propertyName = prop.name, columnName = columnName)
+        } else when (prop.asUnderlyingTypeName()) {
+            STRING -> CodeBlock.of("varchar(%S, %L)", columnName, prop.column?.length ?: 255)
             LONG -> CodeBlock.of("long(%S)", columnName)
             INT -> CodeBlock.of("integer(%S)", columnName)
             UUID -> CodeBlock.of("uuid(%S)", columnName)
             SHORT -> CodeBlock.of("short(%S)", columnName)
-            else -> throw IdTypeNotSupportedException(id.type)
+            else -> throw IdTypeNotSupportedException(prop.type)
         }
     }
 }
