@@ -26,7 +26,7 @@ data class ResultRecord(
     val recordId: RecordId,
 
     @ManyToOne
-    @JoinColumn(name = "SUMMARY_ID")
+    @JoinColumn(name = "RUN_ID")
     val summary: RunSummary
 
 )

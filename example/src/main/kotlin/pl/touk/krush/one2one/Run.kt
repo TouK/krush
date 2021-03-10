@@ -6,16 +6,17 @@ import javax.persistence.*
 @Table(name = "RUNS")
 data class Run(
 
-    @Id @GeneratedValue
-    var id: Long? = null,
-
+    @Id
+    @Column(name = "RUN_ID")
+    var runId: String
 )
 
 @Entity
 @Table(name = "UR_RESULTS_SUMMARY")
 data class RunSummary(
-    @Id @GeneratedValue
-    var id: Long? = null,
+    @Id
+    @Column(name = "RUN_ID")
+    var runId: String,
 
     @OneToOne
     @JoinColumn(name = "RUN_ID")
