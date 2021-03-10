@@ -101,9 +101,7 @@ abstract class MappingsGenerator : SourceGenerator {
                 if (!assoc.nullable) {
                     "\t${assoc.name} = this.to${assoc.target.simpleName}()"
                 } else {
-                    // TODO check all props
-                    val targetIdProp = assoc.targetId.properties[0]
-                    "\t${assoc.name} = this[${entity.tableName}.${assoc.targetIdPropName(targetIdProp)}]?.let { this.to${assoc.target.simpleName}() }"
+                    "\t${assoc.name} = this[${entity.tableName}.${assoc.defaultIdPropName()}]?.let { this.to${assoc.target.simpleName}() }"
                 }
             }
 
@@ -151,7 +149,7 @@ abstract class MappingsGenerator : SourceGenerator {
             }
             val condition = id.properties.filterNot(PropertyDefinition::nullable).map { property ->
                 "\t${id.propName(property)} != null"
-            }.joinToString(" &&\n")
+            }.joinToString(" &&\n").takeIf { it.isNotBlank() } ?: "false"
             func.addStatement("\tval $idVal = if (\n$condition\n\t) ${id.qualifiedName}(${id.propsAsArgs}) else null")
         } else {
             func.addStatement("\tval $idVal = resultRow.getOrNull(${entity.tableName}.${id.name})")

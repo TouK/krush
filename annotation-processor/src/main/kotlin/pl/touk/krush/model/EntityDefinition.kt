@@ -70,6 +70,8 @@ data class AssociationDefinition(
     val type: AssociationType,
     val targetId: IdDefinition
 ) {
+    val targetTable: String get() = "${target.simpleName}Table"
+
     fun targetIdPropName(targetIdProp: PropertyDefinition) =
         "${name.asVariable()}${targetIdProp.valName.capitalize()}"
 

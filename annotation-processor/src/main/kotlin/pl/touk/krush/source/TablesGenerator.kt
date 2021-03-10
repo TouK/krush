@@ -127,7 +127,7 @@ class TablesGenerator : SourceGenerator {
             val propName = "${rootVal}Source${sourceIdProp.valName.capitalize()}"
             manyToManyTableSpec.addProperty(
                 PropertySpec.builder(propName, Column::class.asClassName().parameterizedBy(sourceType))
-                    .initializer(manyToManyPropertyInitializer(assoc, id, sourceIdProp, entity, "_source"))
+                    .initializer(manyToManyPropertyInitializer(id, sourceIdProp, entity, "_source"))
                     .build()
             )
         }
@@ -138,7 +138,7 @@ class TablesGenerator : SourceGenerator {
             val propName = "${rootVal}Target${targetIdProp.valName.capitalize()}"
             manyToManyTableSpec.addProperty(
                 PropertySpec.builder(propName, Column::class.asClassName().parameterizedBy(targetIdType))
-                    .initializer(manyToManyPropertyInitializer(assoc, assoc.targetId, targetIdProp, targetEntity, "_target"))
+                    .initializer(manyToManyPropertyInitializer(assoc.targetId, targetIdProp, targetEntity, "_target"))
                     .build()
             )
         }
@@ -318,19 +318,17 @@ class TablesGenerator : SourceGenerator {
     }
 
     private fun associationInitializer(assoc: AssociationDefinition, idProp: PropertyDefinition, idName: String) : CodeBlock {
-        val targetTable = "${assoc.target.simpleName}Table"
-
         val columnName = assoc.joinColumns.find { it.name == idProp.columnName.toString() }?.name
             ?: "${idName}_${assoc.targetId.name.asVariable()}"
         val idCodeBlock = idCodeBlock(idProp, assoc.target.simpleName, columnName)
 
         return CodeBlock.builder().add(idCodeBlock)
-            .add(".references(%L).nullable()", "$targetTable.${assoc.targetId.propName(idProp)}")
+            .add(".references(%L).nullable()", "${assoc.targetTable}.${assoc.targetId.propName(idProp)}")
             .build()
     }
 
     private fun manyToManyPropertyInitializer(
-        assoc: AssociationDefinition, id: IdDefinition, idProp: PropertyDefinition, entity: EntityDefinition, differentiatior: String
+        id: IdDefinition, idProp: PropertyDefinition, entity: EntityDefinition, differentiatior: String
     ) : CodeBlock {
         val targetTable = entity.tableName
         val columnName = id.propName(idProp) + differentiatior + "_id"

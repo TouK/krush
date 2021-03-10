@@ -39,7 +39,7 @@ class CopiedReferencesMappingsGenerator : MappingsGenerator() {
         val rootIdVal = "${rootVal}Id"
         func.addStatement("this.forEach { resultRow ->")
         addIdStatement(entity, entityId, rootIdVal, func)
-        func.addStatement("if ($rootIdVal == null) return@forEach")
+        func.addStatement("\tif ($rootIdVal == null) return@forEach")
         func.addStatement("\tval $rootVal = roots[$rootIdVal] ?: resultRow.to${entity.name}()")
         func.addStatement("\troots[$rootIdVal] = $rootVal")
 
