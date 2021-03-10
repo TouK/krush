@@ -15,19 +15,20 @@ class ArticleTest : BaseDatabaseTest() {
             SchemaUtils.create(ArticleTable, TagTable, ArticleTagsTable)
 
             // given
-            val tag1 = Tag(name = "jvm")
-            val tag2 = Tag(name = "spring")
+            val tagJvm = Tag(name = "jvm")
+            val tagSpring = Tag(name = "spring")
+            val tagTutorial = Tag(name = "tutorial")
 
-            val tags = listOf(tag1, tag2).map(TagTable::insert)
+            val tags = listOf(tagJvm, tagSpring, tagTutorial).map(TagTable::insert)
             val article = ArticleTable.insert(Article(title = "Spring for dummies", tags = tags))
 
             // when
-            val (selectedArticle) = (ArticleTable leftJoin ArticleTagsTable leftJoin TagTable)
-                    .select { TagTable.name inList listOf("jvm", "spring") }
+            val selectedArticles = (ArticleTable leftJoin ArticleTagsTable leftJoin TagTable)
+                    .select { ArticleTable.title like "Spring%" }
                     .toArticleList()
 
             // then
-            assertThat(selectedArticle).isEqualTo(article)
+            assertThat(selectedArticles).containsOnly(article)
         }
     }
 }

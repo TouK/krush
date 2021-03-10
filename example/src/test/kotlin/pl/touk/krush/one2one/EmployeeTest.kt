@@ -2,7 +2,6 @@ package pl.touk.krush.one2one
 
 import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -17,21 +16,17 @@ class EmployeeTest : BaseDatabaseTest() {
             SchemaUtils.create(EmployeeInfoTable, EmployeeTable, ParkingSpotTable)
 
             // given
-            val employee = Employee().let { employee ->
-                val id = EmployeeTable.insert {}[EmployeeTable.id]
-                employee.copy(id = id)
-            }
-
+            val employee = EmployeeTable.insert(Employee())
             val employeeInfo = EmployeeInfoTable.insert(EmployeeInfo(login = "admin", employee = employee))
 
-            //when
+            // when
             val employees = (EmployeeTable leftJoin EmployeeInfoTable)
                     .select { EmployeeInfoTable.login.regexp("[a-z]{5}") }
                     .toEmployeeList()
 
             val fullEmployee = employee.copy(employeeInfo = employeeInfo)
 
-            //then
+            //t hen
             assertThat(employees).containsOnly(fullEmployee)
         }
     }
@@ -42,22 +37,15 @@ class EmployeeTest : BaseDatabaseTest() {
             SchemaUtils.create(EmployeeInfoTable, EmployeeTable, ParkingSpotTable)
 
             // given
-            val employee = Employee().let { employee ->
-                val id = EmployeeTable.insert {}[EmployeeTable.id]
-                employee.copy(id = id)
-            }
+            val employee = EmployeeTable.insert(Employee())
+            val employeeInfo = EmployeeInfoTable.insert(EmployeeInfo(login = "admin", employee = employee))
+            val parkingSpot = ParkingSpotTable.insert(ParkingSpot(code = "C12345", employeeInfo = employeeInfo))
 
-            val employeeInfo = EmployeeInfo(login = "admin", employee = employee)
-                    .let { employeeInfo -> EmployeeInfoTable.insert(employeeInfo) }
-
-            val parkingSpot = ParkingSpot(code = "C12345", employeeInfo = employeeInfo)
-                    .let(ParkingSpotTable::insert)
-
-            //when
+            // when
             val employees = (EmployeeTable leftJoin EmployeeInfoTable leftJoin ParkingSpotTable).selectAll().toEmployeeList()
             val fullEmployee = employee.copy(employeeInfo = employeeInfo.copy(parkingSpot = parkingSpot))
 
-            //then
+            // then
             assertThat(employees).containsOnly(fullEmployee)
         }
     }
