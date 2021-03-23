@@ -1,6 +1,8 @@
 package pl.touk.krush.model
 
+import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
+import com.squareup.kotlinpoet.metadata.specs.toTypeSpec
 import com.squareup.kotlinpoet.metadata.toImmutableKmClass
 import mappingOverrides
 import pl.touk.krush.env.AnnotationEnvironment
@@ -122,11 +124,14 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
         val converterType = columnElt.annotationMirror(Convert::class.java.canonicalName)?.valueType("converter")
 
         return converterType?.let {
-            val databaseType = converterType.toTypeElement().toImmutableKmClass().functions
-                    .find { it.name == AttributeConverter<*, *>::convertToDatabaseColumn.name }
-                    ?.returnType?.toModelType() ?: throw ConverterTypeNotFoundException(converterType)
+            val spec = converterType.toTypeSpec()
+            val targetType = converterType.toTypeElement().toImmutableKmClass().functions
+                .find { it.name == AttributeConverter<*, *>::convertToDatabaseColumn.name }
+                ?.returnType?.toModelType() ?: throw ConverterTypeNotFoundException(converterType)
 
-            return ConverterDefinition(name = converterType.qualifiedName.asVariable(), targetType = databaseType)
+            return ConverterDefinition(
+                name = converterType.qualifiedName.asVariable(), targetType = targetType, isObject = spec.kind == TypeSpec.Kind.OBJECT
+            )
         }
     }
 

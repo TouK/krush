@@ -1,5 +1,8 @@
 package pl.touk.krush.env
 
+import com.squareup.kotlinpoet.metadata.ImmutableKmClass
+import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
+import com.squareup.kotlinpoet.metadata.toImmutableKmClass
 import javax.annotation.processing.ProcessingEnvironment
 import javax.annotation.processing.RoundEnvironment
 import javax.lang.model.element.Element
@@ -48,6 +51,7 @@ fun Element.toTypeElement(): TypeElement {
     return this
 }
 
+@KotlinPoetMetadataPreview
 class EnvironmentBuilder(private val roundEnv: RoundEnvironment, private val processingEnv: ProcessingEnvironment) {
 
     fun buildAnnotationEnv(): AnnotationEnvironment {
@@ -74,8 +78,14 @@ class EnvironmentBuilder(private val roundEnv: RoundEnvironment, private val pro
             element.enclosingElement.getAnnotation(Entity::class.java) != null &&
             element.getAnnotation(Transient::class.java) == null && element.getAnnotation(Embedded::class.java) == null
 
-    private fun toEmbeddedElements(embeddable: Element) = (embeddable.asType() as DeclaredType).asElement().enclosedElements
-            .filter(this::isEmbedded).map(Element::toVariableElement)
+    private fun toEmbeddedElements(embeddable: Element): List<VariableElement> {
+        val enclosingKmClass = embeddable.toTypeElement().toImmutableKmClass()
+        val propertyNames = enclosingKmClass.properties.map { it.name }
+        return (embeddable.asType() as DeclaredType).asElement().enclosedElements
+            .filter { propertyNames.contains(it.simpleName.toString()) }
+            .filter(this::isEmbedded)
+            .map(Element::toVariableElement)
+    }
 
     private fun isEmbedded(element: Element) = element.kind == ElementKind.FIELD &&
             element.enclosingElement.getAnnotation(Embeddable::class.java) != null &&

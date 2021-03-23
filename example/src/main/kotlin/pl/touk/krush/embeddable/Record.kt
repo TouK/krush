@@ -13,7 +13,11 @@ data class RecordId(
 
     @Column(name = "TYPE")
     val type: String
-)
+) {
+    companion object {
+        fun from(id: String, type: String) = RecordId(id, type)
+    }
+}
 
 @Entity
 data class Record(

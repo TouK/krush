@@ -103,7 +103,8 @@ data class PropertyDefinition(
 
 data class ConverterDefinition(
     val name: String,
-    val targetType: Type
+    val targetType: Type,
+    val isObject: Boolean = false
 )
 
 data class EnumeratedDefinition(

@@ -495,12 +495,16 @@ interface EntityGraphSampleData {
                     Type(
                         packageName = "pl.touk.example",
                         simpleName = "StringMap",
-                        aliasOf = Type("kotlin.collections","Map")),
-                    false)
-                    .copy(converter = ConverterDefinition(
+                        aliasOf = Type("kotlin.collections","Map")
+                    ),
+                    false
+                ).copy(converter =
+                    ConverterDefinition(
                         name = "pl.touk.example.StringMapConverter",
-                        targetType = Type(packageName = "kotlin", simpleName = "String"
-                        ))),
+                        targetType = Type(packageName = "kotlin", simpleName = "String"),
+                        isObject = false
+                    )
+                ),
                 propertyDefinition(
                     typeEnvironment,
                     plainString,
@@ -508,8 +512,12 @@ interface EntityGraphSampleData {
                     Type(
                         packageName = "pl.touk.example",
                         simpleName = "PlainString",
-                        aliasOf = Type("kotlin", "String")),
-                    false)))
+                        aliasOf = Type("kotlin", "String")
+                    ),
+                    false
+                )
+            )
+        )
     }
 
     private fun autoGenIdDefinition(id: VariableElement, name: Name): IdDefinition {
