@@ -213,20 +213,21 @@ class TablesGenerator : SourceGenerator {
         }
     }
 
-    private fun converterFunc(name: String, type: TypeName, it: ConverterDefinition, fileSpec: FileSpec.Builder) {
-        val wrapperName = when (it.targetType.asUnderlyingClassName()) {
+    private fun converterFunc(name: String, type: TypeName, converter: ConverterDefinition, fileSpec: FileSpec.Builder) {
+        val wrapperName = when (converter.targetType.asUnderlyingClassName()) {
             STRING -> "stringWrapper"
             LONG -> "longWrapper"
             INSTANT -> "instantWrapper"
             BOOLEAN -> "booleanWrapper"
-            else -> throw TypeConverterNotSupportedException(it.targetType)
+            else -> throw TypeConverterNotSupportedException(converter.targetType)
         }
+        val init = if (!converter.isObject) "()" else ""
 
         val converterSpec = FunSpec.builder(name)
                 .addParameter("columnName", String::class)
                 .receiver(Table::class.java)
                 .returns(Column::class.asClassName().parameterizedBy(type))
-                .addStatement("return %L<%T>(columnName, { %L().convertToEntityAttribute(it) }, { %L().convertToDatabaseColumn(it) })", wrapperName, type, it.name, it.name)
+                .addStatement("return %L<%T>(columnName, { %L$init.convertToEntityAttribute(it) }, { %L$init.convertToDatabaseColumn(it) })", wrapperName, type, converter.name, converter.name)
                 .build()
         fileSpec.addFunction(converterSpec)
     }
@@ -376,10 +377,6 @@ fun Type.asUnderlyingClassName(): ClassName {
     }else{
         ClassName(this.packageName, this.simpleName)
     }
-}
-
-fun IdDefinition.asTypeName(): TypeName {
-    return this.type.asClassName()
 }
 
 fun PropertyDefinition.asTypeName(): TypeName {
