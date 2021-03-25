@@ -13,6 +13,7 @@ import pl.touk.krush.meta.toClassName
 import pl.touk.krush.validation.EntityNotMappedException
 import pl.touk.krush.validation.MissingIdException
 import javax.lang.model.element.TypeElement
+import kotlin.reflect.KClass
 
 @KotlinPoetMetadataPreview
 abstract class MappingsGenerator : SourceGenerator {
@@ -164,7 +165,7 @@ abstract class MappingsGenerator : SourceGenerator {
         val tableName = entity.tableName
 
         val func = FunSpec.builder("from")
-                .receiver(UpdateBuilder::class.parameterizedBy(Any::class))
+                .receiver(UpdateBuilder::class.asClassName().parameterizedBy(STAR))
                 .addParameter(param, entityType.toImmutableKmClass().toClassName())
 
         entityAssocParams(entity).forEach { func.addParameter(it) }
@@ -235,7 +236,7 @@ abstract class MappingsGenerator : SourceGenerator {
         val entityId = entity.id ?: throw EntityNotMappedException(entityType)
 
         val func = FunSpec.builder("from")
-                .receiver(UpdateBuilder::class.parameterizedBy(Any::class))
+                .receiver(UpdateBuilder::class.asClassName().parameterizedBy(STAR))
                 .addParameter(sourceParam, entityType.toImmutableKmClass().toClassName())
                 .addParameter(targetParam, targetType.toImmutableKmClass().toClassName())
 
