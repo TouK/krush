@@ -77,7 +77,7 @@ class TablesGenerator : SourceGenerator {
                 }
             }
 
-            entity.getAssociations(AssociationType.MANY_TO_ONE).forEach { assoc ->
+            entity.getAssociations(AssociationType.MANY_TO_ONE).filter { it.sharedId == null }.forEach { assoc ->
                 addAssociationProperty(assoc, tableSpec)
             }
 
@@ -243,7 +243,13 @@ class TablesGenerator : SourceGenerator {
             INT -> CodeBlock.of("integer(%S)", prop.columnName)
             UUID -> CodeBlock.of("uuid(%S)", prop.columnName)
             SHORT -> CodeBlock.of("short(%S)", prop.columnName)
-            else -> throw IdTypeNotSupportedException(prop.type)
+            else -> {
+                if (prop.isEnumerated()) {
+                    enumPropInitializer(prop)
+                } else {
+                    throw IdTypeNotSupportedException(prop.type)
+                }
+            }
         }
 
         codeBlockBuilder.add(codeBlock)

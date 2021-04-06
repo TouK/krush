@@ -1,11 +1,10 @@
-package pl.touk.krush.one2one
+package pl.touk.krush.result
 
 import javax.persistence.*
 
 @Entity
 @Table(name = "RUNS")
 data class Run(
-
     @Id
     @Column(name = "RUN_ID")
     var runId: String
@@ -20,8 +19,5 @@ data class RunSummary(
 
     @OneToOne
     @JoinColumn(name = "RUN_ID")
-    val run: Run,
-
-    @OneToMany(mappedBy = "summary")
-    val records: List<ResultRecord>
+    val run: Run
 )
