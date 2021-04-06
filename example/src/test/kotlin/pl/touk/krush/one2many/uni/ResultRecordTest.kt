@@ -1,14 +1,16 @@
 package pl.touk.krush.one2many.uni
 
-import org.assertj.core.api.Assertions
+import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.tuple
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.   sql.transactions.transaction
+import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.Test
+import pl.touk.krush.base.BaseDatabaseTest
 import pl.touk.krush.result.*
 import java.util.*
 
-class ResultRecordTest {
+class ResultRecordTest : BaseDatabaseTest() {
 
     @Test
     fun shouldHandleManyToOneWithSharedKey() {
@@ -28,8 +30,8 @@ class ResultRecordTest {
 
             val results = (RunSummaryTable leftJoin RunTable leftJoin ResultRecordTable)
                 .selectAll().toResultRecordList()
-            Assertions.assertThat(results).hasSize(2)
-                .extracting(ResultRecord::summary).containsOnly(Assertions.tuple(summary))
+            assertThat(results).hasSize(2)
+                .extracting(ResultRecord::summary).containsOnly(tuple(summary))
 
         }
     }
