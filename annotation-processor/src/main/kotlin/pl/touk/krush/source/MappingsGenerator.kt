@@ -13,7 +13,6 @@ import pl.touk.krush.meta.toClassName
 import pl.touk.krush.validation.EntityNotMappedException
 import pl.touk.krush.validation.MissingIdException
 import javax.lang.model.element.TypeElement
-import kotlin.reflect.KClass
 
 @KotlinPoetMetadataPreview
 abstract class MappingsGenerator : SourceGenerator {
@@ -195,8 +194,9 @@ abstract class MappingsGenerator : SourceGenerator {
             }
         }
 
-        val assocToProcess = entity.getAssociations(MANY_TO_ONE) +
-                    entity.getAssociations(ONE_TO_ONE).filter { it.mapped && it.sharedId == null }
+        val assocToProcess =
+            (entity.getAssociations(MANY_TO_ONE) + entity.getAssociations(ONE_TO_ONE).filter { it.mapped })
+            .filter { it.sharedId == null }
 
         val assocMappings = assocToProcess.flatMap { assoc ->
             val name = assoc.name

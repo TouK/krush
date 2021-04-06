@@ -7,6 +7,7 @@ import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.Test
 import pl.touk.krush.base.BaseDatabaseTest
+import pl.touk.krush.result.*
 import java.util.*
 
 class RunSummaryTest : BaseDatabaseTest() {
@@ -17,35 +18,14 @@ class RunSummaryTest : BaseDatabaseTest() {
             SchemaUtils.create(RunTable, RunSummaryTable, ResultRecordTable)
 
             val runId = UUID.randomUUID().toString()
-            val run = Run(runId = runId)
-            val summary = RunSummary(runId = runId, run = run, records = emptyList()).let {
-                it.copy(
-                    records = listOf(
-                        ResultRecord(recordId = RecordId("id1", RecordType.CALL), summary = it),
-                        ResultRecord(recordId = RecordId("id2", RecordType.CALL), summary = it)
-                    )
-                )
-            }
+            val run = Run(runId = runId).let(RunTable::insert)
+            RunSummary(runId = runId, run = run).let(RunSummaryTable::insert)
 
-            val savedRun = run.let(RunTable::insert)
-            val savedSummary = RunSummaryTable.insert(summary.copy(run = savedRun))
-            summary.records.forEach { record ->
-                ResultRecordTable.insert(record.copy(summary = savedSummary))
-            }
-
-            val results = (RunSummaryTable leftJoin RunTable leftJoin ResultRecordTable)
+            val results = (RunSummaryTable leftJoin RunTable)
                 .selectAll().toRunSummaryList()
 
             assertThat(results).hasSize(1)
-                .extracting(RunSummary::run).containsExactly(tuple(savedRun))
-            assertThat(results)
-                .flatExtracting("records")
-                .extracting("recordId")
-                .containsExactly(
-                    RecordId("id1", RecordType.CALL),
-                    RecordId("id2", RecordType.CALL)
-                )
-
+                .extracting(RunSummary::run).containsExactly(tuple(run))
         }
     }
 }

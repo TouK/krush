@@ -1,4 +1,4 @@
-package pl.touk.krush.one2one
+package pl.touk.krush.result
 
 import javax.persistence.*
 
@@ -8,6 +8,9 @@ enum class RecordType {
 
 @Embeddable
 data class RecordId(
+    @Column(name = "RUN_ID")
+    val runId: String,
+
     @Column(name = "RECORD_ID")
     val id: String,
 
@@ -19,11 +22,8 @@ data class RecordId(
 @Entity
 @Table(name = "RESULTS_RECORDS")
 data class ResultRecord(
-    @Id @GeneratedValue
-    var id: Long? = null,
-
-    @Embedded
-    val recordId: RecordId,
+    @EmbeddedId
+    val id: RecordId,
 
     @ManyToOne
     @JoinColumn(name = "RUN_ID")

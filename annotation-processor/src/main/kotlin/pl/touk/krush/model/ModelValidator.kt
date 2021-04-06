@@ -73,7 +73,7 @@ class EntityIdTypeValidator : Validator<EntityDefinition> {
 
     override fun validate(el: EntityDefinition): ValidationResult {
         el.id!!.properties.forEach { prop ->
-            if (prop.converter == null && prop.type !in supportedIdTypes) {
+            if (prop.converter == null && !prop.isEnumerated() && prop.type !in supportedIdTypes) {
                 return Error(ValidationErrorMessage("Entity ${el.qualifiedName} id type ${prop.type} is unsupported. Use property converter instead."))
             }
         }

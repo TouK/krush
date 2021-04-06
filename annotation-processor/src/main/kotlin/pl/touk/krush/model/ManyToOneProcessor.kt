@@ -19,6 +19,10 @@ class ManyToOneProcessor(override val typeEnv: TypeEnvironment, private val annE
                 target = target, joinColumns = manyToOneElt.joinColumns(), targetId = parentEntityId,
                 nullable = manyToOneElt.isNullable()
             )
-            entity.addAssociation(associationDef)
+
+            entity.id?.let { id ->
+                val (enhancedId, enhancedAssoc) = id.handleSharedKey(associationDef)
+                entity.addAssociation(enhancedAssoc).copy(id = enhancedId)
+            } ?: entity.addAssociation(associationDef)
         }
 }
