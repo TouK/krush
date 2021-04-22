@@ -3,14 +3,25 @@ package pl.touk.krush.one2many.bidi
 import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.upperCase
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import pl.touk.krush.base.BaseDatabaseTest
 
 class CustomerTest : BaseDatabaseTest() {
+
+    @AfterEach
+    internal fun tearDown() {
+        transaction {
+            AddressTable.deleteAll()
+            PhoneTable.deleteAll()
+            CustomerTable.deleteAll()
+        }
+    }
 
     @Test
     fun shouldInsertAndSelectBidiOneToMany() {

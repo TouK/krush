@@ -29,6 +29,14 @@ class TablesGenerator : SourceGenerator {
                         "booleanWrapper"
                 )
 
+        val isJsonbUsed = graph.any { (_, entity) ->
+            entity.properties.any { it.column?.columnDefinition == "jsonb" }
+        }
+
+        if (isJsonbUsed) {
+            fileSpec.addImport("pl.touk.krush", "jsonb")
+        }
+
         graph.allAssociations().forEach { entity ->
             if (entity.packageName != packageName) {
                 fileSpec.addImport(entity.packageName, "${entity.simpleName}Table")
@@ -312,7 +320,10 @@ class TablesGenerator : SourceGenerator {
 
     private fun typePropInitializer(property: PropertyDefinition): CodeBlock {
         return when (property.asUnderlyingTypeName()) {
-            STRING -> CodeBlock.of("varchar(%S, %L)", property.columnName, property.column?.length ?: 255)
+            STRING -> when {
+                property.isJsonb() -> CodeBlock.of("jsonb(%S)", property.columnName)
+                else -> CodeBlock.of("varchar(%S, %L)", property.columnName, property.column?.length ?: 255)
+            }
             LONG -> CodeBlock.of("long(%S)", property.columnName)
             BOOLEAN -> CodeBlock.of("bool(%S)", property.columnName)
             UUID -> CodeBlock.of("uuid(%S)", property.columnName)

@@ -13,6 +13,7 @@ data class EmployeeId(
 )
 
 @Entity
+@Table(name = "many2one_employee")
 data class Employee(
     @EmbeddedId
     val employeeId: EmployeeId,
@@ -22,6 +23,7 @@ data class Employee(
 )
 
 @Entity
+@Table(name = "many2one_phone")
 data class Phone(
     @Id
     @Column(name = "phone_no")

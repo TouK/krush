@@ -11,6 +11,7 @@ import javax.persistence.Table
 import javax.persistence.Transient
 
 @Entity
+@Table(name = "one2many_uni_customers")
 data class Customer(
     @Id @GeneratedValue
     @Column(name = "customerId")
@@ -34,7 +35,7 @@ data class Customer(
 )
 
 @Entity
-@Table(name = "phones")
+@Table(name = "one2many_uni_phones")
 data class Phone(
     @Id @GeneratedValue
     val id: Int? = null,
@@ -44,7 +45,7 @@ data class Phone(
 )
 
 @Entity
-@Table(name = "addresses")
+@Table(name = "one2many_uni_adresses")
 data class Address(
     @Id
     val id: UUID,
