@@ -1,0 +1,7 @@
+apply plugin: 'kotlin'
+
+dependencies {
+    api project(":runtime")
+
+    implementation("org.postgresql:postgresql:42.2.18")
+}

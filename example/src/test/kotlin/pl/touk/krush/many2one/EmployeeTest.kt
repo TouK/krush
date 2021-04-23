@@ -1,19 +1,26 @@
 package pl.touk.krush.many2one
 
 import org.assertj.core.api.Assertions.assertThat
-import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import pl.touk.krush.base.BaseDatabaseTest
 
 class EmployeeTest : BaseDatabaseTest() {
 
+    @AfterEach
+    internal fun tearDown() {
+        transaction {
+            PhoneTable.deleteAll()
+            EmployeeTable.deleteAll()
+        }
+    }
+
     @Test
     fun shouldHandleManyToOneWithEmbeddedId() {
         transaction {
-            SchemaUtils.create(EmployeeTable, PhoneTable)
-
             // given
             val employeeId = EmployeeId(1L, 11L)
             val employee = EmployeeTable.insert(Employee(employeeId = employeeId))
@@ -33,8 +40,6 @@ class EmployeeTest : BaseDatabaseTest() {
     @Test
     fun shouldHandleOneToManyWithEmbeddedId() {
         transaction {
-            SchemaUtils.create(EmployeeTable, PhoneTable)
-
             // given
             val employeeId = EmployeeId(1L, 11L)
             val employee = EmployeeTable.insert(Employee(employeeId = employeeId))

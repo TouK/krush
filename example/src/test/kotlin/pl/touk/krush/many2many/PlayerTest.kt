@@ -1,7 +1,6 @@
 package pl.touk.krush.many2many
 
 import org.assertj.core.api.Assertions.assertThat
-import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.Test
@@ -12,8 +11,6 @@ class PlayerTest : BaseDatabaseTest() {
     @Test
     fun shouldHandleManyToManyWithEmbeddedId() {
         transaction {
-            SchemaUtils.create(PlayerTable, CharacterTable, PlayerCharactersTable)
-
             // given
             val colt = Character(id = CharacterId(1, 2), name = "Colt")
             val rico = Character(id = CharacterId(2, 3), name = "Rico")

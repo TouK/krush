@@ -99,6 +99,8 @@ data class PropertyDefinition(
     fun isEnumerated(): Boolean {
         return enumerated != null
     }
+
+    fun isJsonb() = column?.columnDefinition?.toLowerCase() == "jsonb"
 }
 
 data class ConverterDefinition(

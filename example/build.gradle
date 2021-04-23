@@ -6,12 +6,18 @@ dependencies {
     api 'org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.0.Final'
 
     api project(":runtime")
+    api project(":runtime-postgresql")
     api project(":annotation-processor")
     kapt project(":annotation-processor")
 
-    implementation("com.h2database:h2:1.4.199")
+    implementation("com.h2database:h2:1.4.200")
+    implementation("org.postgresql:postgresql:42.2.18")
+    implementation("org.flywaydb:flyway-core:7.8.1")
 
     testCompile'org.junit.jupiter:junit-jupiter:5.5.2'
+    testCompile 'org.testcontainers:testcontainers:1.15.3'
+    testCompile 'org.testcontainers:junit-jupiter:1.15.3'
+    testCompile 'org.testcontainers:postgresql:1.15.3'
     testCompile 'org.assertj:assertj-core:3.14.0'
     testRuntime 'ch.qos.logback:logback-classic:1.2.3'
 }

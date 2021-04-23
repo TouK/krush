@@ -1,9 +1,8 @@
 version: 2
 jobs:
   build:
-    docker:
-      - image: circleci/openjdk:11.0.3-jdk-stretch
-
+    machine:
+      image: ubuntu-1604:202007-01
     working_directory: ~/repo
 
     environment:
@@ -18,7 +17,15 @@ jobs:
             - v1-dependencies-{{ checksum "build.gradle" }}
             - v1-dependencies-
 
-      - run: gradle dependencies
+      - run:
+          name: Install OpenJDK 11
+          command: |
+            sudo apt-get update && sudo apt-get install openjdk-11-jdk
+            sudo update-alternatives --set java /usr/lib/jvm/java-11-openjdk-amd64/bin/java
+            sudo update-alternatives --set javac /usr/lib/jvm/java-11-openjdk-amd64/bin/javac
+            java -version
+
+      - run: ./gradlew dependencies
 
       - save_cache:
           paths:
@@ -27,11 +34,11 @@ jobs:
 
       - run:
           name: Test
-          command: gradle test
+          command: ./gradlew test
 
       - run:
           name: Build
-          command: gradle build
+          command: ./gradlew build
 
       - run:
           name: Sputnik
