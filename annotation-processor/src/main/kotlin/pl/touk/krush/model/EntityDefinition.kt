@@ -100,7 +100,7 @@ data class PropertyDefinition(
         return enumerated != null
     }
 
-    fun isJsonb() = column?.columnDefinition == "jsonb"
+    fun isJsonb() = column?.columnDefinition?.toLowerCase() == "jsonb"
 }
 
 data class ConverterDefinition(
