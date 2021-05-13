@@ -112,7 +112,7 @@ class TablesGenerator : SourceGenerator {
             val name = assoc.targetIdPropName(targetIdProp)
             val columnType = targetIdProp.type.asUnderlyingClassName()
             CodeBlock.builder()
-            val initializer = associationInitializer(assoc, targetIdProp, name)
+            val initializer = associationInitializer(assoc, targetIdProp)
             tableSpec.addProperty(
                 PropertySpec.builder(name, Column::class.asClassName().parameterizedBy(columnType.copy(nullable = true)))
                     .initializer(initializer)
@@ -344,9 +344,9 @@ class TablesGenerator : SourceGenerator {
         }
     }
 
-    private fun associationInitializer(assoc: AssociationDefinition, idProp: PropertyDefinition, idName: String) : CodeBlock {
+    private fun associationInitializer(assoc: AssociationDefinition, idProp: PropertyDefinition) : CodeBlock {
         val columnName = assoc.joinColumns.find { it.name == idProp.columnName.toString() }?.name
-            ?: "${idName}_${assoc.targetId.name.asVariable()}"
+            ?: "${assoc.name.asVariable()}_${assoc.targetId.name.asVariable()}"
         val idCodeBlock = idCodeBlock(idProp, assoc.target.simpleName, columnName)
 
         return CodeBlock.builder().add(idCodeBlock)
