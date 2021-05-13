@@ -355,10 +355,10 @@ class TablesGenerator : SourceGenerator {
     }
 
     private fun manyToManyPropertyInitializer(
-        id: IdDefinition, idProp: PropertyDefinition, entity: EntityDefinition, differentiatior: String
+        id: IdDefinition, idProp: PropertyDefinition, entity: EntityDefinition, differentiator: String
     ) : CodeBlock {
         val targetTable = entity.tableName
-        val columnName = id.propName(idProp) + differentiatior + "_id"
+        val columnName =  entity.name.asVariable() + differentiator + "_" + id.propName(idProp)
         val idCodeBlock = idCodeBlock(idProp, entity.name, columnName)
 
         return CodeBlock.builder().add(idCodeBlock)
