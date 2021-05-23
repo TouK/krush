@@ -34,9 +34,12 @@ abstract class MappingsGenerator : SourceGenerator {
         }
 
         graph.traverse { entityType, entity ->
+            // Functions for reading objects from the DB
             fileSpec.addFunction(buildToEntityFunc(entityType, entity))
             fileSpec.addFunction(buildToEntityListFunc(entityType, entity))
             fileSpec.addFunction(buildToEntityMapFunc(entityType, entity, graphs))
+
+            // Functions for inserting objects into the DB
             buildFromEntityFunc(entityType, entity)?.let { funSpec ->
                 fileSpec.addFunction(funSpec)
             }
@@ -54,20 +57,23 @@ abstract class MappingsGenerator : SourceGenerator {
                 .receiver(ResultRow::class.java)
                 .returns(entityClass)
 
-        val idMapping = entity.id?.let { id ->
-            if (id.embedded) {
-                val embeddableIdName = id.name.asVariable()
-                val embeddableIdMapping = id.properties.joinToString(", \n") { property ->
-                    val name = property.name
-                    "\t\t$name = this[${entity.tableName}.${id.propName(property)}]"
-                }
-                "\t$embeddableIdName = ${id.qualifiedName}(\n$embeddableIdMapping\n\t)"
-            } else {
-                "\t${id.name} = this[${entity.tableName}.${id.name}]"
-            }
-        }?.let { listOf(it) } ?: emptyList()
+        val id = entity.id!!
 
-        val propsMappings = entity.getPropertyNames().map { name ->
+        val idReadingCode = if (id.embedded) {
+            val embeddableIdMapping = id.properties.joinToString(", \n") { property ->
+                val name = property.name
+                "\t\t$name = this[${entity.tableName}.${id.propName(property)}]"
+            }
+            "${id.qualifiedName}(\n$embeddableIdMapping\n\t)"
+        } else {
+            "this[${entity.tableName}.${id.name}]"
+        }
+
+        func.addStatement("val ${id.name.asVariable()} = $idReadingCode")
+
+        val idMapping = listOf("\t${id.name} = ${id.name.asVariable()}")
+
+        val propertyMappings = entity.getPropertyNames().map { name ->
             "\t$name = this[${entity.tableName}.${name}]"
         }
 
@@ -110,7 +116,7 @@ abstract class MappingsGenerator : SourceGenerator {
         val listAssociationMapping = entity.getAssociations(ONE_TO_MANY, MANY_TO_MANY)
                 .map { "\t${it.name} = mutableListOf()" }
 
-        val mapping = (idMapping + propsMappings + embeddedMappings + associationsMappings + listAssociationMapping).joinToString(",\n")
+        val mapping = (idMapping + propertyMappings + embeddedMappings + associationsMappings + listAssociationMapping).joinToString(",\n")
 
         func.addStatement("return %T(\n$mapping\n)", entityClass)
 
