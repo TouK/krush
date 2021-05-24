@@ -25,7 +25,7 @@ abstract class MappingsGenerator : SourceGenerator {
         graph.allAssociations().forEach { entity ->
             if (entity.packageName != packageName) {
                 fileSpec.addImport(entity.packageName, "${entity.simpleName}", "${entity.simpleName}Table",
-                        "to${entity.simpleName}", "to${entity.simpleName}Map", "to${entity.simpleName}List")
+                        "to${entity.simpleName}", "to${entity.simpleName}Map", "to${entity.simpleName}List", "addInformationTo${entity.simpleName}")
             }
         }
 
@@ -114,15 +114,15 @@ abstract class MappingsGenerator : SourceGenerator {
         return func.build()
     }
 
-    private fun idReadingBlock(id: IdDefinition, tableName: String): String {
+    private fun idReadingBlock(id: IdDefinition, tableName: String, rowReference: String = "this"): String {
         return if (id.embedded) {
             val embeddableIdMapping = id.properties.joinToString(", \n") { property ->
                 val name = property.name
-                "\t\t$name = this[${tableName}.${id.propName(property)}]"
+                "\t\t$name = $rowReference[${tableName}.${id.propName(property)}]"
             }
             "${id.qualifiedName}(\n$embeddableIdMapping\n\t)"
         } else {
-            "this[${tableName}.${id.name}]"
+            "$rowReference[${tableName}.${id.name}]"
         }
     }
 
@@ -194,15 +194,33 @@ abstract class MappingsGenerator : SourceGenerator {
     private fun buildToEntityMapFunc(entityType: TypeElement, entity: EntityDefinition, graphs: EntityGraphs): FunSpec {
         val rootKey = entity.id?.asUnderlyingTypeName() ?: throw MissingIdException(entity)
 
-        val rootVal = entity.name.asVariable()
         val func = FunSpec.builder("to${entity.name}Map")
                 .receiver(Iterable::class.parameterizedBy(ResultRow::class))
                 .returns(ClassName("kotlin.collections", "MutableMap").parameterizedBy(rootKey, entityType.toImmutableKmClass().toClassName()))
 
-        val rootIdName = entity.id.name.asVariable()
-        val rootValId = "${rootVal}Id"
 
-        return buildToEntityMapFuncBody(entityType, entity, graphs, func, entity.id, rootKey, rootVal, rootIdName, rootValId)
+        val entityMapValName = "${entity.name.asVariable()}Map"
+        val entityIdValName = "${entity.name.asVariable()}Id"
+        val currentEntityValName = "current${entity.name.asObject()}"
+
+        func.apply {
+            addStatement("val $entityMapValName = mutableMapOf<${entity.id.asUnderlyingTypeName()}, ${entity.name}>()")
+
+            addStatement("this.forEach { row ->")
+
+            addStatement("\tval $entityIdValName = ${idReadingBlock(entity.id, entity.tableName, rowReference = "row")}")
+
+            addComment("Create this entity or expand on the sub-entity lists contained within")
+            addStatement("\tval $currentEntityValName = $entityMapValName[$entityIdValName] ?: row.to${entity.name}()")
+            addStatement("\trow.addInformationTo${entity.name}($currentEntityValName)")
+            addStatement("\t$entityMapValName[$entityIdValName] = $currentEntityValName")
+
+            addStatement("}")
+
+            addStatement("return $entityMapValName")
+        }
+
+        return func.build()
     }
 
     protected fun addIdStatement(entity: EntityDefinition, id: IdDefinition, idVal: String, func: FunSpec.Builder)  {
