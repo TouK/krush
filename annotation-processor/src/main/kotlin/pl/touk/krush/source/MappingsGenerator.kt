@@ -37,6 +37,7 @@ abstract class MappingsGenerator : SourceGenerator {
             // Functions for reading objects from the DB
             fileSpec.addFunction(buildToEntityFunc(entityType, entity))
             fileSpec.addFunction(buildToEntityListFunc(entityType, entity))
+            fileSpec.addFunction(buildAddInfoToEntityFunc(entityType, entity))
             fileSpec.addFunction(buildToEntityMapFunc(entityType, entity, graphs))
 
             // Functions for inserting objects into the DB
@@ -57,21 +58,11 @@ abstract class MappingsGenerator : SourceGenerator {
                 .receiver(ResultRow::class.java)
                 .returns(entityClass)
 
-        val id = entity.id!!
+        val idReadingCode = idReadingBlock(entity.id!!, entity.tableName)
 
-        val idReadingCode = if (id.embedded) {
-            val embeddableIdMapping = id.properties.joinToString(", \n") { property ->
-                val name = property.name
-                "\t\t$name = this[${entity.tableName}.${id.propName(property)}]"
-            }
-            "${id.qualifiedName}(\n$embeddableIdMapping\n\t)"
-        } else {
-            "this[${entity.tableName}.${id.name}]"
-        }
+        func.addStatement("val ${entity.id.name.asVariable()} = $idReadingCode")
 
-        func.addStatement("val ${id.name.asVariable()} = $idReadingCode")
-
-        val idMapping = listOf("\t${id.name} = ${id.name.asVariable()}")
+        val idMapping = listOf("\t${entity.id.name} = ${entity.id.name.asVariable()}")
 
         val propertyMappings = entity.getPropertyNames().map { name ->
             "\t$name = this[${entity.tableName}.${name}]"
@@ -123,12 +114,79 @@ abstract class MappingsGenerator : SourceGenerator {
         return func.build()
     }
 
+    private fun idReadingBlock(id: IdDefinition, tableName: String): String {
+        return if (id.embedded) {
+            val embeddableIdMapping = id.properties.joinToString(", \n") { property ->
+                val name = property.name
+                "\t\t$name = this[${tableName}.${id.propName(property)}]"
+            }
+            "${id.qualifiedName}(\n$embeddableIdMapping\n\t)"
+        } else {
+            "this[${tableName}.${id.name}]"
+        }
+    }
+
     private fun buildToEntityListFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
         val func = FunSpec.builder("to${entity.name}List")
                 .receiver(Iterable::class.parameterizedBy(ResultRow::class))
                 .returns(List::class.asClassName().parameterizedBy(entityType.toImmutableKmClass().toClassName()))
 
         func.addStatement("return this.to${entity.name}Map().values.toList()")
+
+        return func.build()
+    }
+
+    private fun buildAddInfoToEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
+        val entityParamName = entity.name.asVariable()
+
+        val func = FunSpec.builder("addInformationTo${entity.name}")
+            .receiver(ResultRow::class)
+            .addParameter(entityParamName, entityType.toImmutableKmClass().toClassName().copy(nullable = true))
+
+        func.addStatement("if($entityParamName == null) return")
+
+        // Recursively add info to every related O2O entity
+        entity.getAssociations(ONE_TO_ONE).forEach { oneToOneAssoc ->
+            func.addComment("Add sub-elements contained in this row to ${oneToOneAssoc.name}")
+            func.addStatement("addInformationTo${oneToOneAssoc.target.simpleName}($entityParamName.${oneToOneAssoc.name})")
+        }
+
+        // M2M and M2O relations are represented as lists. When such a list contains multiple entities, those entities
+        // are spread over multiple rows. Here, we figure out whether this row contains a new sub-entity in a list and
+        // add it to that list if necessary. Otherwise, we just recursively search each entity for sub-sub-entities that
+        // might be new in this row, etc.
+        entity.getAssociations(ONE_TO_MANY, MANY_TO_MANY).forEach { setAssoc ->
+
+            val attrValName = "${setAssoc.name.asVariable()}Attr"
+            val newEntityValName = "new${setAssoc.target.simpleName}"
+
+            val targetTypeName = "${setAssoc.target.simpleName}"
+
+            func.apply {
+                addStatement("val ${setAssoc.name.asVariable()}Id = ${idReadingBlock(setAssoc.targetId, setAssoc.targetTable)}")
+                addStatement("if(${setAssoc.name.asVariable()}Id != null) {")
+
+
+                addStatement("\tval $attrValName = $entityParamName.${setAssoc.name.asVariable()} as MutableList<$targetTypeName>")
+                addStatement("\tval ${attrValName}LastElement = $attrValName.lastOrNull()")
+
+                addStatement("\tif(${setAssoc.name.asVariable()}Id != ${attrValName}LastElement?.${setAssoc.targetId.name}) {")
+
+                addComment("\t\tIf the sub-entity is new, create a new object for it")
+                addStatement("\t\tval $newEntityValName = to$targetTypeName()")
+                addStatement("\t\taddInformationTo$targetTypeName($newEntityValName)")
+                addStatement("\t\t$attrValName.add($newEntityValName)")
+
+                addStatement("\t} else {")
+
+                addComment("\t\tIf we already have an entity with this ID, check if there's a new sub-sub-entity in it")
+                addStatement("\t\taddInformationTo$targetTypeName(${attrValName}LastElement)")
+
+                addStatement("\t}")
+
+                addStatement("}")
+            }
+        }
 
         return func.build()
     }
