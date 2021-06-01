@@ -1,6 +1,6 @@
 buildscript {
     repositories {
-        jcenter()
+        mavenCentral()
     }
 
     dependencies {
@@ -27,7 +27,7 @@ scmVersion {
 
 allprojects {
     repositories {
-        jcenter()
+        mavenCentral()
     }
 }
 
