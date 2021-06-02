@@ -130,23 +130,25 @@ class TablesGenerator : SourceGenerator {
             .addSuperclassConstructorParameter(CodeBlock.of("%S", assoc.joinTable))
 
         id.properties.forEach { sourceIdProp ->
+            val (prefix, differentiator) = if (assoc.isSelfReferential) "Source" to "_source" else "" to ""
             val sourceType = sourceIdProp.type.asUnderlyingClassName()
             val rootVal = entity.name.asVariable()
-            val propName = "${rootVal}Source${sourceIdProp.valName.capitalize()}"
+            val propName = "${rootVal}${prefix}${sourceIdProp.valName.capitalize()}"
             manyToManyTableSpec.addProperty(
                 PropertySpec.builder(propName, Column::class.asClassName().parameterizedBy(sourceType))
-                    .initializer(manyToManyPropertyInitializer(id, sourceIdProp, entity, "_source"))
+                    .initializer(manyToManyPropertyInitializer(id, sourceIdProp, entity, differentiator))
                     .build()
             )
         }
 
         assoc.targetId.properties.forEach { targetIdProp ->
+            val (prefix, differentiator) = if (assoc.isSelfReferential) "Target" to "_target" else "" to ""
             val targetIdType = targetIdProp.type.asUnderlyingClassName()
             val rootVal = targetEntity.name.asVariable()
-            val propName = "${rootVal}Target${targetIdProp.valName.capitalize()}"
+            val propName = "${rootVal}${prefix}${targetIdProp.valName.capitalize()}"
             manyToManyTableSpec.addProperty(
                 PropertySpec.builder(propName, Column::class.asClassName().parameterizedBy(targetIdType))
-                    .initializer(manyToManyPropertyInitializer(assoc.targetId, targetIdProp, targetEntity, "_target"))
+                    .initializer(manyToManyPropertyInitializer(assoc.targetId, targetIdProp, targetEntity, differentiator))
                     .build()
             )
         }
@@ -355,10 +357,10 @@ class TablesGenerator : SourceGenerator {
     }
 
     private fun manyToManyPropertyInitializer(
-        id: IdDefinition, idProp: PropertyDefinition, entity: EntityDefinition, differentiatior: String
+        id: IdDefinition, idProp: PropertyDefinition, entity: EntityDefinition, differentiator: String
     ) : CodeBlock {
         val targetTable = entity.tableName
-        val columnName = id.propName(idProp) + differentiatior + "_id"
+        val columnName = entity.name.asVariable() + differentiator + "_" + idProp.columnName.toString()
         val idCodeBlock = idCodeBlock(idProp, entity.name, columnName)
 
         return CodeBlock.builder().add(idCodeBlock)

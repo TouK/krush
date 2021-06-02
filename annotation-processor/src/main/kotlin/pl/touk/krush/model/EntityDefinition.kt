@@ -9,8 +9,7 @@ import javax.persistence.JoinColumn
 import javax.persistence.Table
 
 data class EntityDefinition(
-    val name: Name,
-    val qualifiedName: Name,
+    val type: TypeElement,
     val table: String,
     val id: IdDefinition? = null,
     val properties: List<PropertyDefinition> = emptyList(),
@@ -32,6 +31,9 @@ data class EntityDefinition(
                || getAssociations(AssociationType.MANY_TO_MANY).isNotEmpty()
                || getAssociations(AssociationType.ONE_TO_ONE).any { it.mapped }
     }
+
+    val name: Name get() = type.simpleName
+    val qualifiedName: Name get() = type.qualifiedName
 
     val tableName: String get() = "${name}Table"
     val idColumn: String get() = id?.let { id -> "${tableName}.${id.name}" } ?: throw MissingIdException(this)
@@ -62,6 +64,7 @@ data class IdDefinition (
 
 data class AssociationDefinition(
     val name: Name,
+    val source: TypeElement,
     val target: TypeElement,
     val mapped: Boolean = true,
     val mappedBy: String? = null,
@@ -78,6 +81,8 @@ data class AssociationDefinition(
         "${name.asVariable()}${targetIdProp.valName.capitalize()}"
 
     fun defaultIdPropName() = targetIdPropName(targetId.properties[0])
+
+    val isSelfReferential get() = source == target
 }
 
 data class PropertyDefinition(

@@ -228,9 +228,10 @@ abstract class MappingsGenerator : SourceGenerator {
     }
 
     private fun buildFromManyToManyFunc(entityType: TypeElement, entity: EntityDefinition, assoc: AssociationDefinition): FunSpec {
-        val sourceParam = entity.name.asVariable() + "Source"
+        val (sourceSuffix, targetSuffix) = if (assoc.isSelfReferential) "Source" to "Target" else "" to ""
+        val sourceParam = entity.name.asVariable() + sourceSuffix
         val targetVal = assoc.target.simpleName.asVariable()
-        val targetParam = targetVal + "Target"
+        val targetParam = targetVal + targetSuffix
         val targetType = assoc.target
         val tableName = "${entity.name}${assoc.name.asObject()}Table"
         val entityId = entity.id ?: throw EntityNotMappedException(entityType)
@@ -240,7 +241,7 @@ abstract class MappingsGenerator : SourceGenerator {
                 .addParameter(sourceParam, entityType.toImmutableKmClass().toClassName())
                 .addParameter(targetParam, targetType.toImmutableKmClass().toClassName())
 
-        listOf(Triple(entityType, entityId, "Source"), Triple(targetType, assoc.targetId, "Target")).forEach { (type, id, side) ->
+        listOf(Triple(entityType, entityId, sourceSuffix), Triple(targetType, assoc.targetId, targetSuffix)).forEach { (type, id, side) ->
             val rootVal = type.simpleName.asVariable()
             val rootPath = if (id.embedded) "$rootVal$side.${id.name.asVariable()}" else rootVal + side
             when (id.nullable) {

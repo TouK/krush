@@ -1,6 +1,7 @@
 package pl.touk.krush.many2many
 
 import org.assertj.core.api.Assertions.assertThat
+import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.Test

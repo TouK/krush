@@ -16,7 +16,7 @@ class ManyToOneProcessor(override val typeEnv: TypeEnvironment, private val annE
             val parentEntityId = graphs.entityId(target)
             val associationDef = AssociationDefinition(
                 name = manyToOneElt.simpleName, type = AssociationType.MANY_TO_ONE,
-                target = target, joinColumns = manyToOneElt.joinColumns(), targetId = parentEntityId,
+                source = entity.type, target = target, joinColumns = manyToOneElt.joinColumns(), targetId = parentEntityId,
                 nullable = manyToOneElt.isNullable()
             )
 
