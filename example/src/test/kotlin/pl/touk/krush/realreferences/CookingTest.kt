@@ -39,11 +39,11 @@ class CookingTest : BaseDatabaseTest() {
                     otherTable = RecipeIngredientsTable,
                     joinType = JoinType.LEFT,
                     onColumn = RecipeTable.id,
-                    otherColumn = RecipeIngredientsTable.recipeSourceId
+                    otherColumn = RecipeIngredientsTable.recipeId
             ).join(
                     otherTable = IngredientTable,
                     joinType = JoinType.LEFT,
-                    onColumn = RecipeIngredientsTable.ingredientTargetId,
+                    onColumn = RecipeIngredientsTable.ingredientId,
                     otherColumn = IngredientTable.id
             ).selectAll().toMealPlanList().first()
 

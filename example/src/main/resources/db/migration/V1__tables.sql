@@ -24,11 +24,11 @@ CREATE TABLE IF NOT EXISTS "character" (
 );
 
 CREATE TABLE IF NOT EXISTS player_characters (
-    id_source_id BIGINT NOT NULL,
-    "characterIdId_target_id" BIGINT NOT NULL,
-    "characterIdSeason_target_id" INT NOT NULL,
-    CONSTRAINT fk_player_characters_player FOREIGN KEY (id_source_id) REFERENCES player(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
-    CONSTRAINT fk_player_characters_character FOREIGN KEY ("characterIdId_target_id", "characterIdSeason_target_id")
+    player_id BIGINT NOT NULL,
+    character_id BIGINT NOT NULL,
+    character_season INT NOT NULL,
+    CONSTRAINT fk_player_characters_player FOREIGN KEY (player_id) REFERENCES player(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_player_characters_character FOREIGN KEY (character_id, character_season)
         REFERENCES "character"(id, season) ON DELETE RESTRICT ON UPDATE RESTRICT
 );
 

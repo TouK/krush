@@ -42,9 +42,7 @@ class EntityGraphBuilder(
         val graphs = EntityGraphs()
         for (entityElt in entityList) {
             val graph = graphs.getOrDefault(entityElt.packageName, EntityGraph())
-            graph[entityElt] = EntityDefinition(
-                    name = entityElt.simpleName, qualifiedName = entityElt.qualifiedName, table = entityElt.tableName
-            )
+            graph[entityElt] = EntityDefinition(type = entityElt, table = entityElt.tableName)
             graphs[entityElt.packageName] = graph
         }
         return graphs
