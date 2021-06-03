@@ -54,13 +54,32 @@ abstract class MappingsGenerator : SourceGenerator {
 
     private fun buildToEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
         val entityClass = entityType.toImmutableKmClass().toClassName()
+
+        val entityCacheType = ClassName("kotlin.collections", "MutableMap")
+            .parameterizedBy(
+                String::class.asClassName(),
+                ClassName("kotlin.collections", "MutableMap").parameterizedBy(ANY, ANY)
+            )
+
         val func = FunSpec.builder("to${entity.name}")
                 .receiver(ResultRow::class.java)
+                .addParameter(
+                    ParameterSpec.builder("entityCache", entityCacheType)
+                        .defaultValue("mutableMapOf()")
+                        .build()
+                )
                 .returns(entityClass)
 
         val idReadingCode = idReadingBlock(entity.id!!, entity.tableName)
 
         func.addStatement("val ${entity.id.name.asVariable()} = $idReadingCode")
+
+        func.apply {
+            addStatement("val cacheMap = entityCache[\"${entityType.simpleName}\"] ?: mutableMapOf<Any, Any>()")
+            addStatement("if(cacheMap[${entity.id.name.asVariable()}] != null) {")
+            addStatement("\treturn cacheMap[${entity.id.name.asVariable()}] as ${entityType.simpleName}")
+            addStatement("}")
+        }
 
         val idMapping = listOf("\t${entity.id.name} = ${entity.id.name.asVariable()}")
 
@@ -92,13 +111,41 @@ abstract class MappingsGenerator : SourceGenerator {
             }
         }
 
-        val associationsMappings = entity.getAssociations(MANY_TO_ONE, ONE_TO_ONE)
+        val manyToOneAssociationsMappings = entity.getAssociations(MANY_TO_ONE)
             .filter { assoc -> assoc.mapped }
             .map { assoc ->
-                if (!assoc.nullable) {
-                    "\t${assoc.name} = this.to${assoc.target.simpleName}()"
+                if(!assoc.mapped) {
+                    "\t${assoc.name} = this.getOrNull(${assoc.targetTable}.${assoc.targetId.name})?.let { this.to${assoc.target.simpleName}(entityCache) }"
+                } else if (!assoc.nullable) {
+                    "\t${assoc.name} = this.to${assoc.target.simpleName}(entityCache)"
                 } else {
-                    "\t${assoc.name} = this[${entity.tableName}.${assoc.defaultIdPropName()}]?.let { this.to${assoc.target.simpleName}() }"
+                    "\t${assoc.name} = this[${entity.tableName}.${assoc.defaultIdPropName()}]?.let { this.to${assoc.target.simpleName}(entityCache) }"
+                }
+            }
+
+        val oneToOneAssociations = entity.getAssociations(ONE_TO_ONE)
+            .map { assoc ->
+                if (!assoc.mapped) {
+                    if(assoc.nullable) {
+                        // This will be replaced by a copy()-call just before this object is returned.
+                        "\t${assoc.name} = null"
+                    } else {
+                        "\t${assoc.name} = this.to${assoc.target.simpleName}(entityCache)"
+                    }
+                } else if (!assoc.nullable) {
+                    "\t${assoc.name} = this.to${assoc.target.simpleName}(entityCache)"
+                } else {
+                    "\t${assoc.name} = this.getOrNull(${assoc.targetTable}.${assoc.targetId.name})?.let { this.to${assoc.target.simpleName}(entityCache) }"
+                }
+            }
+
+        val mappedOneToOneAssociations = entity.getAssociations(ONE_TO_ONE)
+            .filter { assoc -> !assoc.mapped }
+            .joinToString(",\n") { assoc ->
+                if(assoc.nullable) {
+                    "\t${assoc.name} = this.getOrNull(${assoc.targetTable}.${assoc.targetId.name})?.let { this.to${assoc.target.simpleName}(entityCache) }"
+                } else {
+                    "\t${assoc.name} = this.to${assoc.target.simpleName}(entityCache)"
                 }
             }
 
@@ -107,9 +154,21 @@ abstract class MappingsGenerator : SourceGenerator {
         val listAssociationMapping = entity.getAssociations(ONE_TO_MANY, MANY_TO_MANY)
                 .map { "\t${it.name} = mutableListOf()" }
 
-        val mapping = (idMapping + propertyMappings + embeddedMappings + associationsMappings + listAssociationMapping).joinToString(",\n")
+        val mapping = (idMapping + propertyMappings + embeddedMappings + manyToOneAssociationsMappings + oneToOneAssociations + listAssociationMapping)
+            .joinToString(",\n")
 
-        func.addStatement("return %T(\n$mapping\n)", entityClass)
+        func.apply {
+            addStatement("val result = %T(\n$mapping\n)", entityClass)
+            addStatement("cacheMap[${entity.id.name.asVariable()}] = result")
+            addStatement("entityCache[\"${entityType.simpleName}\"] = cacheMap")
+
+            if(mappedOneToOneAssociations.isBlank()) {
+                addStatement("return result")
+            } else {
+                addComment("Add bijective O2O references after caching the object to avoid infinite loops")
+                addStatement("return result.copy(\n$mappedOneToOneAssociations\n)")
+            }
+        }
 
         return func.build()
     }
@@ -139,16 +198,27 @@ abstract class MappingsGenerator : SourceGenerator {
     private fun buildAddInfoToEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
         val entityParamName = entity.name.asVariable()
 
+        val entityCacheType = ClassName("kotlin.collections", "MutableMap")
+            .parameterizedBy(
+                String::class.asClassName(),
+                ClassName("kotlin.collections", "MutableMap").parameterizedBy(ANY, ANY)
+            )
+
         val func = FunSpec.builder("addInformationTo${entity.name}")
             .receiver(ResultRow::class)
             .addParameter(entityParamName, entityType.toImmutableKmClass().toClassName().copy(nullable = true))
+            .addParameter(
+                ParameterSpec.builder("entityCache", entityCacheType)
+                    .defaultValue("mutableMapOf()")
+                    .build()
+            )
 
         func.addStatement("if($entityParamName == null) return")
 
         // Recursively add info to every related O2O entity
         entity.getAssociations(ONE_TO_ONE).forEach { oneToOneAssoc ->
             func.addComment("Add sub-elements contained in this row to ${oneToOneAssoc.name}")
-            func.addStatement("addInformationTo${oneToOneAssoc.target.simpleName}($entityParamName.${oneToOneAssoc.name})")
+            func.addStatement("addInformationTo${oneToOneAssoc.target.simpleName}($entityParamName.${oneToOneAssoc.name}, entityCache)")
         }
 
         // M2M and M2O relations are represented as lists. When such a list contains multiple entities, those entities
@@ -174,13 +244,13 @@ abstract class MappingsGenerator : SourceGenerator {
 
                 addComment("\t\tIf the sub-entity is new, create a new object for it")
                 addStatement("\t\tval $newEntityValName = to$targetTypeName()")
-                addStatement("\t\taddInformationTo$targetTypeName($newEntityValName)")
+                addStatement("\t\taddInformationTo$targetTypeName($newEntityValName, entityCache)")
                 addStatement("\t\t$attrValName.add($newEntityValName)")
 
                 addStatement("\t} else {")
 
                 addComment("\t\tIf we already have an entity with this ID, check if there's a new sub-sub-entity in it")
-                addStatement("\t\taddInformationTo$targetTypeName(${attrValName}LastElement)")
+                addStatement("\t\taddInformationTo$targetTypeName(${attrValName}LastElement, entityCache)")
 
                 addStatement("\t}")
 
@@ -205,14 +275,15 @@ abstract class MappingsGenerator : SourceGenerator {
 
         func.apply {
             addStatement("val $entityMapValName = mutableMapOf<${entity.id.asUnderlyingTypeName()}, ${entity.name}>()")
+            addStatement("val entityCache: MutableMap<String, MutableMap<Any, Any>> = mutableMapOf()")
 
             addStatement("this.forEach { row ->")
 
             addStatement("\tval $entityIdValName = ${idReadingBlock(entity.id, entity.tableName, rowReference = "row")}")
 
             addComment("Create this entity or expand on the sub-entity lists contained within")
-            addStatement("\tval $currentEntityValName = $entityMapValName[$entityIdValName] ?: row.to${entity.name}()")
-            addStatement("\trow.addInformationTo${entity.name}($currentEntityValName)")
+            addStatement("\tval $currentEntityValName = $entityMapValName[$entityIdValName] ?: row.to${entity.name}(entityCache)")
+            addStatement("\trow.addInformationTo${entity.name}($currentEntityValName, entityCache)")
             addStatement("\t$entityMapValName[$entityIdValName] = $currentEntityValName")
 
             addStatement("}")
