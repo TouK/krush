@@ -173,15 +173,27 @@ abstract class MappingsGenerator : SourceGenerator {
         return func.build()
     }
 
-    private fun idReadingBlock(id: IdDefinition, tableName: String, rowReference: String = "this"): String {
+    private fun idReadingBlock(id: IdDefinition, tableName: String, rowReference: String = "this", nullable: Boolean = false): String {
         return if (id.embedded) {
             val embeddableIdMapping = id.properties.joinToString(", \n") { property ->
                 val name = property.name
                 "\t\t$name = $rowReference[${tableName}.${id.propName(property)}]"
             }
-            "${id.qualifiedName}(\n$embeddableIdMapping\n\t)"
+            if(!nullable) {
+                "${id.qualifiedName}(\n$embeddableIdMapping\n\t)"
+            } else {
+                val nullCheck = id.properties.joinToString(" && ") { property ->
+                    "$rowReference.getOrNull(${tableName}.${id.propName(property)}) == null"
+                }
+                "if($nullCheck) null else ${id.qualifiedName}(\n$embeddableIdMapping\n\t)"
+            }
+
         } else {
-            "$rowReference[${tableName}.${id.name}]"
+            if(!nullable) {
+                "$rowReference[${tableName}.${id.name}]"
+            } else {
+                "$rowReference.getOrNull(${tableName}.${id.name})"
+            }
         }
     }
 
@@ -233,7 +245,9 @@ abstract class MappingsGenerator : SourceGenerator {
             val targetTypeName = "${setAssoc.target.simpleName}"
 
             func.apply {
-                addStatement("val ${setAssoc.name.asVariable()}Id = ${idReadingBlock(setAssoc.targetId, setAssoc.targetTable)}")
+                // Allowing a null id here allows users to not include a join with the other table if they don't
+                // need the relation-lists to be populated
+                addStatement("val ${setAssoc.name.asVariable()}Id = ${idReadingBlock(setAssoc.targetId, setAssoc.targetTable, nullable = true)}")
                 addStatement("if(${setAssoc.name.asVariable()}Id != null) {")
 
 
