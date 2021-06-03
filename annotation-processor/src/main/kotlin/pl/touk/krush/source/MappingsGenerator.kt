@@ -25,7 +25,7 @@ abstract class MappingsGenerator : SourceGenerator {
         graph.allAssociations().forEach { entity ->
             if (entity.packageName != packageName) {
                 fileSpec.addImport(entity.packageName, "${entity.simpleName}", "${entity.simpleName}Table",
-                        "to${entity.simpleName}", "to${entity.simpleName}Map", "to${entity.simpleName}List", "addInformationTo${entity.simpleName}")
+                        "to${entity.simpleName}", "to${entity.simpleName}Map", "to${entity.simpleName}List", "addSubEntitiesTo${entity.simpleName}")
             }
         }
 
@@ -37,7 +37,7 @@ abstract class MappingsGenerator : SourceGenerator {
             // Functions for reading objects from the DB
             fileSpec.addFunction(buildToEntityFunc(entityType, entity))
             fileSpec.addFunction(buildToEntityListFunc(entityType, entity))
-            fileSpec.addFunction(buildAddInfoToEntityFunc(entityType, entity))
+            fileSpec.addFunction(buildAddSubEntitiesToEntityFunc(entityType, entity))
             fileSpec.addFunction(buildToEntityMapFunc(entityType, entity, graphs))
 
             // Functions for inserting objects into the DB
@@ -195,7 +195,7 @@ abstract class MappingsGenerator : SourceGenerator {
         return func.build()
     }
 
-    private fun buildAddInfoToEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
+    private fun buildAddSubEntitiesToEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
         val entityParamName = entity.name.asVariable()
 
         val entityCacheType = ClassName("kotlin.collections", "MutableMap")
@@ -204,7 +204,7 @@ abstract class MappingsGenerator : SourceGenerator {
                 ClassName("kotlin.collections", "MutableMap").parameterizedBy(ANY, ANY)
             )
 
-        val func = FunSpec.builder("addInformationTo${entity.name}")
+        val func = FunSpec.builder("addSubEntitiesTo${entity.name}")
             .receiver(ResultRow::class)
             .addParameter(entityParamName, entityType.toImmutableKmClass().toClassName().copy(nullable = true))
             .addParameter(
@@ -218,7 +218,7 @@ abstract class MappingsGenerator : SourceGenerator {
         // Recursively add info to every related O2O entity
         entity.getAssociations(ONE_TO_ONE).forEach { oneToOneAssoc ->
             func.addComment("Add sub-elements contained in this row to ${oneToOneAssoc.name}")
-            func.addStatement("addInformationTo${oneToOneAssoc.target.simpleName}($entityParamName.${oneToOneAssoc.name}, entityCache)")
+            func.addStatement("addSubEntitiesTo${oneToOneAssoc.target.simpleName}($entityParamName.${oneToOneAssoc.name}, entityCache)")
         }
 
         // M2M and M2O relations are represented as lists. When such a list contains multiple entities, those entities
@@ -244,13 +244,13 @@ abstract class MappingsGenerator : SourceGenerator {
 
                 addComment("\t\tIf the sub-entity is new, create a new object for it")
                 addStatement("\t\tval $newEntityValName = to$targetTypeName()")
-                addStatement("\t\taddInformationTo$targetTypeName($newEntityValName, entityCache)")
+                addStatement("\t\taddSubEntitiesTo$targetTypeName($newEntityValName, entityCache)")
                 addStatement("\t\t$attrValName.add($newEntityValName)")
 
                 addStatement("\t} else {")
 
                 addComment("\t\tIf we already have an entity with this ID, check if there's a new sub-sub-entity in it")
-                addStatement("\t\taddInformationTo$targetTypeName(${attrValName}LastElement, entityCache)")
+                addStatement("\t\taddSubEntitiesTo$targetTypeName(${attrValName}LastElement, entityCache)")
 
                 addStatement("\t}")
 
@@ -283,7 +283,7 @@ abstract class MappingsGenerator : SourceGenerator {
 
             addComment("Create this entity or expand on the sub-entity lists contained within")
             addStatement("\tval $currentEntityValName = $entityMapValName[$entityIdValName] ?: row.to${entity.name}(entityCache)")
-            addStatement("\trow.addInformationTo${entity.name}($currentEntityValName, entityCache)")
+            addStatement("\trow.addSubEntitiesTo${entity.name}($currentEntityValName, entityCache)")
             addStatement("\t$entityMapValName[$entityIdValName] = $currentEntityValName")
 
             addStatement("}")
