@@ -3,6 +3,7 @@ package pl.touk.krush.many2many
 import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.Test
 import pl.touk.krush.base.BaseDatabaseTest
@@ -29,6 +30,29 @@ class ArticleTest : BaseDatabaseTest() {
 
             // then
             assertThat(selectedArticles).containsOnly(article)
+        }
+    }
+
+    @Test
+    fun shouldHandleManyToManyWithMissingColumns() {
+        transaction {
+            SchemaUtils.create(ArticleTable, TagTable, ArticleTagsTable)
+
+            // given
+            val tagJvm = Tag(name = "jvm")
+            val tagSpring = Tag(name = "spring")
+            val tagTutorial = Tag(name = "tutorial")
+
+            val tags = listOf(tagJvm, tagSpring, tagTutorial).map(TagTable::insert)
+            val article = ArticleTable.insert(Article(title = "Spring for dummies", tags = tags))
+
+            // when
+            val selectedArticles = ArticleTable
+                .selectAll()
+                .toArticleList()
+
+            // then
+            assertThat(selectedArticles).containsExactly(article.copy(tags = emptyList()))
         }
     }
 }
