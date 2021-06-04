@@ -15,7 +15,7 @@ import pl.touk.krush.validation.MissingIdException
 import javax.lang.model.element.TypeElement
 
 @KotlinPoetMetadataPreview
-abstract class MappingsGenerator : SourceGenerator {
+class MappingsGenerator : SourceGenerator {
 
     override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String, typeEnv: TypeEnvironment): FileSpec {
         val fileSpec = FileSpec.builder(packageName, fileName = "mappings")
@@ -322,9 +322,6 @@ abstract class MappingsGenerator : SourceGenerator {
             func.addStatement("\tval $idVal = resultRow.getOrNull(${entity.tableName}.${id.name})")
         }
     }
-
-    abstract fun buildToEntityMapFuncBody(entityType: TypeElement, entity: EntityDefinition, graphs: EntityGraphs, func: FunSpec.Builder,
-                                          entityId: IdDefinition, rootKey: TypeName, rootVal: String, rootIdName: String, rootValId: String): FunSpec
 
     private fun buildFromEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec? {
         val param = entity.name.asVariable()
