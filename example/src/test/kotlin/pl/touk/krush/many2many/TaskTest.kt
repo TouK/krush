@@ -13,7 +13,6 @@ import pl.touk.krush.base.BaseDatabaseTest
 class TaskTest : BaseDatabaseTest() {
 
     @Test
-    @Disabled("Uncomment to test M2M with real references (requires krush.references to be set to real)")
     fun shouldHandleSelfReferences() {
         transaction {
             SchemaUtils.create(TaskTable, TaskRequirementsTable)

@@ -38,7 +38,7 @@ class MappingsGenerator : SourceGenerator {
             fileSpec.addFunction(buildToEntityFunc(entityType, entity))
             fileSpec.addFunction(buildToEntityListFunc(entityType, entity))
             fileSpec.addFunction(buildAddSubEntitiesToEntityFunc(entityType, entity))
-            fileSpec.addFunction(buildToEntityMapFunc(entityType, entity, graphs))
+            fileSpec.addFunction(buildToEntityMapFunc(entityType, entity, graph))
 
             // Functions for inserting objects into the DB
             buildFromEntityFunc(entityType, entity)?.let { funSpec ->
@@ -218,11 +218,27 @@ class MappingsGenerator : SourceGenerator {
                 ClassName("kotlin.collections", "MutableMap").parameterizedBy(ANY, ANY)
             )
 
+        val selfReferenceRequestType = ClassName("kotlin.collections", "MutableMap")
+            .parameterizedBy(
+                String::class.asClassName(),
+                ClassName("kotlin.collections", "MutableMap")
+                    .parameterizedBy(
+                        ANY,
+                        ClassName("kotlin.collections", "MutableSet")
+                            .parameterizedBy(ANY)
+                    )
+            )
+
         val func = FunSpec.builder("addSubEntitiesTo${entity.name}")
             .receiver(ResultRow::class)
             .addParameter(entityParamName, entityType.toImmutableKmClass().toClassName().copy(nullable = true))
             .addParameter(
                 ParameterSpec.builder("entityStore", entityStoreType)
+                    .defaultValue("mutableMapOf()")
+                    .build()
+            )
+            .addParameter(
+                ParameterSpec.builder("selfReferenceRequests", selfReferenceRequestType)
                     .defaultValue("mutableMapOf()")
                     .build()
             )
@@ -241,47 +257,78 @@ class MappingsGenerator : SourceGenerator {
         // might be new in this row, etc.
         entity.getAssociations(ONE_TO_MANY, MANY_TO_MANY).forEach { setAssoc ->
 
-            if(setAssoc.isSelfReferential) {
-                return@forEach
-            }
+            if(!setAssoc.isSelfReferential) {
+                val attrValName = "${setAssoc.name.asVariable()}Attr"
+                val newEntityValName = "new${setAssoc.target.simpleName}"
 
-            val attrValName = "${setAssoc.name.asVariable()}Attr"
-            val newEntityValName = "new${setAssoc.target.simpleName}"
+                val targetTypeName = "${setAssoc.target.simpleName}"
 
-            val targetTypeName = "${setAssoc.target.simpleName}"
-
-            func.apply {
-                // Allowing a null id here allows users to not include a join with the other table if they don't
-                // need the relation-lists to be populated
-                addStatement("val ${setAssoc.name.asVariable()}Id = ${idReadingBlock(setAssoc.targetId, setAssoc.targetTable, nullable = true)}")
-                addStatement("if(${setAssoc.name.asVariable()}Id != null) {")
+                func.apply {
+                    // Allowing a null id here allows users to not include a join with the other table if they don't
+                    // need the relation-lists to be populated
+                    addStatement("val ${setAssoc.name.asVariable()}Id = ${idReadingBlock(setAssoc.targetId, setAssoc.targetTable, nullable = true)}")
+                    addStatement("if(${setAssoc.name.asVariable()}Id != null) {")
 
 
-                addStatement("\tval $attrValName = $entityParamName.${setAssoc.name.asVariable()} as MutableList<$targetTypeName>")
-                addStatement("\tval ${attrValName}LastElement = $attrValName.lastOrNull()")
+                    addStatement("\tval $attrValName = $entityParamName.${setAssoc.name.asVariable()} as MutableList<$targetTypeName>")
+                    addStatement("\tval ${attrValName}LastElement = $attrValName.lastOrNull()")
 
-                addStatement("\tif(${setAssoc.name.asVariable()}Id != ${attrValName}LastElement?.${setAssoc.targetId.name}) {")
+                    addStatement("\tif(${setAssoc.name.asVariable()}Id != ${attrValName}LastElement?.${setAssoc.targetId.name}) {")
 
-                addComment("\t\tIf the sub-entity is new, create a new object for it")
-                addStatement("\t\tval $newEntityValName = to$targetTypeName()")
-                addStatement("\t\taddSubEntitiesTo$targetTypeName($newEntityValName, entityStore)")
-                addStatement("\t\t$attrValName.add($newEntityValName)")
+                    addComment("\t\tIf the sub-entity is new, create a new object for it")
+                    addStatement("\t\tval $newEntityValName = to$targetTypeName()")
+                    addStatement("\t\taddSubEntitiesTo$targetTypeName($newEntityValName, entityStore)")
+                    addStatement("\t\t$attrValName.add($newEntityValName)")
 
-                addStatement("\t} else {")
+                    addStatement("\t} else {")
 
-                addComment("\t\tIf we already have an entity with this ID, check if there's a new sub-sub-entity in it")
-                addStatement("\t\taddSubEntitiesTo$targetTypeName(${attrValName}LastElement, entityStore)")
+                    addComment("\t\tIf we already have an entity with this ID, check if there's a new sub-sub-entity in it")
+                    addStatement("\t\taddSubEntitiesTo$targetTypeName(${attrValName}LastElement, entityStore)")
 
-                addStatement("\t}")
+                    addStatement("\t}")
 
-                addStatement("}")
+                    addStatement("}")
+                }
+            } else {
+                val id = entity.id!!
+                val relationTableName = "${entity.name}${setAssoc.name.asObject()}Table"
+                val idReadingBlock = if (id.embedded) {
+                    val embeddableIdMapping = id.properties.joinToString(", \n") { property ->
+                        val name = property.name
+                        val targetColumnName = "${entity.name.asVariable()}Target${property.valName.capitalize()}"
+                        "\t\t$name = this[$relationTableName.$targetColumnName]"
+                    }
+                    val nullCheck = id.properties.joinToString(" && ") { property ->
+                        val targetColumnName = "${entity.name.asVariable()}Target${property.valName.capitalize()}"
+                        "this.getOrNull($relationTableName.$targetColumnName) == null"
+                    }
+                    "if($nullCheck) null else ${id.qualifiedName}(\n$embeddableIdMapping\n\t)"
+
+                } else {
+                    val targetColumnName = "${entity.name.asVariable()}Target${entity.id.name.toString().capitalize()}"
+                    "this.getOrNull($relationTableName.$targetColumnName)"
+                }
+
+                val selfReferenceMapName = "${entity.name.asVariable()}SelfReferenceRequests"
+
+                func.apply {
+                    // Allowing a null id here allows users to not include a join with the other table if they don't
+                    // need the relation-lists to be populated
+                    addStatement("val other${entity.name}Id = $idReadingBlock")
+                    addStatement("if(other${entity.name}Id != null) {")
+                    addStatement("\tif(selfReferenceRequests[\"${entity.name}\"] == null) selfReferenceRequests[\"${entity.name}\"] = mutableMapOf()")
+                    addStatement("\tval $selfReferenceMapName = selfReferenceRequests[\"${entity.name}\"]!!")
+                    addStatement("\tif($selfReferenceMapName[other${entity.name}Id] == null) $selfReferenceMapName[other${entity.name}Id] = mutableSetOf()")
+                    addStatement("\t$selfReferenceMapName[other${entity.name}Id]!!.add($entityParamName.${id.name}!!)")
+                    addStatement("}")
+                }
             }
         }
 
         return func.build()
     }
 
-    private fun buildToEntityMapFunc(entityType: TypeElement, entity: EntityDefinition, graphs: EntityGraphs): FunSpec {
+    private fun buildToEntityMapFunc(entityType: TypeElement, entity: EntityDefinition, graph: EntityGraph): FunSpec {
         val rootKey = entity.id?.asUnderlyingTypeName() ?: throw MissingIdException(entity)
 
         val func = FunSpec.builder("to${entity.name}Map")
@@ -295,13 +342,45 @@ class MappingsGenerator : SourceGenerator {
 
         func.apply {
             addStatement("val entityStore: MutableMap<String, MutableMap<Any, Any>> = mutableMapOf()")
+            addStatement("val selfReferenceRequests: MutableMap<String, MutableMap<Any, MutableSet<Any>>> = mutableMapOf()")
 
             addStatement("this.forEach { row ->")
 
             addComment("Create this entity or expand on the sub-entity lists contained within")
             addStatement("\tval $currentEntityValName = row.to${entity.name}(entityStore)")
-            addStatement("\trow.addSubEntitiesTo${entity.name}($currentEntityValName, entityStore)")
+            addStatement("\trow.addSubEntitiesTo${entity.name}($currentEntityValName, entityStore, selfReferenceRequests)")
 
+            addStatement("}")
+
+            // Go through all self references requested and add them to the respective list.
+            addStatement("selfReferenceRequests.forEach { (typeName, unsatisfiedMap) -> ")
+            addStatement("\twhen(typeName) {")
+
+            graph.values
+                .flatMap { entityDef ->
+                    entityDef.associations.filter { it.isSelfReferential }
+                }
+                .forEach { selfRefAssoc ->
+                    val entityName = selfRefAssoc.source.simpleName
+                    val subjectIdName = "subject${entityName}Id"
+                    val referencingIdSetName = "referencing${entityName}Ids"
+                    val subjectValName = "subject${entityName}"
+                    val referencingIdName = "referencing${entityName}Id"
+
+                    val addReferenceCode =
+                        "(" +
+                            "(entityStore[\"${entityName}\"]!![$referencingIdName] as $entityName)" +
+                            ".${selfRefAssoc.name.asVariable()} as MutableList<$entityName>" +
+                        ")" +
+                        ".add($subjectValName)"
+
+                    addStatement("\t\t\"${entityName}\" -> unsatisfiedMap.forEach { ($subjectIdName, $referencingIdSetName) ->")
+                    addStatement("\t\t\tval $subjectValName = entityStore[\"${entityName}\"]!![$subjectIdName] as $entityName")
+                    addStatement("\t\t\t$referencingIdSetName.forEach { $referencingIdName -> $addReferenceCode }")
+                    addStatement("\t\t}")
+                }
+
+            addStatement("\t}")
             addStatement("}")
 
             addStatement("return (entityStore[\"${entity.name}\"] ?: emptyMap()) as Map<$rootKey, ${entity.name}>")
