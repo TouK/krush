@@ -287,7 +287,7 @@ class MappingsGenerator : SourceGenerator {
         val func = FunSpec.builder("to${entity.name}Map")
                 .receiver(Iterable::class.parameterizedBy(ResultRow::class))
                 .returns(
-                    ClassName("kotlin.collections", "MutableMap")
+                    ClassName("kotlin.collections", "Map")
                         .parameterizedBy(rootKey, entityType.toImmutableKmClass().toClassName())
                 )
         
@@ -304,7 +304,7 @@ class MappingsGenerator : SourceGenerator {
 
             addStatement("}")
 
-            addStatement("return entityStore[\"${entity.name}\"] as MutableMap<$rootKey, ${entity.name}>")
+            addStatement("return (entityStore[\"${entity.name}\"] ?: emptyMap()) as Map<$rootKey, ${entity.name}>")
         }
 
         return func.build()
