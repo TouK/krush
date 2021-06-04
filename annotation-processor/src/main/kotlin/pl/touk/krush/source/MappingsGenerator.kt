@@ -308,21 +308,6 @@ class MappingsGenerator : SourceGenerator {
         return func.build()
     }
 
-    protected fun addIdStatement(entity: EntityDefinition, id: IdDefinition, idVal: String, func: FunSpec.Builder)  {
-        if (id.embedded) {
-            id.properties.forEach { property ->
-                val propName = id.propName(property)
-                func.addStatement("\tval $propName = resultRow.getOrNull(${entity.tableName}.$propName)")
-            }
-            val condition = id.properties.filterNot(PropertyDefinition::nullable).map { property ->
-                "\t${id.propName(property)} != null"
-            }.joinToString(" &&\n").takeIf { it.isNotBlank() } ?: "false"
-            func.addStatement("\tval $idVal = if (\n$condition\n\t) ${id.qualifiedName}(${id.propsAsArgs}) else null")
-        } else {
-            func.addStatement("\tval $idVal = resultRow.getOrNull(${entity.tableName}.${id.name})")
-        }
-    }
-
     private fun buildFromEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec? {
         val param = entity.name.asVariable()
         val tableName = entity.tableName
