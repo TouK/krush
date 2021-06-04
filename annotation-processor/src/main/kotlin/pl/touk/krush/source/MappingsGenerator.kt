@@ -166,7 +166,9 @@ class MappingsGenerator : SourceGenerator {
                 addStatement("return result")
             } else {
                 addComment("Add bijective O2O references after caching the object to avoid infinite loops")
-                addStatement("return result.copy(\n$mappedOneToOneAssociations\n)")
+                addStatement("val resultWithBidirAssocs = result.copy(\n$mappedOneToOneAssociations\n)")
+                addStatement("cacheMap[${entity.id.name.asVariable()}] = resultWithBidirAssocs")
+                addStatement("return resultWithBidirAssocs")
             }
         }
 
@@ -280,29 +282,25 @@ class MappingsGenerator : SourceGenerator {
 
         val func = FunSpec.builder("to${entity.name}Map")
                 .receiver(Iterable::class.parameterizedBy(ResultRow::class))
-                .returns(ClassName("kotlin.collections", "MutableMap").parameterizedBy(rootKey, entityType.toImmutableKmClass().toClassName()))
+                .returns(
+                    ClassName("kotlin.collections", "MutableMap")
+                        .parameterizedBy(rootKey, entityType.toImmutableKmClass().toClassName())
+                )
         
-        val entityIdValName = "${entity.name.asVariable()}Id"
         val currentEntityValName = "current${entity.name.asObject()}"
-        val entityMapValName = "${entity.name.asVariable()}Map"
 
         func.apply {
-            addStatement("val $entityMapValName = mutableMapOf<${entity.id.type.simpleName}, ${entity.name.asObject()}>()")
             addStatement("val entityStore: MutableMap<String, MutableMap<Any, Any>> = mutableMapOf()")
-            addStatement("entityStore[\"${entity.name.asObject()}\"] = $entityMapValName as MutableMap<Any, Any>")
 
             addStatement("this.forEach { row ->")
 
-            addStatement("\tval $entityIdValName = ${idReadingBlock(entity.id, entity.tableName, rowReference = "row")}")
-
             addComment("Create this entity or expand on the sub-entity lists contained within")
-            addStatement("\tval $currentEntityValName = $entityMapValName[$entityIdValName] as ${entity.name}? ?: row.to${entity.name}(entityStore)")
+            addStatement("\tval $currentEntityValName = row.to${entity.name}(entityStore)")
             addStatement("\trow.addSubEntitiesTo${entity.name}($currentEntityValName, entityStore)")
-            addStatement("\t$entityMapValName[$entityIdValName] = $currentEntityValName")
 
             addStatement("}")
 
-            addStatement("return $entityMapValName")
+            addStatement("return entityStore[\"${entity.name}\"] as MutableMap<$rootKey, ${entity.name}>")
         }
 
         return func.build()
