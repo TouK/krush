@@ -6,7 +6,6 @@ import org.jetbrains.exposed.sql.JoinType
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import pl.touk.krush.base.BaseDatabaseTest
 
@@ -32,9 +31,7 @@ class TaskTest : BaseDatabaseTest() {
             ).selectAll().toTaskList()
 
             // then
-            val expectation = listOf(task1, task2, task3)
-
-            assertThat(selectedTasks).isEqualTo(expectation)
+            assertThat(selectedTasks).containsExactlyInAnyOrder(task1, task2, task3)
         }
     }
 

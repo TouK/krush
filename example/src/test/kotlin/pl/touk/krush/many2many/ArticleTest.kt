@@ -2,13 +2,25 @@ package pl.touk.krush.many2many
 
 import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import pl.touk.krush.base.BaseDatabaseTest
 
 class ArticleTest : BaseDatabaseTest() {
+
+    @AfterEach
+    internal fun tearDown() {
+        transaction {
+            ArticleTagsTable.deleteAll()
+            TagTable.deleteAll()
+            ArticleTable.deleteAll()
+        }
+    }
 
     @Test
     fun shouldHandleManyToMany() {
