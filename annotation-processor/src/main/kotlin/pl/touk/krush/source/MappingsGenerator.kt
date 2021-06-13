@@ -248,7 +248,7 @@ class MappingsGenerator : SourceGenerator {
         // Recursively add info to every related O2O entity
         entity.getAssociations(ONE_TO_ONE).forEach { oneToOneAssoc ->
             func.addComment("Add sub-elements contained in this row to ${oneToOneAssoc.name}")
-            func.addStatement("addSubEntitiesTo${oneToOneAssoc.target.simpleName}($entityParamName.${oneToOneAssoc.name}, entityStore)")
+            func.addStatement("addSubEntitiesTo${oneToOneAssoc.target.simpleName}($entityParamName.${oneToOneAssoc.name}, entityStore, selfReferenceRequests)")
         }
 
         // M2M and M2O relations are represented as lists. When such a list contains multiple entities, those entities
@@ -276,14 +276,14 @@ class MappingsGenerator : SourceGenerator {
                     addStatement("\tif(${setAssoc.name.asVariable()}Id != ${attrValName}LastElement?.${setAssoc.targetId.name}) {")
 
                     addComment("\t\tIf the sub-entity is new, create a new object for it")
-                    addStatement("\t\tval $newEntityValName = to$targetTypeName()")
-                    addStatement("\t\taddSubEntitiesTo$targetTypeName($newEntityValName, entityStore)")
+                    addStatement("\t\tval $newEntityValName = to$targetTypeName(entityStore)")
+                    addStatement("\t\taddSubEntitiesTo$targetTypeName($newEntityValName, entityStore, selfReferenceRequests)")
                     addStatement("\t\t$attrValName.add($newEntityValName)")
 
                     addStatement("\t} else {")
 
                     addComment("\t\tIf we already have an entity with this ID, check if there's a new sub-sub-entity in it")
-                    addStatement("\t\taddSubEntitiesTo$targetTypeName(${attrValName}LastElement, entityStore)")
+                    addStatement("\t\taddSubEntitiesTo$targetTypeName(${attrValName}LastElement, entityStore, selfReferenceRequests)")
 
                     addStatement("\t}")
 
