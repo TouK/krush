@@ -1,5 +1,5 @@
 ## Krush
-![Sonatype Nexus (Releases)](https://img.shields.io/nexus/r/pl.touk.krush/annotation-processor?server=https%3A%2F%2Fphilanthropist.touk.pl%2Fnexus)
+![Maven Central](https://img.shields.io/maven-central/v/pl.touk.krush/krush-annotation-processor)
 ![CircleCI](https://img.shields.io/circleci/build/github/TouK/krush)
 [![Sputnik](https://sputnik.ci/conf/badge)](https://sputnik.ci/app#/builds/TouK/krush)
 
@@ -76,44 +76,21 @@ assertThat(selectedBooks).containsOnly(persistedBook)
 Gradle:
 ```groovy
 repositories {
-    maven { setUrl("https://dl.bintray.com/kotlin/exposed") }
-    maven { setUrl("https://philanthropist.touk.pl/nexus/content/repositories/releases") }
+    mavenCentral()
 }
 
 apply plugin: 'kotlin-kapt'
-api "pl.touk.krush:annotation-processor:$krushVersion"
-kapt "pl.touk.krush:annotation-processor:$krushVersion"
-api "pl.touk.krush:runtime:$krushVersion"
+api "pl.touk.krush:krush-annotation-processor:$krushVersion"
+kapt "pl.touk.krush:krush-annotation-processor:$krushVersion"
+api "pl.touk.krush:krush-runtime:$krushVersion"
 ```
 
 Maven:
 ```xml
-<repositories>
-    <repository>
-        <id>Exposed BinTray</id>
-        <url>https://dl.bintray.com/kotlin/exposed</url>
-    </repository>
-    <repository>
-        <id>TouK public releases</id>
-        <url>https://philanthropist.touk.pl/nexus/content/repositories/releases</url>
-    </repository>
-</repositories>
-
-<pluginRepositories>
-    <pluginRepository>
-        <id>Exposed BinTray</id>
-        <url>https://dl.bintray.com/kotlin/exposed</url>
-    </pluginRepository>
-    <pluginRepository>
-        <id>TouK public releases</id>
-        <url>https://philanthropist.touk.pl/nexus/content/repositories/releases</url>
-    </pluginRepository>
-</pluginRepositories>
-
 <dependencies>
     <dependency>
         <groupId>pl.touk.krush</groupId>
-        <artifactId>runtime</artifactId>
+        <artifactId>krush-runtime</artifactId>
         <version>${krush.version}</version>
     </dependency>
 </dependencies>
@@ -134,7 +111,7 @@ Maven:
                 <annotationProcessorPaths>
                     <annotationProcessorPath>
                         <groupId>pl.touk.krush</groupId>
-                        <artifactId>annotation-processor</artifactId>
+                        <artifactId>krush-annotation-processor</artifactId>
                         <version>${krush.version}</version>
                     </annotationProcessorPath>
                 </annotationProcessorPaths>
