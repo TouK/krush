@@ -10,20 +10,19 @@ buildscript {
 
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.4.31'
-    id 'pl.allegro.tech.build.axion-release' version '1.10.2'
+    id 'pl.allegro.tech.build.axion-release' version '1.13.2'
     id 'maven-publish'
+}
+
+scmVersion {
+    useHighestVersion = true
+    tag {
+        prefix = 'krush-'
+    }
 }
 
 group = 'pl.touk.krush'
 project.version = scmVersion.version
-
-sourceCompatibility = 1.8
-
-scmVersion {
-    tag {
-        prefix = 'krush'
-    }
-}
 
 allprojects {
     repositories {
@@ -36,27 +35,50 @@ configure([project(':annotation-processor'), project(':runtime'), project(':runt
     apply plugin: 'maven-publish'
     apply plugin: 'signing'
 
-    task sourcesJar(type: Jar) {
-        from sourceSets.main.allSource
-    }
-
     def snapshot = scmVersion.version.endsWith('SNAPSHOT')
 
     tasks.withType(Sign) {
         onlyIf { !snapshot }
     }
 
+    java {
+        withJavadocJar()
+        withSourcesJar()
+    }
+
     publishing {
         publications {
             mavenJava(MavenPublication) {
-                from components.java
-
-                groupId rootProject.group
                 artifactId "krush-${project.name}"
-                version rootProject.version
+                from components.java
+                pom {
+                    groupId = 'pl.touk'
+                    name = "krush-${project.name}"
 
-                artifact sourcesJar {
-                    classifier "sources"
+                    description = 'Krush, idiomatic persistence layer for Kotlin'
+                    url = 'https://github.com/TouK/sputnik/'
+                    scm {
+                        url = 'scm:git@github.com:TouK/krush.git'
+                        connection = 'scm:git@github.com:TouK/krush.git'
+                        developerConnection = 'scm:git@github.com:Touk/krush.git'
+                    }
+                    licenses {
+                        license {
+                            name = 'The Apache Software License, Version 2.0'
+                            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                            distribution = 'repo'
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = 'mateusz_sledz'
+                            name = 'Mateusz Śledź'
+                        }
+                        developer {
+                            id = 'piotr_jagielski'
+                            name = 'Piotr Jagielski'
+                        }
+                    }
                 }
             }
         }
