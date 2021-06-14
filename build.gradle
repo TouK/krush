@@ -52,7 +52,7 @@ configure([project(':annotation-processor'), project(':runtime'), project(':runt
                 artifactId "krush-${project.name}"
                 from components.java
                 pom {
-                    groupId = 'pl.touk'
+                    groupId = 'pl.touk.krush'
                     name = "krush-${project.name}"
 
                     description = 'Krush, idiomatic persistence layer for Kotlin'
