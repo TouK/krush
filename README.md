@@ -123,7 +123,7 @@ Maven:
 ```
 
 ### Dependencies
-* Exposed 0.3.0 -> 0.24.1, 0.2.0 -> 0.18.1
+* [JetBrains Exposed](https://github.com/JetBrains/Exposed)
 * JPA annotations 2.1
 
 ### Features

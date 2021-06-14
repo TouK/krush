@@ -54,6 +54,7 @@ configure([project(':annotation-processor'), project(':runtime'), project(':runt
                 pom {
                     groupId = 'pl.touk.krush'
                     name = "krush-${project.name}"
+                    version = scmVersion.version
 
                     description = 'Krush, idiomatic persistence layer for Kotlin'
                     url = 'https://github.com/TouK/sputnik/'
