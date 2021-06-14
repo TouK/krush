@@ -16,7 +16,7 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v1
         with:
-          java-version: 1.8
+          java-version: 1.11
       - name: Extract version
         run: echo "##[set-output name=version;]$(echo ${GITHUB_REF#refs/tags/krush-})"
         id: extract_version
