@@ -20,6 +20,12 @@ class MappingsGenerator : SourceGenerator {
 
     override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String, typeEnv: TypeEnvironment): FileSpec {
         val fileSpec = FileSpec.builder(packageName, fileName = "mappings")
+            .addAnnotation(
+                AnnotationSpec.builder(Suppress::class.java)
+                    .addMember("%S", "UNCHECKED_CAST")
+                    .addMember("%S", "UNUSED_PARAMETER")
+                    .build()
+            )
             .addImport("org.jetbrains.exposed.sql", "ResultRow")
             .addImport("org.jetbrains.exposed.sql.statements", "UpdateBuilder")
             .addImport("kotlin.reflect", "KClass")
@@ -248,7 +254,12 @@ class MappingsGenerator : SourceGenerator {
                     addStatement("\tif (${setAssoc.name.asVariable()}Id != ${attrValName}LastElement?.${setAssoc.targetId.name}) {")
 
                     addComment("\t\tIf the sub-entity is new, create a new object for it")
-                    addStatement("\t\tval $newEntityValName = to$targetTypeName()")
+                    if (setAssoc.isBidirectional) {
+                        addComment("\t\tPrevent from stack overflow in mapping bi-directional relations")
+                        addStatement("\t\tval $newEntityValName = row.to$targetTypeName()")
+                    } else {
+                        addStatement("\t\tval $newEntityValName = to$targetTypeName()")
+                    }
                     addStatement("\t\taddSubEntitiesTo$targetTypeName($newEntityValName)")
                     addStatement("\t\t$attrValName.add($newEntityValName)")
 

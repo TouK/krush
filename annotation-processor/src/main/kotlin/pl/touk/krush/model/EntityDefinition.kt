@@ -83,6 +83,8 @@ data class AssociationDefinition(
     fun defaultIdPropName() = targetIdPropName(targetId.properties[0])
 
     val isSelfReferential get() = source == target
+
+    val isBidirectional get() = mappedBy != null
 }
 
 data class PropertyDefinition(

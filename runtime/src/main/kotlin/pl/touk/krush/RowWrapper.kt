@@ -1,6 +1,5 @@
 package pl.touk.krush
 
-import org.jetbrains.exposed.sql.Expression
 import org.jetbrains.exposed.sql.ResultRow
 import kotlin.reflect.KClass
 
