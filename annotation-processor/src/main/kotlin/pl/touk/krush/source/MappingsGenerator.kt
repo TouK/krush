@@ -251,15 +251,15 @@ class MappingsGenerator : SourceGenerator {
                     addStatement("\tval $attrValName = $entityParamName.${setAssoc.name.asVariable()} as MutableList<$targetTypeName>")
                     addStatement("\tval ${attrValName}LastElement = $attrValName.lastOrNull()")
 
+                    if(setAssoc.isBidirectional) {
+                        addComment("\tPrevent stack overflow when mapping bi-directional relations")
+                        addStatement("\tentityStore[%T::class]?.remove($entityParamName.${entity.id!!.name})", entityType)
+                    }
+
                     addStatement("\tif (${setAssoc.name.asVariable()}Id != ${attrValName}LastElement?.${setAssoc.targetId.name}) {")
 
                     addComment("\t\tIf the sub-entity is new, create a new object for it")
-                    if (setAssoc.isBidirectional) {
-                        addComment("\t\tPrevent from stack overflow in mapping bi-directional relations")
-                        addStatement("\t\tval $newEntityValName = row.to$targetTypeName()")
-                    } else {
-                        addStatement("\t\tval $newEntityValName = to$targetTypeName()")
-                    }
+                    addStatement("\t\tval $newEntityValName = to$targetTypeName()")
                     addStatement("\t\taddSubEntitiesTo$targetTypeName($newEntityValName)")
                     addStatement("\t\t$attrValName.add($newEntityValName)")
 
@@ -269,6 +269,10 @@ class MappingsGenerator : SourceGenerator {
                     addStatement("\t\taddSubEntitiesTo$targetTypeName(${attrValName}LastElement)")
 
                     addStatement("\t}")
+
+                    if(setAssoc.isBidirectional) {
+                        addStatement("\tentityStore[%T::class]?.put($entityParamName.${entity.id!!.name}!!, $entityParamName)", entityType)
+                    }
 
                     addStatement("}")
                 }
