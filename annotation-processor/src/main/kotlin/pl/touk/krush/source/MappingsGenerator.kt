@@ -251,9 +251,9 @@ class MappingsGenerator : SourceGenerator {
                     addStatement("\tval $attrValName = $entityParamName.${setAssoc.name.asVariable()} as MutableList<$targetTypeName>")
                     addStatement("\tval ${attrValName}LastElement = $attrValName.lastOrNull()")
 
-                    if(setAssoc.isBidirectional) {
+                    if (setAssoc.isBidirectional && entity.id != null) {
                         addComment("\tPrevent stack overflow when mapping bi-directional relations")
-                        addStatement("\tentityStore[%T::class]?.remove($entityParamName.${entity.id!!.name})", entityType)
+                        addStatement("\twithoutEntity(%T::class, $entityParamName.${entity.id.name}) {", entityType)
                     }
 
                     addStatement("\tif (${setAssoc.name.asVariable()}Id != ${attrValName}LastElement?.${setAssoc.targetId.name}) {")
@@ -270,8 +270,8 @@ class MappingsGenerator : SourceGenerator {
 
                     addStatement("\t}")
 
-                    if(setAssoc.isBidirectional) {
-                        addStatement("\tentityStore[%T::class]?.put($entityParamName.${entity.id!!.name}!!, $entityParamName)", entityType)
+                    if (setAssoc.isBidirectional && entity.id != null) {
+                        addStatement("\t}")
                     }
 
                     addStatement("}")
