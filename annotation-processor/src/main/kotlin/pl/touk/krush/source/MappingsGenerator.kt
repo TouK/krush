@@ -245,36 +245,36 @@ class MappingsGenerator : SourceGenerator {
                     // Allowing a null id here allows users to not include a join with the other table if they don't
                     // need the relation-lists to be populated
                     addStatement("val ${setAssoc.name.asVariable()}Id = ${idReadingBlock(setAssoc.targetId, setAssoc.targetTable, nullable = true, rowReference = "row")}")
-                    addStatement("if (${setAssoc.name.asVariable()}Id != null) {")
+                    beginControlFlow("if (${setAssoc.name.asVariable()}Id != null) {")
 
 
-                    addStatement("\tval $attrValName = $entityParamName.${setAssoc.name.asVariable()} as MutableList<$targetTypeName>")
-                    addStatement("\tval ${attrValName}LastElement = $attrValName.lastOrNull()")
-
-                    if (setAssoc.isBidirectional && entity.id != null) {
-                        addComment("\tPrevent stack overflow when mapping bi-directional relations")
-                        addStatement("\twithoutEntity(%T::class, $entityParamName.${entity.id.name}) {", entityType)
-                    }
-
-                    addStatement("\tif (${setAssoc.name.asVariable()}Id != ${attrValName}LastElement?.${setAssoc.targetId.name}) {")
-
-                    addComment("\t\tIf the sub-entity is new, create a new object for it")
-                    addStatement("\t\tval $newEntityValName = to$targetTypeName()")
-                    addStatement("\t\taddSubEntitiesTo$targetTypeName($newEntityValName)")
-                    addStatement("\t\t$attrValName.add($newEntityValName)")
-
-                    addStatement("\t} else {")
-
-                    addComment("\t\tIf we already have an entity with this ID, check if there's a new sub-sub-entity in it")
-                    addStatement("\t\taddSubEntitiesTo$targetTypeName(${attrValName}LastElement)")
-
-                    addStatement("\t}")
+                    addStatement("val $attrValName = $entityParamName.${setAssoc.name.asVariable()} as MutableList<$targetTypeName>")
+                    addStatement("val ${attrValName}LastElement = $attrValName.lastOrNull()")
 
                     if (setAssoc.isBidirectional && entity.id != null) {
-                        addStatement("\t}")
+                        addComment("Prevent stack overflow when mapping bi-directional relations")
+                        beginControlFlow("withoutEntity(%T::class, $entityParamName.${entity.id.name}) {", entityType)
                     }
 
-                    addStatement("}")
+                    beginControlFlow("if (${setAssoc.name.asVariable()}Id != ${attrValName}LastElement?.${setAssoc.targetId.name}) {")
+
+                    addComment("If the sub-entity is new, create a new object for it")
+                    addStatement("val $newEntityValName = to$targetTypeName()")
+                    addStatement("addSubEntitiesTo$targetTypeName($newEntityValName)")
+                    addStatement("$attrValName.add($newEntityValName)")
+
+                    addStatement("} else {")
+
+                    addComment("\tIf we already have an entity with this ID, check if there's a new sub-sub-entity in it")
+                    addStatement("\taddSubEntitiesTo$targetTypeName(${attrValName}LastElement)")
+
+                    endControlFlow()
+
+                    if (setAssoc.isBidirectional && entity.id != null) {
+                        endControlFlow()
+                    }
+
+                    endControlFlow()
                 }
             } else {
                 val id = entity.id!!
