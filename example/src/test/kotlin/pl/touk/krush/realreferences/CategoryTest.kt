@@ -26,7 +26,7 @@ class CategoryTest: BaseDatabaseTest() {
             val child2 = CategoryTable.insert(Category(name = "child2", parent = parent))
 
             val categories =
-                CategoryTable.join(parentAlias, JoinType.LEFT, CategoryTable.parent, parentAlias[CategoryTable.id])
+                CategoryTable.join(parentAlias, JoinType.LEFT, CategoryTable.parentId, parentAlias[CategoryTable.id])
                 .selectAll()
                 .map { it.toCategory(parentAlias) }
 
@@ -34,7 +34,7 @@ class CategoryTest: BaseDatabaseTest() {
                 .containsExactlyInAnyOrder(parent, child1, child2)
 
             val fullCategories =
-                CategoryTable.join(parentAlias, JoinType.LEFT, CategoryTable.parent, parentAlias[CategoryTable.id])
+                CategoryTable.join(parentAlias, JoinType.LEFT, CategoryTable.parentId, parentAlias[CategoryTable.id])
                     .selectAll()
                     .toCategoryList(parentAlias)
 
@@ -51,34 +51,40 @@ fun Iterable<ResultRow>.toCategoryMap(parentAlias: Alias<CategoryTable>?): Mutab
     val roots = mutableMapOf<Long, Category>()
     val category_parent = mutableMapOf<Long, Category>()
     val category_children = mutableMapOf<Long, MutableSet<Category>>()
+    val children_map = emptyMap<kotlin.Long, Category>()
     this.forEach { resultRow ->
-        val categoryId = resultRow.getOrNull(CategoryTable.id) ?: return@forEach
+        val categoryId = resultRow.getOrNull(CategoryTable.id)
+        if(categoryId == null) return@forEach
+
         val category = roots[categoryId] ?: resultRow.toCategory(parentAlias)
         roots[categoryId] = category
-        resultRow[CategoryTable.parent]?.let { parentId ->
+
+        resultRow[CategoryTable.parentId]?.let { parentId ->
             val parent = resultRow.toCategory(parentAlias)
             category_parent[categoryId] = parent
             category_children.getOrPut(parentId, ::mutableSetOf).add(category)
         }
     }
+
     return roots.mapValues { (_, category) ->
         category.copy(
             parent = category_parent[category.id],
             children = category_children[category.id]?.toList() ?: emptyList()
         )
     }.toMutableMap()
+
 }
 
 fun ResultRow.toCategory(parentAlias: Alias<CategoryTable>?): Category = Category(
     id = this[CategoryTable.id],
     name = this[CategoryTable.name],
-    parent = this[CategoryTable.parent]?.let { parentAlias?.let { this.toCategory(parentAlias, null) } },
+    parent = this[CategoryTable.parentId]?.let { parentAlias?.let { this.toCategory(parentAlias, null) } },
     children = mutableListOf()
 )
 
 fun ResultRow.toCategory(alias: Alias<CategoryTable>, parentAlias: Alias<CategoryTable>?): Category = Category(
     id = this[alias[CategoryTable.id]],
     name = this[alias[CategoryTable.name]],
-    parent = this[CategoryTable.parent]?.let { parentAlias?.let { this.toCategory(parentAlias, null) } },
+    parent = this[CategoryTable.parentId]?.let { parentAlias?.let { this.toCategory(parentAlias, null) } },
     children = mutableListOf()
 )

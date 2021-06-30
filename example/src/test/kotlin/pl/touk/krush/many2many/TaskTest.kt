@@ -34,7 +34,7 @@ class TaskTest : BaseDatabaseTest() {
                 joinType = JoinType.LEFT,
                 onColumn = TaskTable.id,
                 otherColumn = TaskRequirementsTable.taskSourceId
-            ).selectAll().toBoardList()
+            ).selectAll().toBoardList(null)
 
             // then
             assertThat(selectedBoards).hasSize(1)

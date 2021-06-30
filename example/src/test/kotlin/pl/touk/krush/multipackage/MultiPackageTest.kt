@@ -24,7 +24,7 @@ class MultiPackageTest : BaseDatabaseTest() {
                 a.copy(id = id)
             }
 
-            val b = TestBTable.insert(testB = TestB(text = "test B"), testA = a)
+            val b = TestBTable.insert(testB = TestB(text = "test B"), testAParam = a)
 
             // when
             val aList = (TestBTable leftJoin TestATable)
