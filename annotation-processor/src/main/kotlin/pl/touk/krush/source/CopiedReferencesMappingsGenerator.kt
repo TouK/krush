@@ -40,7 +40,10 @@ class CopiedReferencesMappingsGenerator : MappingsGenerator() {
         func.addStatement("this.forEach { resultRow ->")
         addIdStatement(entity, entityId, rootIdVal, func)
         func.addStatement("\tif ($rootIdVal == null) return@forEach")
-        func.addStatement("\tval $rootVal = roots[$rootIdVal] ?: resultRow.to${entity.name}()")
+
+        val value =if(hasSelfReferences(entityType,entity)) "parentAlias" else ""
+
+        func.addStatement("\tval $rootVal = roots[$rootIdVal] ?: resultRow.to${entity.name}($value)")
         func.addStatement("\troots[$rootIdVal] = $rootVal")
 
         associations.forEach { assoc ->
@@ -80,7 +83,8 @@ class CopiedReferencesMappingsGenerator : MappingsGenerator() {
                         func.addStatement("\t\t}")
                         func.addStatement("\t}")
                     } else if (assoc.nullable) {
-                        func.addStatement("\tval $assocVar = resultRow[${entity.name}Table.${assoc.defaultIdPropName()}]?.let { resultRow.to${target.name}() }")
+                        val aliasValue =if(hasSelfReferences(entityType,entity)) "parentAlias" else ""
+                        func.addStatement("\tval $assocVar = resultRow[${entity.name}Table.${assoc.defaultIdPropName()}]?.let { resultRow.to${target.name}($aliasValue) }")
                         func.addStatement("\t$assocVar?.let { $assocMapName[${rootIdVal}] = it }")
                     } else {
                         func.addStatement("\tval $assocVar = resultRow.to${target.name}()")
@@ -97,7 +101,7 @@ class CopiedReferencesMappingsGenerator : MappingsGenerator() {
         associations.forEachIndexed { idx, assoc ->
             val sep = if (idx == associations.lastIndex) "" else ","
             val associationMapName = "${entity.name.asVariable()}_${assoc.name}"
-            val value = if (assoc.type in listOf(ONE_TO_MANY, MANY_TO_MANY)) {
+            val associationValue = if (assoc.type in listOf(ONE_TO_MANY, MANY_TO_MANY)) {
                 "$associationMapName[$rootVal.$rootIdName]?.toList() ?: emptyList()"
             } else if (assoc.nullable) {
                 "$associationMapName[$rootVal.$rootIdName]"
@@ -105,7 +109,7 @@ class CopiedReferencesMappingsGenerator : MappingsGenerator() {
                 "$associationMapName[$rootVal.$rootIdName]!!"
             }
 
-            func.addStatement("\t\t${assoc.name} = $value$sep")
+            func.addStatement("\t\t${assoc.name} = $associationValue$sep")
 
         }
         func.addStatement("\t)")

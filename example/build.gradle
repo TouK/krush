@@ -31,8 +31,10 @@ tasks.test {
 
 // Uncomment to enable generating code that creates objects with references to their real counterparts
 // instead of copies. Incompatible with bidirectional relations.
-/*kapt {
+/*
+kapt {
     arguments {
         arg("krush.references", 'real')
     }
-}*/
+}
+*/

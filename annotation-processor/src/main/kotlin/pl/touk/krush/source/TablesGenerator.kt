@@ -217,7 +217,7 @@ class TablesGenerator : SourceGenerator {
     private fun entityAssocParams(entity: EntityDefinition): List<ParameterSpec> {
         return entity.associations.filter { !it.mapped }.map { assoc ->
             ParameterSpec.builder(
-                    assoc.target.simpleName.asVariable(),
+                    assoc.target.simpleName.asVariable() +"Param",
                     assoc.target.toImmutableKmClass().toClassName().copy(nullable = true)
             ).defaultValue("null").build()
         }

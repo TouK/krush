@@ -30,7 +30,7 @@ class TaskTest : BaseDatabaseTest() {
                     joinType = JoinType.LEFT,
                     onColumn = TaskTable.id,
                     otherColumn = TaskRequirementsTable.taskSourceId
-            ).selectAll().toTaskList()
+            ).selectAll().toTaskList(null)
 
             // then
             val expectation = listOf(task1, task2, task3)

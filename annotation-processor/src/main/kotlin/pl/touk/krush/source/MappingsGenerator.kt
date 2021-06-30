@@ -7,9 +7,9 @@ import com.squareup.kotlinpoet.metadata.toImmutableKmClass
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.statements.UpdateBuilder
 import pl.touk.krush.env.TypeEnvironment
+import pl.touk.krush.meta.toClassName
 import pl.touk.krush.model.*
 import pl.touk.krush.model.AssociationType.*
-import pl.touk.krush.meta.toClassName
 import pl.touk.krush.validation.EntityNotMappedException
 import pl.touk.krush.validation.MissingIdException
 import javax.lang.model.element.TypeElement
@@ -35,7 +35,17 @@ abstract class MappingsGenerator : SourceGenerator {
 
         graph.traverse { entityType, entity ->
             fileSpec.addFunction(buildToEntityFunc(entityType, entity))
-            fileSpec.addFunction(buildToEntityListFunc(entityType, entity))
+
+            if (hasSelfReferences(entityType, entity)) {
+                fileSpec.addFunction(buildToEntityFuncSelf(entityType, entity))
+            }
+
+            if (hasSelfReferences(entityType, entity)) {
+                fileSpec.addFunction(buildSelfReferencesToEntityListFunc(entityType, entity))
+            }else {
+                fileSpec.addFunction(buildToEntityListFunc(entityType, entity))
+            }
+
             fileSpec.addFunction(buildToEntityMapFunc(entityType, entity, graphs))
             buildFromEntityFunc(entityType, entity)?.let { funSpec ->
                 fileSpec.addFunction(funSpec)
@@ -50,9 +60,11 @@ abstract class MappingsGenerator : SourceGenerator {
 
     private fun buildToEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
         val entityClass = entityType.toImmutableKmClass().toClassName()
-        val func = FunSpec.builder("to${entity.name}")
-                .receiver(ResultRow::class.java)
-                .returns(entityClass)
+        val func = if (hasSelfReferences(entityType, entity)) {
+             buildSelfReferencesToEntityBuilder(entity, entityType, entityClass)
+        } else {
+            buildNormalToEntityFunctionBuilder(entity, entityClass)
+        }
 
         val idMapping = entity.id?.let { id ->
             if (id.embedded) {
@@ -101,7 +113,11 @@ abstract class MappingsGenerator : SourceGenerator {
                 if (!assoc.nullable) {
                     "\t${assoc.name} = this.to${assoc.target.simpleName}()"
                 } else {
-                    "\t${assoc.name} = this[${entity.tableName}.${assoc.defaultIdPropName()}]?.let { this.to${assoc.target.simpleName}() }"
+                    if (hasSelfReferences(entityType, entity)) {
+                        selfReferenceAssociationsMapping(assoc, entity)
+                    } else {
+                        "\t${assoc.name} = this[${entity.name}Table.${assoc.defaultIdPropName()}]?.let { this.to${assoc.target.simpleName}() }"
+                    }
                 }
             }
 
@@ -117,6 +133,13 @@ abstract class MappingsGenerator : SourceGenerator {
         return func.build()
     }
 
+    private fun buildNormalToEntityFunctionBuilder(
+        entity: EntityDefinition,
+        entityClass: ClassName
+    ) = FunSpec.builder("to${entity.name}")
+        .receiver(ResultRow::class.java)
+        .returns(entityClass)
+
     private fun buildToEntityListFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
         val func = FunSpec.builder("to${entity.name}List")
                 .receiver(Iterable::class.parameterizedBy(ResultRow::class))
@@ -127,21 +150,37 @@ abstract class MappingsGenerator : SourceGenerator {
         return func.build()
     }
 
+
     private fun buildToEntityMapFunc(entityType: TypeElement, entity: EntityDefinition, graphs: EntityGraphs): FunSpec {
         val rootKey = entity.id?.asUnderlyingTypeName() ?: throw MissingIdException(entity)
-
+        val entityClass = entityType.toImmutableKmClass().toClassName()
         val rootVal = entity.name.asVariable()
-        val func = FunSpec.builder("to${entity.name}Map")
-                .receiver(Iterable::class.parameterizedBy(ResultRow::class))
-                .returns(ClassName("kotlin.collections", "MutableMap").parameterizedBy(rootKey, entityType.toImmutableKmClass().toClassName()))
 
+        val func = if (hasSelfReferences(entityType, entity)) {
+            buildSelfReferencesFuncBuilder(entity, rootKey, entityType, entityClass)
+        } else {
+            buildNormalFuncBuilder(entity, rootKey, entityType)
+        }
         val rootIdName = entity.id.name.asVariable()
         val rootValId = "${rootVal}Id"
 
         return buildToEntityMapFuncBody(entityType, entity, graphs, func, entity.id, rootKey, rootVal, rootIdName, rootValId)
     }
 
-    protected fun addIdStatement(entity: EntityDefinition, id: IdDefinition, idVal: String, func: FunSpec.Builder)  {
+    private fun buildNormalFuncBuilder(
+        entity: EntityDefinition,
+        rootKey: TypeName,
+        entityType: TypeElement
+    ) = FunSpec.builder("to${entity.name}Map")
+        .receiver(Iterable::class.parameterizedBy(ResultRow::class))
+        .returns(
+            ClassName("kotlin.collections", "MutableMap").parameterizedBy(
+                rootKey,
+                entityType.toImmutableKmClass().toClassName()
+            )
+        )
+
+    protected fun addIdStatement(entity: EntityDefinition, id: IdDefinition, idVal: String, func: FunSpec.Builder) {
         if (id.embedded) {
             id.properties.forEach { property ->
                 val propName = id.propName(property)
@@ -160,7 +199,7 @@ abstract class MappingsGenerator : SourceGenerator {
                                           entityId: IdDefinition, rootKey: TypeName, rootVal: String, rootIdName: String, rootValId: String): FunSpec
 
     private fun buildFromEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec? {
-        val param = entity.name.asVariable()
+        val param = entity.name.asVariable() + "Source"
         val tableName = entity.tableName
 
         val func = FunSpec.builder("from")
