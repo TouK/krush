@@ -12,9 +12,10 @@ class OneToManyProcessor(override val typeEnv: TypeEnvironment, private val annE
             val otmAnn = oneToManyElt.getAnnotation(OneToMany::class.java)
             val targetType = oneToManyElt.asType().getTypeArgument().asElement().toTypeElement()
             val parentEntityId = graphs.entityId(targetType)
+            val mappedBy = otmAnn.mappedBy.takeIf { it.isNotBlank() }
             val associationDef = AssociationDefinition(
                 name = oneToManyElt.simpleName, type = AssociationType.ONE_TO_MANY,
-                source = entity.type, target = targetType, mappedBy = otmAnn.mappedBy, targetId = parentEntityId
+                source = entity.type, target = targetType, mappedBy = mappedBy, targetId = parentEntityId
             )
             entity.addAssociation(associationDef)
         }

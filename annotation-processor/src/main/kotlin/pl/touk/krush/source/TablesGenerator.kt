@@ -19,15 +19,18 @@ class TablesGenerator : SourceGenerator {
 
     override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String, typeEnv: TypeEnvironment): FileSpec {
         val fileSpec = FileSpec.builder(packageName, fileName = "tables")
-                .addImport("org.jetbrains.exposed.sql", "Table", "insert")
-                .addImport("org.jetbrains.exposed.sql.java-time", "date", "datetime", "timestamp")
-                .addImport("pl.touk.krush",
-                        "stringWrapper",
-                        "longWrapper",
-                        "instantWrapper",
-                        "zonedDateTime",
-                        "booleanWrapper"
-                )
+            .addAnnotation(
+                AnnotationSpec.builder(Suppress::class.java).addMember("%S", "UNUSED_PARAMETER").build()
+            )
+            .addImport("org.jetbrains.exposed.sql", "Table", "insert")
+            .addImport("org.jetbrains.exposed.sql.java-time", "date", "datetime", "timestamp")
+            .addImport("pl.touk.krush",
+                "stringWrapper",
+                "longWrapper",
+                "instantWrapper",
+                "zonedDateTime",
+                "booleanWrapper"
+            )
 
         val isJsonbUsed = graph.any { (_, entity) ->
             entity.properties.any { it.column?.columnDefinition == "jsonb" }

@@ -6,36 +6,42 @@ import org.jetbrains.exposed.sql.JoinType
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import pl.touk.krush.base.BaseDatabaseTest
 
 class TaskTest : BaseDatabaseTest() {
 
     @Test
-    @Disabled("Uncomment to test M2M with real references (requires krush.references to be set to real)")
     fun shouldHandleSelfReferences() {
         transaction {
-            SchemaUtils.create(TaskTable, TaskRequirementsTable)
+            SchemaUtils.create(BoardTable, TaskTable, TaskRequirementsTable)
 
             // given
-            val task1 = TaskTable.insert(Task(description = "Collect underpants"))
-            val task2 = TaskTable.insert(Task(description = "?", requirements = listOf(task1)))
-            val task3 = TaskTable.insert(Task(description = "Profit!", requirements = listOf(task1, task2)))
+            val board = BoardTable.insert(Board())
+            val task1 = TaskTable.insert(Task(description = "Collect underpants"), board = board)
+            val task2 = TaskTable.insert(Task(description = "?", requirements = listOf(task1)), board = board)
+            val task3 = TaskTable.insert(Task(description = "Profit!", requirements = listOf(task1, task2)), board = board)
 
             // when
-            val selectedTasks = Join(
-                    table = TaskTable,
-                    otherTable = TaskRequirementsTable,
-                    joinType = JoinType.LEFT,
-                    onColumn = TaskTable.id,
-                    otherColumn = TaskRequirementsTable.taskSourceId
-            ).selectAll().toTaskList()
+            val selectedBoards = Join(
+                table = BoardTable,
+                otherTable = TaskTable,
+                joinType = JoinType.LEFT,
+                onColumn = BoardTable.id,
+                otherColumn = TaskTable.boardId
+            ).join(
+                otherTable = TaskRequirementsTable,
+                joinType = JoinType.LEFT,
+                onColumn = TaskTable.id,
+                otherColumn = TaskRequirementsTable.taskSourceId
+            ).selectAll().toBoardList()
 
             // then
-            val expectation = listOf(task1, task2, task3)
-
-            assertThat(selectedTasks).isEqualTo(expectation)
+            assertThat(selectedBoards).hasSize(1)
+                .allSatisfy {
+                    assertThat(it.tasks)
+                        .containsExactlyInAnyOrder(task1, task2, task3)
+                }
         }
     }
 

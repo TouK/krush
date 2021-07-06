@@ -6,6 +6,7 @@ import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import com.squareup.kotlinpoet.metadata.toImmutableKmClass
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.statements.UpdateBuilder
+import pl.touk.krush.RowWrapper
 import pl.touk.krush.env.TypeEnvironment
 import pl.touk.krush.model.*
 import pl.touk.krush.model.AssociationType.*
@@ -15,17 +16,24 @@ import pl.touk.krush.validation.MissingIdException
 import javax.lang.model.element.TypeElement
 
 @KotlinPoetMetadataPreview
-abstract class MappingsGenerator : SourceGenerator {
+class MappingsGenerator : SourceGenerator {
 
     override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String, typeEnv: TypeEnvironment): FileSpec {
         val fileSpec = FileSpec.builder(packageName, fileName = "mappings")
-                .addImport("org.jetbrains.exposed.sql", "ResultRow")
-                .addImport("org.jetbrains.exposed.sql.statements", "UpdateBuilder")
+            .addAnnotation(
+                AnnotationSpec.builder(Suppress::class.java)
+                    .addMember("%S", "UNCHECKED_CAST")
+                    .addMember("%S", "UNUSED_PARAMETER")
+                    .build()
+            )
+            .addImport("org.jetbrains.exposed.sql", "ResultRow")
+            .addImport("org.jetbrains.exposed.sql.statements", "UpdateBuilder")
+            .addImport("kotlin.reflect", "KClass")
 
         graph.allAssociations().forEach { entity ->
             if (entity.packageName != packageName) {
                 fileSpec.addImport(entity.packageName, "${entity.simpleName}", "${entity.simpleName}Table",
-                        "to${entity.simpleName}", "to${entity.simpleName}Map", "to${entity.simpleName}List")
+                        "to${entity.simpleName}", "to${entity.simpleName}Map", "to${entity.simpleName}List", "addSubEntitiesTo${entity.simpleName}")
             }
         }
 
@@ -34,9 +42,14 @@ abstract class MappingsGenerator : SourceGenerator {
         }
 
         graph.traverse { entityType, entity ->
+            // Functions for reading objects from the DB
             fileSpec.addFunction(buildToEntityFunc(entityType, entity))
+            fileSpec.addFunction(buildRowToEntityFunc(entityType, entity))
             fileSpec.addFunction(buildToEntityListFunc(entityType, entity))
-            fileSpec.addFunction(buildToEntityMapFunc(entityType, entity, graphs))
+            fileSpec.addFunction(buildAddSubEntitiesToEntityFunc(entityType, entity))
+            fileSpec.addFunction(buildToEntityMapFunc(entityType, entity, graph))
+
+            // Functions for inserting objects into the DB
             buildFromEntityFunc(entityType, entity)?.let { funSpec ->
                 fileSpec.addFunction(funSpec)
             }
@@ -50,25 +63,21 @@ abstract class MappingsGenerator : SourceGenerator {
 
     private fun buildToEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
         val entityClass = entityType.toImmutableKmClass().toClassName()
+
         val func = FunSpec.builder("to${entity.name}")
-                .receiver(ResultRow::class.java)
+                .receiver(RowWrapper::class.java)
                 .returns(entityClass)
 
-        val idMapping = entity.id?.let { id ->
-            if (id.embedded) {
-                val embeddableIdName = id.name.asVariable()
-                val embeddableIdMapping = id.properties.joinToString(", \n") { property ->
-                    val name = property.name
-                    "\t\t$name = this[${entity.tableName}.${id.propName(property)}]"
-                }
-                "\t$embeddableIdName = ${id.qualifiedName}(\n$embeddableIdMapping\n\t)"
-            } else {
-                "\t${id.name} = this[${entity.tableName}.${id.name}]"
-            }
-        }?.let { listOf(it) } ?: emptyList()
+        val idReadingCode = idReadingBlock(entity.id!!, entity.tableName, rowReference = "row")
 
-        val propsMappings = entity.getPropertyNames().map { name ->
-            "\t$name = this[${entity.tableName}.${name}]"
+        func.addStatement("val ${entity.id.name.asVariable()} = $idReadingCode")
+
+        func.addStatement("val cacheMap = entityStore.getOrPut(${entityType.simpleName}::class) { mutableMapOf() }")
+
+        val idMapping = listOf("\t${entity.id.name} = ${entity.id.name.asVariable()}")
+
+        val propertyMappings = entity.getPropertyNames().map { name ->
+            "\t$name = row[${entity.tableName}.${name}]"
         }
 
         val embeddedMappings = entity.embeddables.map { embeddable ->
@@ -79,29 +88,57 @@ abstract class MappingsGenerator : SourceGenerator {
                     val name = property.name
                     val tablePropName = embeddable.propertyName.asVariable() + name.asVariable().capitalize()
                     val denull = if (!property.nullable) "!!" else ""
-                    "\t\t$name = this[${entity.tableName}.${tablePropName}]$denull"
+                    "\t\t$name = row[${entity.tableName}.${tablePropName}]$denull"
                 }
                 val condition = embeddable.properties.filterNot(PropertyDefinition::nullable).map { property ->
                     val tablePropName = embeddable.propertyName.asVariable() + property.name.asVariable().capitalize()
-                    "\t\tthis[${entity.tableName}.${tablePropName}] != null"
+                    "\t\trow[${entity.tableName}.${tablePropName}] != null"
                 }.joinToString(" &&\n")
                 "\t$embeddableName = if (\n$condition\n\t) ${embeddable.qualifiedName}(\n$embeddableMapping\n\t) else null"
             } else {
                 val embeddableMapping = embeddable.getPropertyNames().joinToString(", \n") { name ->
                     val tablePropName = embeddable.propertyName.asVariable() + name.asVariable().capitalize()
-                    "\t\t$name = this[${entity.tableName}.${tablePropName}]"
+                    "\t\t$name = row[${entity.tableName}.${tablePropName}]"
                 }
                 "\t$embeddableName = ${embeddable.qualifiedName}(\n$embeddableMapping\n\t)"
             }
         }
 
-        val associationsMappings = entity.getAssociations(MANY_TO_ONE, ONE_TO_ONE)
+        val manyToOneAssociationsMappings = entity.getAssociations(MANY_TO_ONE)
             .filter { assoc -> assoc.mapped }
             .map { assoc ->
-                if (!assoc.nullable) {
+                if (!assoc.mapped) {
+                    "\t${assoc.name} = row.getOrNull(${assoc.targetTable}.${assoc.targetId.name})?.let { this.to${assoc.target.simpleName}() }"
+                } else if (!assoc.nullable) {
                     "\t${assoc.name} = this.to${assoc.target.simpleName}()"
                 } else {
-                    "\t${assoc.name} = this[${entity.tableName}.${assoc.defaultIdPropName()}]?.let { this.to${assoc.target.simpleName}() }"
+                    "\t${assoc.name} = row[${entity.tableName}.${assoc.defaultIdPropName()}]?.let { this.to${assoc.target.simpleName}() }"
+                }
+            }
+
+        val oneToOneAssociations = entity.getAssociations(ONE_TO_ONE)
+            .map { assoc ->
+                if (!assoc.mapped) {
+                    if (assoc.nullable) {
+                        // This will be replaced by a copy()-call just before this object is returned.
+                        "\t${assoc.name} = null"
+                    } else {
+                        "\t${assoc.name} = this.to${assoc.target.simpleName}()"
+                    }
+                } else if (!assoc.nullable) {
+                    "\t${assoc.name} = this.to${assoc.target.simpleName}()"
+                } else {
+                    "\t${assoc.name} = row.getOrNull(${assoc.targetTable}.${assoc.targetId.name})?.let { this.to${assoc.target.simpleName}() }"
+                }
+            }
+
+        val mappedOneToOneAssociations = entity.getAssociations(ONE_TO_ONE)
+            .filter { assoc -> !assoc.mapped }
+            .joinToString(",\n") { assoc ->
+                if (assoc.nullable) {
+                    "\t${assoc.name} = row.getOrNull(${assoc.targetTable}.${assoc.targetId.name})?.let { this.to${assoc.target.simpleName}() }"
+                } else {
+                    "\t${assoc.name} = this.to${assoc.target.simpleName}()"
                 }
             }
 
@@ -110,11 +147,58 @@ abstract class MappingsGenerator : SourceGenerator {
         val listAssociationMapping = entity.getAssociations(ONE_TO_MANY, MANY_TO_MANY)
                 .map { "\t${it.name} = mutableListOf()" }
 
-        val mapping = (idMapping + propsMappings + embeddedMappings + associationsMappings + listAssociationMapping).joinToString(",\n")
+        val mapping = (idMapping + propertyMappings + embeddedMappings + manyToOneAssociationsMappings + oneToOneAssociations + listAssociationMapping)
+            .joinToString(",\n")
 
-        func.addStatement("return %T(\n$mapping\n)", entityClass)
+        func.apply {
+            addStatement("return cacheMap.getOrPut(${entity.id.name.asVariable()}) {")
+            
+            if (mappedOneToOneAssociations.isBlank()) {
+                addStatement("\t%T(\n$mapping\n)", entityClass)
+            } else {
+                addStatement("\tval partial${entity.name} = %T(\n$mapping\n)", entityClass)
+                addStatement("\tcacheMap[${entity.id.name.asVariable()}] = partial${entity.name}")
+                addComment("\tAdd bijective O2O references after caching the object to avoid infinite loops")
+                addStatement("\treturn@getOrPut partial${entity.name}.copy(\n$mappedOneToOneAssociations\n)")
+            }
+            addStatement("} as %T", entityType)
+        }
 
         return func.build()
+    }
+
+    private fun idReadingBlock(id: IdDefinition, tableName: String, rowReference: String = "this", nullable: Boolean = false): String {
+        return if (id.embedded) {
+            val embeddableIdMapping = id.properties.joinToString(", \n") { property ->
+                val name = property.name
+                "\t\t$name = $rowReference[${tableName}.${id.propName(property)}]"
+            }
+            if (!nullable) {
+                "${id.qualifiedName}(\n$embeddableIdMapping\n\t)"
+            } else {
+                val nullCheck = id.properties.joinToString(" && ") { property ->
+                    "$rowReference.getOrNull(${tableName}.${id.propName(property)}) == null"
+                }
+                "if ($nullCheck) null else ${id.qualifiedName}(\n$embeddableIdMapping\n\t)"
+            }
+
+        } else {
+            if (!nullable) {
+                "$rowReference[${tableName}.${id.name}]"
+            } else {
+                "$rowReference.getOrNull(${tableName}.${id.name})"
+            }
+        }
+    }
+
+    private fun buildRowToEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
+        val entityClass = entityType.toImmutableKmClass().toClassName()
+
+        return FunSpec.builder("to${entity.name}")
+            .receiver(ResultRow::class.java)
+            .returns(entityClass)
+            .addStatement("return %T(this).to${entity.name}()", RowWrapper::class)
+            .build()
     }
 
     private fun buildToEntityListFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
@@ -127,37 +211,174 @@ abstract class MappingsGenerator : SourceGenerator {
         return func.build()
     }
 
-    private fun buildToEntityMapFunc(entityType: TypeElement, entity: EntityDefinition, graphs: EntityGraphs): FunSpec {
+    private fun buildAddSubEntitiesToEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
+        val entityParamName = entity.name.asVariable()
+
+        val func = FunSpec.builder("addSubEntitiesTo${entity.name}")
+            .receiver(RowWrapper::class)
+            .addParameter(
+                entityParamName,
+                entityType.toImmutableKmClass().toClassName().copy(nullable = true)
+            )
+
+        func.addStatement("if ($entityParamName == null) return")
+
+        // Recursively add info to every related O2O entity
+        entity.getAssociations(ONE_TO_ONE).forEach { oneToOneAssoc ->
+            func.addComment("Add sub-elements contained in this row to ${oneToOneAssoc.name}")
+            func.addStatement("addSubEntitiesTo${oneToOneAssoc.target.simpleName}($entityParamName.${oneToOneAssoc.name})")
+        }
+
+        // M2M and M2O relations are represented as lists. When such a list contains multiple entities, those entities
+        // are spread over multiple rows. Here, we figure out whether this row contains a new sub-entity in a list and
+        // add it to that list if necessary. Otherwise, we just recursively search each entity for sub-sub-entities that
+        // might be new in this row, etc.
+        entity.getAssociations(ONE_TO_MANY, MANY_TO_MANY).forEach { setAssoc ->
+
+            if (!setAssoc.isSelfReferential) {
+                val attrValName = "${setAssoc.name.asVariable()}Attr"
+                val newEntityValName = "new${setAssoc.target.simpleName}"
+
+                val targetTypeName = "${setAssoc.target.simpleName}"
+
+                func.apply {
+                    // Allowing a null id here allows users to not include a join with the other table if they don't
+                    // need the relation-lists to be populated
+                    addStatement("val ${setAssoc.name.asVariable()}Id = ${idReadingBlock(setAssoc.targetId, setAssoc.targetTable, nullable = true, rowReference = "row")}")
+                    beginControlFlow("if (${setAssoc.name.asVariable()}Id != null) {")
+
+
+                    addStatement("val $attrValName = $entityParamName.${setAssoc.name.asVariable()} as MutableList<$targetTypeName>")
+                    addStatement("val ${attrValName}LastElement = $attrValName.lastOrNull()")
+
+                    if (setAssoc.isBidirectional && entity.id != null) {
+                        addComment("Prevent stack overflow when mapping bi-directional relations")
+                        beginControlFlow("withoutEntity(%T::class, $entityParamName.${entity.id.name}) {", entityType)
+                    }
+
+                    beginControlFlow("if (${setAssoc.name.asVariable()}Id != ${attrValName}LastElement?.${setAssoc.targetId.name}) {")
+
+                    addComment("If the sub-entity is new, create a new object for it")
+                    addStatement("val $newEntityValName = to$targetTypeName()")
+                    addStatement("addSubEntitiesTo$targetTypeName($newEntityValName)")
+                    addStatement("$attrValName.add($newEntityValName)")
+
+                    addStatement("} else {")
+
+                    addComment("\tIf we already have an entity with this ID, check if there's a new sub-sub-entity in it")
+                    addStatement("\taddSubEntitiesTo$targetTypeName(${attrValName}LastElement)")
+
+                    endControlFlow()
+
+                    if (setAssoc.isBidirectional && entity.id != null) {
+                        endControlFlow()
+                    }
+
+                    endControlFlow()
+                }
+            } else {
+                val id = entity.id!!
+                val relationTableName = "${entity.name}${setAssoc.name.asObject()}Table"
+                val idReadingBlock = if (id.embedded) {
+                    val embeddableIdMapping = id.properties.joinToString(", \n") { property ->
+                        val name = property.name
+                        val targetColumnName = "${entity.name.asVariable()}Target${property.valName.capitalize()}"
+                        "\t\t$name = row[$relationTableName.$targetColumnName]"
+                    }
+                    val nullCheck = id.properties.joinToString(" && ") { property ->
+                        val targetColumnName = "${entity.name.asVariable()}Target${property.valName.capitalize()}"
+                        "row.getOrNull($relationTableName.$targetColumnName) == null"
+                    }
+                    "if ($nullCheck) null else ${id.qualifiedName}(\n$embeddableIdMapping\n\t)"
+
+                } else {
+                    val targetColumnName = "${entity.name.asVariable()}Target${entity.id.name.toString().capitalize()}"
+                    "row.getOrNull($relationTableName.$targetColumnName)"
+                }
+
+                val selfReferenceMapName = "${entity.name.asVariable()}SelfReferenceRequests"
+
+                func.apply {
+                    // Allowing a null id here allows users to not include a join with the other table if they don't
+                    // need the relation-lists to be populated
+                    addStatement("val other${entity.name}Id = $idReadingBlock")
+                    addStatement("if (other${entity.name}Id != null) {")
+                    addStatement("\tval $selfReferenceMapName = selfReferenceRequests.getOrPut(%T::class) { mutableMapOf() }", entityType)
+                    addStatement("\tval ${entity.name.asVariable()}Requests = $selfReferenceMapName.getOrPut(other${entity.name}Id) { mutableSetOf() }")
+                    addStatement("\t${entity.name.asVariable()}Requests.add($entityParamName.${id.name}!!)")
+                    addStatement("}")
+                }
+            }
+        }
+
+        return func.build()
+    }
+
+    private fun buildToEntityMapFunc(entityType: TypeElement, entity: EntityDefinition, graph: EntityGraph): FunSpec {
         val rootKey = entity.id?.asUnderlyingTypeName() ?: throw MissingIdException(entity)
 
-        val rootVal = entity.name.asVariable()
         val func = FunSpec.builder("to${entity.name}Map")
                 .receiver(Iterable::class.parameterizedBy(ResultRow::class))
-                .returns(ClassName("kotlin.collections", "MutableMap").parameterizedBy(rootKey, entityType.toImmutableKmClass().toClassName()))
+                .returns(
+                    ClassName("kotlin.collections", "Map")
+                        .parameterizedBy(rootKey, entityType.toImmutableKmClass().toClassName())
+                )
+        
+        val currentEntityValName = "current${entity.name.asObject()}"
 
-        val rootIdName = entity.id.name.asVariable()
-        val rootValId = "${rootVal}Id"
+        func.apply {
+            addStatement("val entityStore: MutableMap<KClass<*>, MutableMap<Any, Any>> = mutableMapOf()")
+            addStatement("val selfReferenceRequests: MutableMap<KClass<*>, MutableMap<Any, MutableSet<Any>>> = mutableMapOf()")
 
-        return buildToEntityMapFuncBody(entityType, entity, graphs, func, entity.id, rootKey, rootVal, rootIdName, rootValId)
-    }
+            addStatement("this.forEach { row ->")
 
-    protected fun addIdStatement(entity: EntityDefinition, id: IdDefinition, idVal: String, func: FunSpec.Builder)  {
-        if (id.embedded) {
-            id.properties.forEach { property ->
-                val propName = id.propName(property)
-                func.addStatement("\tval $propName = resultRow.getOrNull(${entity.tableName}.$propName)")
+            addComment("\tCreate this entity or expand on the sub-entity lists contained within")
+            addStatement("\tval rowWrapper = %T(row, entityStore, selfReferenceRequests)", RowWrapper::class)
+            addStatement("\tval $currentEntityValName = rowWrapper.to${entity.name}()")
+            addStatement("\trowWrapper.addSubEntitiesTo${entity.name}($currentEntityValName)")
+
+            addStatement("}")
+
+            val selfRefAssociations = graph.values
+                .flatMap { entityDef ->
+                    entityDef.associations.filter { it.isSelfReferential }
+                }
+
+            if(selfRefAssociations.isNotEmpty()) {
+                // Go through all self references requested and add them to the respective list.
+                addStatement("selfReferenceRequests.forEach { (clazz, unsatisfiedMap) -> ")
+                addStatement("\twhen(clazz) {")
+
+                selfRefAssociations
+                    .forEach { selfRefAssoc ->
+                        val entityName = selfRefAssoc.source.simpleName
+                        val subjectIdName = "subject${entityName}Id"
+                        val referencingIdSetName = "referencing${entityName}Ids"
+                        val subjectValName = "subject${entityName}"
+                        val referencingIdName = "referencing${entityName}Id"
+                        val referencingEntityName = "referencing${selfRefAssoc.target.simpleName}"
+                        val targetType = selfRefAssoc.target
+
+                        addStatement("\t\t%T::class -> unsatisfiedMap.forEach { ($subjectIdName, $referencingIdSetName) ->", targetType)
+                        addStatement("\t\t\tval $subjectValName = entityStore[%T::class]?.get($subjectIdName) as? $entityName", targetType)
+                        addStatement("\t\t\tif ($subjectValName != null) {")
+                        addStatement("\t\t\t\t$referencingIdSetName.forEach { $referencingIdName -> ")
+                        addStatement("\t\t\t\t\tval $referencingEntityName = entityStore[%T::class]?.get($referencingIdName) as? %T", targetType, targetType)
+                        addStatement("\t\t\t\t\t($referencingEntityName?.${selfRefAssoc.name.asVariable()} as? MutableList<$entityName>)?.add($subjectValName)")
+                        addStatement("\t\t\t\t}")
+                        addStatement("\t\t\t}")
+                        addStatement("\t\t}")
+                    }
+
+                addStatement("\t}")
+                addStatement("}")
             }
-            val condition = id.properties.filterNot(PropertyDefinition::nullable).map { property ->
-                "\t${id.propName(property)} != null"
-            }.joinToString(" &&\n").takeIf { it.isNotBlank() } ?: "false"
-            func.addStatement("\tval $idVal = if (\n$condition\n\t) ${id.qualifiedName}(${id.propsAsArgs}) else null")
-        } else {
-            func.addStatement("\tval $idVal = resultRow.getOrNull(${entity.tableName}.${id.name})")
-        }
-    }
 
-    abstract fun buildToEntityMapFuncBody(entityType: TypeElement, entity: EntityDefinition, graphs: EntityGraphs, func: FunSpec.Builder,
-                                          entityId: IdDefinition, rootKey: TypeName, rootVal: String, rootIdName: String, rootValId: String): FunSpec
+            addStatement("return (entityStore[%T::class] ?: emptyMap()) as Map<$rootKey, ${entity.name}>", entityType)
+        }
+
+        return func.build()
+    }
 
     private fun buildFromEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec? {
         val param = entity.name.asVariable()

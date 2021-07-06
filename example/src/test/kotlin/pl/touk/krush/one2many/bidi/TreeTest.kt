@@ -30,7 +30,7 @@ class TreeTest : BaseDatabaseTest() {
                     .toTreeList()
 
             // then
-            val fullTree= tree.copy(branches = listOf(branch1.copy(leafs = listOf(leaf11, leaf12)), branch2.copy(leafs = listOf(leaf21))))
+            val fullTree = tree.copy(branches = listOf(branch1.copy(leafs = listOf(leaf11, leaf12)), branch2.copy(leafs = listOf(leaf21))))
 
             assertThat(trees).isEqualTo(fullTree)
         }

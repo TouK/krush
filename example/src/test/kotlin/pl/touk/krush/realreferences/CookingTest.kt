@@ -13,7 +13,6 @@ import pl.touk.krush.base.BaseDatabaseTest
 class CookingTest : BaseDatabaseTest() {
 
     @Test
-    @Disabled("Enable to test O2O lists with real references (requires krush.references to be set to real)")
     fun shouldCreateMultilevelLists() {
         transaction {
             SchemaUtils.create(MealPlanTable, RecipeTable, RecipeIngredientsTable, IngredientTable)
