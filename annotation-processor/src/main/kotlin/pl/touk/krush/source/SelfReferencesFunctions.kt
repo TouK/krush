@@ -10,12 +10,7 @@ import pl.touk.krush.model.*
 import javax.lang.model.element.TypeElement
 
 fun hasSelfReferences(entityType: TypeElement, entity: EntityDefinition): Boolean {
-    return entity.getAssociations(
-        AssociationType.ONE_TO_MANY,
-        AssociationType.ONE_TO_ONE,
-        AssociationType.MANY_TO_ONE,
-        AssociationType.MANY_TO_MANY
-    )
+    return entity.associations
         .any { it.target == entityType }
 }
 
@@ -27,15 +22,28 @@ fun buildToEntityFuncSelf(entityType: TypeElement, entity: EntityDefinition): Fu
         .addParameter(
             "alias",
             ClassName("org.jetbrains.exposed.sql", "Alias")
-                .parameterizedBy(ClassName("${entityType.packageName}", "${entityClass}Table"))
+                .parameterizedBy(ClassName(entityType.packageName, "${entityClass}Table"))
         )
         .addParameter(
             "parentAlias",
             ClassName("org.jetbrains.exposed.sql", "Alias")
-                .parameterizedBy(ClassName("${entityType.packageName}", "${entityClass}Table"))
+                .parameterizedBy(ClassName(entityType.packageName, "${entityClass}Table"))
                 .copy(nullable = true)
         )
         .returns(entityClass)
+
+    val idMapping = entity.id?.let { id ->
+        if (id.embedded) {
+            val embeddableIdName = id.name.asVariable()
+            val embeddableIdMapping = id.properties.joinToString(", \n") { property ->
+                val name = property.name
+                "\t\t$name = this[alias[${entity.tableName}.${id.propName(property)}]]"
+            }
+            "\t$embeddableIdName = ${id.qualifiedName}(\n$embeddableIdMapping\n\t)"
+        } else {
+            "\t${id.name} = this[alias[${entity.tableName}.${id.name}]]"
+        }
+    }?.let { listOf(it) } ?: emptyList()
 
     val propsMappings = entity.getPropertyNames().map { name ->
         "\t$name = this[alias[${entity.name}Table.${name}]]"
@@ -72,7 +80,7 @@ fun buildToEntityFuncSelf(entityType: TypeElement, entity: EntityDefinition): Fu
         .map { "\t${it.name} = mutableListOf()" }
 
     val mapping =
-        (propsMappings + embeddedMappings + associationsMappings + listAssociationMapping).joinToString(",\n")
+        (idMapping + propsMappings + embeddedMappings + associationsMappings + listAssociationMapping).joinToString(",\n")
 
     func.addStatement("return %T(\n$mapping\n)", entityClass)
 
@@ -93,7 +101,7 @@ fun buildSelfReferencesFuncBuilder(
         ClassName("org.jetbrains.exposed.sql", "Alias")
             .parameterizedBy(
                 ClassName(
-                    "${entityType.packageName}",
+                    entityType.packageName,
                     "${entityClass}Table"
                 )
             ).copy(nullable = true)
@@ -117,7 +125,7 @@ fun buildSelfReferencesToEntityBuilder(
         ClassName(
             "org.jetbrains.exposed.sql",
             "Alias"
-        ).parameterizedBy(ClassName("${entityType.packageName}", "${entityClass}Table"))
+        ).parameterizedBy(ClassName(entityType.packageName, "${entityClass}Table"))
             .copy(nullable = true)
     )
     .returns(entityClass)
@@ -136,7 +144,7 @@ fun buildSelfReferencesToEntityListFunc(entityType: TypeElement, entity: EntityD
             ClassName("org.jetbrains.exposed.sql", "Alias")
                 .parameterizedBy(
                     ClassName(
-                       packageName =  "${entityType.packageName}",
+                       packageName = entityType.packageName,
                        "${entityType.toImmutableKmClass().toClassName()}Table"
                     )
                 ).copy(nullable = true)

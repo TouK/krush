@@ -44,47 +44,46 @@ class CategoryTest: BaseDatabaseTest() {
 
 }
 
-fun Iterable<ResultRow>.toCategoryList(parentAlias: Alias<CategoryTable>?): List<Category> =
-    this.toCategoryMap(parentAlias).values.toList()
-
-fun Iterable<ResultRow>.toCategoryMap(parentAlias: Alias<CategoryTable>?): MutableMap<Long, Category> {
-    val roots = mutableMapOf<Long, Category>()
-    val category_parent = mutableMapOf<Long, Category>()
-    val category_children = mutableMapOf<Long, MutableSet<Category>>()
-    val children_map = emptyMap<kotlin.Long, Category>()
-    this.forEach { resultRow ->
-        val categoryId = resultRow.getOrNull(CategoryTable.id)
-        if(categoryId == null) return@forEach
-
-        val category = roots[categoryId] ?: resultRow.toCategory(parentAlias)
-        roots[categoryId] = category
-
-        resultRow[CategoryTable.parentId]?.let { parentId ->
-            val parent = resultRow.toCategory(parentAlias)
-            category_parent[categoryId] = parent
-            category_children.getOrPut(parentId, ::mutableSetOf).add(category)
-        }
-    }
-
-    return roots.mapValues { (_, category) ->
-        category.copy(
-            parent = category_parent[category.id],
-            children = category_children[category.id]?.toList() ?: emptyList()
-        )
-    }.toMutableMap()
-
-}
-
-fun ResultRow.toCategory(parentAlias: Alias<CategoryTable>?): Category = Category(
-    id = this[CategoryTable.id],
-    name = this[CategoryTable.name],
-    parent = this[CategoryTable.parentId]?.let { parentAlias?.let { this.toCategory(parentAlias, null) } },
-    children = mutableListOf()
-)
-
-fun ResultRow.toCategory(alias: Alias<CategoryTable>, parentAlias: Alias<CategoryTable>?): Category = Category(
-    id = this[alias[CategoryTable.id]],
-    name = this[alias[CategoryTable.name]],
-    parent = this[CategoryTable.parentId]?.let { parentAlias?.let { this.toCategory(parentAlias, null) } },
-    children = mutableListOf()
-)
+//fun Iterable<ResultRow>.toCategoryList(parentAlias: Alias<CategoryTable>?): List<Category> =
+//    this.toCategoryMap(parentAlias).values.toList()
+//
+//fun Iterable<ResultRow>.toCategoryMap(parentAlias: Alias<CategoryTable>?): MutableMap<Long, Category> {
+//    val roots = mutableMapOf<Long, Category>()
+//    val category_parent = mutableMapOf<Long, Category>()
+//    val category_children = mutableMapOf<Long, MutableSet<Category>>()
+//    this.forEach { resultRow ->
+//        val categoryId = resultRow.getOrNull(CategoryTable.id)
+//        if(categoryId == null) return@forEach
+//
+//        val category = roots[categoryId] ?: resultRow.toCategory(parentAlias)
+//        roots[categoryId] = category
+//
+//        resultRow[CategoryTable.parentId]?.let { parentId ->
+//            val parent = resultRow.toCategory(parentAlias)
+//            category_parent[categoryId] = parent
+//            category_children.getOrPut(parentId, ::mutableSetOf).add(category)
+//        }
+//    }
+//
+//    return roots.mapValues { (_, category) ->
+//        category.copy(
+//            parent = category_parent[category.id],
+//            children = category_children[category.id]?.toList() ?: emptyList()
+//        )
+//    }.toMutableMap()
+//
+//}
+//
+//fun ResultRow.toCategory(parentAlias: Alias<CategoryTable>?): Category = Category(
+//    id = this[CategoryTable.id],
+//    name = this[CategoryTable.name],
+//    parent = this[CategoryTable.parentId]?.let { parentAlias?.let { this.toCategory(parentAlias, null) } },
+//    children = mutableListOf()
+//)
+//
+//fun ResultRow.toCategory(alias: Alias<CategoryTable>, parentAlias: Alias<CategoryTable>?): Category = Category(
+//    id = this[alias[CategoryTable.id]],
+//    name = this[alias[CategoryTable.name]],
+//    parent = this[CategoryTable.parentId]?.let { parentAlias?.let { this.toCategory(parentAlias, null) } },
+//    children = mutableListOf()
+//)
