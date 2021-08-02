@@ -229,7 +229,7 @@ class MappingsGenerator : SourceGenerator {
         // might be new in this row, etc.
         entity.getAssociations(ONE_TO_MANY, MANY_TO_MANY).forEach { setAssoc ->
 
-            if (!setAssoc.isSelfReferential) {
+            if (setAssoc.type == ONE_TO_MANY || !setAssoc.isSelfReferential) {
                 val attrValName = "${setAssoc.name.asVariable()}Attr"
                 val newEntityValName = "new${setAssoc.target.simpleName}"
 

@@ -13,4 +13,6 @@ data class RowWrapper(
         callback()
         entity?.let { entityStore[clazz]?.put(id, it) }
     }
+
+    fun containsEntity(clazz: KClass<*>, id: Any?) = entityStore[clazz]?.containsKey(id) == true
 }
