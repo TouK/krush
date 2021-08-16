@@ -43,11 +43,12 @@ class MappingsGenerator : SourceGenerator {
 
         graph.traverse { entityType, entity ->
             // Functions for reading objects from the DB
-            fileSpec.addFunction(buildToEntityFunc(entityType, entity))
-            fileSpec.addFunction(buildRowToEntityFunc(entityType, entity))
-            fileSpec.addFunction(buildToEntityListFunc(entityType, entity))
-            fileSpec.addFunction(buildAddSubEntitiesToEntityFunc(entityType, entity))
-            fileSpec.addFunction(buildToEntityMapFunc(entityType, entity, graph))
+            val entityClass = entityType.toImmutableKmClass().toClassName()
+            fileSpec.addFunction(buildToEntityFunc(entityType, entityClass, entity))
+            fileSpec.addFunction(buildRowToEntityFunc(entityClass, entity))
+            fileSpec.addFunction(buildToEntityListFunc(entityClass, entity))
+            fileSpec.addFunction(buildAddSubEntitiesToEntityFunc(entityClass, entity))
+            fileSpec.addFunction(buildToEntityMapFunc(entityClass, entity, graph))
 
             // Functions for inserting objects into the DB
             buildFromEntityFunc(entityType, entity)?.let { funSpec ->
@@ -61,9 +62,7 @@ class MappingsGenerator : SourceGenerator {
         return fileSpec.build()
     }
 
-    private fun buildToEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
-        val entityClass = entityType.toImmutableKmClass().toClassName()
-
+    private fun buildToEntityFunc(entityType: TypeElement, entityClass: ClassName, entity: EntityDefinition): FunSpec {
         val func = FunSpec.builder("to${entity.name}")
                 .receiver(RowWrapper::class.java)
                 .returns(entityClass)
@@ -161,7 +160,7 @@ class MappingsGenerator : SourceGenerator {
                 addComment("\tAdd bijective O2O references after caching the object to avoid infinite loops")
                 addStatement("\treturn@getOrPut partial${entity.name}.copy(\n$mappedOneToOneAssociations\n)")
             }
-            addStatement("} as %T", entityType)
+            addStatement("} as %T", entityClass)
         }
 
         return func.build()
@@ -191,9 +190,7 @@ class MappingsGenerator : SourceGenerator {
         }
     }
 
-    private fun buildRowToEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
-        val entityClass = entityType.toImmutableKmClass().toClassName()
-
+    private fun buildRowToEntityFunc(entityClass: ClassName, entity: EntityDefinition): FunSpec {
         return FunSpec.builder("to${entity.name}")
             .receiver(ResultRow::class.java)
             .returns(entityClass)
@@ -201,25 +198,22 @@ class MappingsGenerator : SourceGenerator {
             .build()
     }
 
-    private fun buildToEntityListFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
+    private fun buildToEntityListFunc(entityClass: ClassName, entity: EntityDefinition): FunSpec {
         val func = FunSpec.builder("to${entity.name}List")
                 .receiver(Iterable::class.parameterizedBy(ResultRow::class))
-                .returns(List::class.asClassName().parameterizedBy(entityType.toImmutableKmClass().toClassName()))
+                .returns(List::class.asClassName().parameterizedBy(entityClass))
 
         func.addStatement("return this.to${entity.name}Map().values.toList()")
 
         return func.build()
     }
 
-    private fun buildAddSubEntitiesToEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
+    private fun buildAddSubEntitiesToEntityFunc(entityClass: ClassName, entity: EntityDefinition): FunSpec {
         val entityParamName = entity.name.asVariable()
 
         val func = FunSpec.builder("addSubEntitiesTo${entity.name}")
             .receiver(RowWrapper::class)
-            .addParameter(
-                entityParamName,
-                entityType.toImmutableKmClass().toClassName().copy(nullable = true)
-            )
+            .addParameter(entityParamName, entityClass.copy(nullable = true))
 
         func.addStatement("if ($entityParamName == null) return")
 
@@ -253,7 +247,7 @@ class MappingsGenerator : SourceGenerator {
 
                     if (setAssoc.isBidirectional && entity.id != null) {
                         addComment("Prevent stack overflow when mapping bi-directional relations")
-                        beginControlFlow("withoutEntity(%T::class, $entityParamName.${entity.id.name}) {", entityType)
+                        beginControlFlow("withoutEntity(%T::class, $entityParamName.${entity.id.name}) {", entityClass)
                     }
 
                     beginControlFlow("if (${setAssoc.name.asVariable()}Id != ${attrValName}LastElement?.${setAssoc.targetId.name}) {")
@@ -303,7 +297,7 @@ class MappingsGenerator : SourceGenerator {
                     // need the relation-lists to be populated
                     addStatement("val other${entity.name}Id = $idReadingBlock")
                     addStatement("if (other${entity.name}Id != null) {")
-                    addStatement("\tval $selfReferenceMapName = selfReferenceRequests.getOrPut(%T::class) { mutableMapOf() }", entityType)
+                    addStatement("\tval $selfReferenceMapName = selfReferenceRequests.getOrPut(%T::class) { mutableMapOf() }", entityClass)
                     addStatement("\tval ${entity.name.asVariable()}Requests = $selfReferenceMapName.getOrPut(other${entity.name}Id) { mutableSetOf() }")
                     addStatement("\t${entity.name.asVariable()}Requests.add($entityParamName.${id.name}!!)")
                     addStatement("}")
@@ -314,14 +308,13 @@ class MappingsGenerator : SourceGenerator {
         return func.build()
     }
 
-    private fun buildToEntityMapFunc(entityType: TypeElement, entity: EntityDefinition, graph: EntityGraph): FunSpec {
+    private fun buildToEntityMapFunc(entityClass: ClassName, entity: EntityDefinition, graph: EntityGraph): FunSpec {
         val rootKey = entity.id?.asUnderlyingTypeName() ?: throw MissingIdException(entity)
 
         val func = FunSpec.builder("to${entity.name}Map")
                 .receiver(Iterable::class.parameterizedBy(ResultRow::class))
                 .returns(
-                    ClassName("kotlin.collections", "Map")
-                        .parameterizedBy(rootKey, entityType.toImmutableKmClass().toClassName())
+                    ClassName("kotlin.collections", "Map").parameterizedBy(rootKey, entityClass)
                 )
         
         val currentEntityValName = "current${entity.name.asObject()}"
@@ -358,12 +351,13 @@ class MappingsGenerator : SourceGenerator {
                         val referencingIdName = "referencing${entityName}Id"
                         val referencingEntityName = "referencing${selfRefAssoc.target.simpleName}"
                         val targetType = selfRefAssoc.target
+                        val targetClass = targetType.toImmutableKmClass().toClassName()
 
-                        addStatement("\t\t%T::class -> unsatisfiedMap.forEach { ($subjectIdName, $referencingIdSetName) ->", targetType)
-                        addStatement("\t\t\tval $subjectValName = entityStore[%T::class]?.get($subjectIdName) as? $entityName", targetType)
+                        addStatement("\t\t%T::class -> unsatisfiedMap.forEach { ($subjectIdName, $referencingIdSetName) ->", targetClass)
+                        addStatement("\t\t\tval $subjectValName = entityStore[%T::class]?.get($subjectIdName) as? $entityName", targetClass)
                         addStatement("\t\t\tif ($subjectValName != null) {")
                         addStatement("\t\t\t\t$referencingIdSetName.forEach { $referencingIdName -> ")
-                        addStatement("\t\t\t\t\tval $referencingEntityName = entityStore[%T::class]?.get($referencingIdName) as? %T", targetType, targetType)
+                        addStatement("\t\t\t\t\tval $referencingEntityName = entityStore[%T::class]?.get($referencingIdName) as? %T", targetClass, targetClass)
                         addStatement("\t\t\t\t\t($referencingEntityName?.${selfRefAssoc.name.asVariable()} as? MutableList<$entityName>)?.add($subjectValName)")
                         addStatement("\t\t\t\t}")
                         addStatement("\t\t\t}")
@@ -374,7 +368,7 @@ class MappingsGenerator : SourceGenerator {
                 addStatement("}")
             }
 
-            addStatement("return (entityStore[%T::class] ?: emptyMap()) as Map<$rootKey, ${entity.name}>", entityType)
+            addStatement("return (entityStore[%T::class] ?: emptyMap()) as Map<$rootKey, ${entity.name}>", entityClass)
         }
 
         return func.build()

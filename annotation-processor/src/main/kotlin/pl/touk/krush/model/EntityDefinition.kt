@@ -2,6 +2,7 @@ package pl.touk.krush.model
 
 import pl.touk.krush.validation.EntityNotMappedException
 import pl.touk.krush.validation.MissingIdException
+import java.util.*
 import javax.lang.model.element.Name
 import javax.lang.model.element.TypeElement
 import javax.persistence.Column
