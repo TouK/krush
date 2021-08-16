@@ -1,3 +1,12 @@
+# 0.5.0
+Infrastructure
+* Kotlin 1.5.10
+* Exposed [0.32.1](https://github.com/JetBrains/Exposed/releases/tag/0.32.1)
+* kotlin-poet 1.9.0
+
+Features
+* Conversion of TypeMirror and TypeElement is deprecated in KotlinPoet, use kotlin-metadata APIs instead ([49](https://github.com/TouK/krush/issues/49))
+
 # 0.4.0
 Infrastructure
 * Kotlin 1.4.31
@@ -10,7 +19,6 @@ Features
 * Support @Id on same column as @JoinColumn or @PrimaryKeyJoinColumn ([35](https://github.com/TouK/krush/issues/35))
 * Support shared reference on composite key ([40](https://github.com/TouK/krush/issues/40))
 * PostgreSQL JSONB support ([43](https://github.com/TouK/krush/issues/43))
-
 
 Bug fixes
 * Typo in PropertyTypeNotSupportedException ([28](https://github.com/TouK/krush/issues/27))
