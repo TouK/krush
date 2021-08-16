@@ -1,5 +1,7 @@
 package pl.touk.krush.model
 
+import java.util.*
+
 fun IdDefinition.handleSharedKey(assoc: AssociationDefinition): Pair<IdDefinition, AssociationDefinition> {
     var sharedAssoc: AssociationDefinition? = null
     val enhancedProps = mutableListOf<PropertyDefinition>()
@@ -14,3 +16,7 @@ fun IdDefinition.handleSharedKey(assoc: AssociationDefinition): Pair<IdDefinitio
 
     return enhancedId to enhancedAssoc
 }
+
+fun String.capitalize() = this.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+fun String.decapitalize() = this.replaceFirstChar { it.lowercase(Locale.getDefault()) }
+fun String.toLowerCase() = this.lowercase(Locale.getDefault())
