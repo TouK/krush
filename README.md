@@ -80,9 +80,12 @@ repositories {
 }
 
 apply plugin: 'kotlin-kapt'
-api "pl.touk.krush:krush-annotation-processor:$krushVersion"
-kapt "pl.touk.krush:krush-annotation-processor:$krushVersion"
-api "pl.touk.krush:krush-runtime:$krushVersion"
+
+dependencies {
+    api "pl.touk.krush:krush-annotation-processor:$krushVersion"
+    kapt "pl.touk.krush:krush-annotation-processor:$krushVersion"
+    api "pl.touk.krush:krush-runtime:$krushVersion" 
+}
 ```
 
 Maven:
