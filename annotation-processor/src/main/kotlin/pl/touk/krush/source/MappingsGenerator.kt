@@ -21,7 +21,7 @@ class MappingsGenerator : SourceGenerator {
     override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String, typeEnv: TypeEnvironment): FileSpec {
         val fileSpec = FileSpec.builder(packageName, fileName = "mappings")
             .addAnnotation(
-                AnnotationSpec.builder(Suppress::class.java)
+                AnnotationSpec.builder(Suppress::class)
                     .addMember("%S", "UNCHECKED_CAST")
                     .addMember("%S", "UNUSED_PARAMETER")
                     .build()

@@ -20,7 +20,7 @@ class TablesGenerator : SourceGenerator {
     override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String, typeEnv: TypeEnvironment): FileSpec {
         val fileSpec = FileSpec.builder(packageName, fileName = "tables")
             .addAnnotation(
-                AnnotationSpec.builder(Suppress::class.java).addMember("%S", "UNUSED_PARAMETER").build()
+                AnnotationSpec.builder(Suppress::class).addMember("%S", "UNUSED_PARAMETER").build()
             )
             .addImport("org.jetbrains.exposed.sql", "Table", "insert")
             .addImport("org.jetbrains.exposed.sql.java-time", "date", "datetime", "timestamp")
