@@ -1,3 +1,8 @@
+# 0.5.1
+
+Bug fixes
+* @JoinColumn name ignored when using @ManyToOne ([53](https://github.com/TouK/krush/issues/53))
+
 # 0.5.0
 Infrastructure
 * Kotlin 1.5.10
