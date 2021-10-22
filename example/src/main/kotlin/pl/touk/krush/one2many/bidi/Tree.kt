@@ -29,7 +29,7 @@ data class Branch(
     val name: String,
 
     @ManyToOne
-    @JoinColumn(name = "tree_id")
+    @JoinColumn(name = "my_tree_id")
     val tree: Tree? = null,
 
     @OneToMany(mappedBy = "branch")
