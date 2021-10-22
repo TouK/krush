@@ -13,6 +13,7 @@ import pl.touk.krush.meta.toClassName
 import pl.touk.krush.validation.*
 import javax.lang.model.element.Name
 import javax.lang.model.element.TypeElement
+import javax.persistence.JoinColumn
 
 @KotlinPoetMetadataPreview
 class TablesGenerator : SourceGenerator {
@@ -350,7 +351,10 @@ class TablesGenerator : SourceGenerator {
     }
 
     private fun associationInitializer(assoc: AssociationDefinition, idProp: PropertyDefinition) : CodeBlock {
-        val columnName = assoc.joinColumns.find { it.name == idProp.columnName.toString() }?.name
+        // if it's embedded key - match by id column name, otherwise - just use JoinColumn name
+        val joinColumnFinder: (JoinColumn) -> Boolean =
+            if (assoc.targetId.embedded) { x -> x.name == idProp.columnName.toString() } else { _ -> true }
+        val columnName = assoc.joinColumns.find(joinColumnFinder)?.name
             ?: "${assoc.name.asVariable()}_${assoc.targetId.name.asVariable()}"
         val idCodeBlock = idCodeBlock(idProp, assoc.target.simpleName, columnName)
 

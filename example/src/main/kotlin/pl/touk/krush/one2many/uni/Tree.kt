@@ -15,7 +15,7 @@ data class Tree(
     val name: String,
 
     @OneToMany
-    @JoinColumn(name = "tree_id")
+    @JoinColumn(name = "my_tree_id")
     val branches: List<Branch> = emptyList()
 )
 
