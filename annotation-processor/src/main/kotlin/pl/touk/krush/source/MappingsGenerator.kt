@@ -43,12 +43,19 @@ class MappingsGenerator : SourceGenerator {
 
         graph.traverse { entityType, entity ->
             // Functions for reading objects from the DB
+            val hasSelfRef = entity.hasSelfReferentialAssoc()
             val entityClass = entityType.toImmutableKmClass().toClassName()
-            fileSpec.addFunction(buildToEntityFunc(entityType, entityClass, entity))
-            fileSpec.addFunction(buildRowToEntityFunc(entityClass, entity))
+            fileSpec.addFunction(buildToEntityFunc(hasSelfRef, entityClass, entity))
+            if (hasSelfRef) {
+                fileSpec.addFunction(buildToEntityFuncSelf(entityType, entity))
+            }
+            fileSpec.addFunction(buildRowToEntityFunc(hasSelfRef, entityClass, entity))
             fileSpec.addFunction(buildToEntityListFunc(entityClass, entity))
+            if (hasSelfRef) {
+                fileSpec.addFunction(buildSelfReferencesToEntityListFunc(entityType, entity))
+            }
             fileSpec.addFunction(buildAddSubEntitiesToEntityFunc(entityClass, entity))
-            fileSpec.addFunction(buildToEntityMapFunc(entityClass, entity, graph))
+            fileSpec.addFunction(buildToEntityMapFunc(hasSelfRef, entityClass, entity, graph))
 
             // Functions for inserting objects into the DB
             buildFromEntityFunc(entityType, entity)?.let { funSpec ->
@@ -62,16 +69,20 @@ class MappingsGenerator : SourceGenerator {
         return fileSpec.build()
     }
 
-    private fun buildToEntityFunc(entityType: TypeElement, entityClass: ClassName, entity: EntityDefinition): FunSpec {
-        val func = FunSpec.builder("to${entity.name}")
+    private fun buildToEntityFunc(hasSelfRef: Boolean, entityClass: ClassName, entity: EntityDefinition): FunSpec {
+        val func = if (hasSelfRef) {
+            buildSelfReferencesToEntityBuilder(entity, entityClass)
+        } else {
+            FunSpec.builder("to${entity.name}")
                 .receiver(RowWrapper::class.java)
                 .returns(entityClass)
+        }
 
         val idReadingCode = idReadingBlock(entity.id!!, entity.tableName, rowReference = "row")
 
         func.addStatement("val ${entity.id.name.asVariable()} = $idReadingCode")
 
-        func.addStatement("val cacheMap = entityStore.getOrPut(${entityType.simpleName}::class) { mutableMapOf() }")
+        func.addStatement("val cacheMap = entityStore.getOrPut(${entityClass.simpleName}::class) { mutableMapOf() }")
 
         val idMapping = listOf("\t${entity.id.name} = ${entity.id.name.asVariable()}")
 
@@ -127,7 +138,11 @@ class MappingsGenerator : SourceGenerator {
                 } else if (!assoc.nullable) {
                     "\t${assoc.name} = this.to${assoc.target.simpleName}()"
                 } else {
-                    "\t${assoc.name} = row.getOrNull(${assoc.targetTable}.${assoc.targetId.name})?.let { this.to${assoc.target.simpleName}() }"
+                    if (assoc.isSelfReferential) {
+                        "\t${assoc.name} = row.getOrNull(${assoc.targetTable}.${assoc.name}Id)?.let { nextAlias?.let { this.to${assoc.target.simpleName}(nextAlias) } }"
+                    } else {
+                        "\t${assoc.name} = row.getOrNull(${assoc.targetTable}.${assoc.targetId.name})?.let { this.to${assoc.target.simpleName}() }"
+                    }
                 }
             }
 
@@ -190,12 +205,28 @@ class MappingsGenerator : SourceGenerator {
         }
     }
 
-    private fun buildRowToEntityFunc(entityClass: ClassName, entity: EntityDefinition): FunSpec {
-        return FunSpec.builder("to${entity.name}")
-            .receiver(ResultRow::class.java)
-            .returns(entityClass)
-            .addStatement("return %T(this).to${entity.name}()", RowWrapper::class)
-            .build()
+    private fun buildRowToEntityFunc(hasSelfRef: Boolean, entityClass: ClassName, entity: EntityDefinition): FunSpec {
+        return if (hasSelfRef) {
+            FunSpec.builder("to${entity.name}")
+                .receiver(ResultRow::class.java)
+                .addParameter(
+                    ParameterSpec.builder(
+                        "nextAlias",
+                        ClassName("org.jetbrains.exposed.sql", "Alias")
+                            .parameterizedBy(ClassName(entityClass.packageName, "${entityClass}Table"))
+                            .copy(nullable = true)
+                    ).defaultValue("null").build()
+                )
+                .returns(entityClass)
+                .addStatement("return %T(this).to${entity.name}(nextAlias)", RowWrapper::class)
+                .build()
+        } else {
+            FunSpec.builder("to${entity.name}")
+                .receiver(ResultRow::class.java)
+                .returns(entityClass)
+                .addStatement("return %T(this).to${entity.name}()", RowWrapper::class)
+                .build()
+        }
     }
 
     private fun buildToEntityListFunc(entityClass: ClassName, entity: EntityDefinition): FunSpec {
@@ -219,8 +250,10 @@ class MappingsGenerator : SourceGenerator {
 
         // Recursively add info to every related O2O entity
         entity.getAssociations(ONE_TO_ONE).forEach { oneToOneAssoc ->
-            func.addComment("Add sub-elements contained in this row to ${oneToOneAssoc.name}")
-            func.addStatement("addSubEntitiesTo${oneToOneAssoc.target.simpleName}($entityParamName.${oneToOneAssoc.name})")
+            if (!oneToOneAssoc.isSelfReferential) {
+                func.addComment("Add sub-elements contained in this row to ${oneToOneAssoc.name}")
+                func.addStatement("addSubEntitiesTo${oneToOneAssoc.target.simpleName}($entityParamName.${oneToOneAssoc.name})")
+            }
         }
 
         // M2M and M2O relations are represented as lists. When such a list contains multiple entities, those entities
@@ -230,7 +263,9 @@ class MappingsGenerator : SourceGenerator {
         entity.getAssociations(ONE_TO_MANY, MANY_TO_MANY).forEach { setAssoc ->
 
             if (setAssoc.type == ONE_TO_MANY || !setAssoc.isSelfReferential) {
-                val attrValName = "${setAssoc.name.asVariable()}Attr"
+                val assocVar = setAssoc.name.asVariable()
+                val assocVarId = "${assocVar}Id"
+                val attrValName = "${assocVarId}Attr"
                 val newEntityValName = "new${setAssoc.target.simpleName}"
 
                 val targetTypeName = "${setAssoc.target.simpleName}"
@@ -238,16 +273,20 @@ class MappingsGenerator : SourceGenerator {
                 func.apply {
                     // Allowing a null id here allows users to not include a join with the other table if they don't
                     // need the relation-lists to be populated
-                    addStatement("val ${setAssoc.name.asVariable()}Id = ${idReadingBlock(setAssoc.targetId, setAssoc.targetTable, nullable = true, rowReference = "row")}")
-                    beginControlFlow("if (${setAssoc.name.asVariable()}Id != null) {")
+                    addStatement("val $assocVarId = ${idReadingBlock(setAssoc.targetId, setAssoc.targetTable, nullable = true, rowReference = "row")}")
+//                    beginControlFlow("if ($assocVarId != null && !containsEntity(%T::class, $assocVarId)) {", targetClass)
+                    beginControlFlow("if ($assocVarId != null) {")
 
-
-                    addStatement("val $attrValName = $entityParamName.${setAssoc.name.asVariable()} as MutableList<$targetTypeName>")
+                    addStatement("val $attrValName = $entityParamName.$assocVar as MutableList<$targetTypeName>")
                     addStatement("val ${attrValName}LastElement = $attrValName.lastOrNull()")
 
                     if (setAssoc.isBidirectional && entity.id != null) {
                         addComment("Prevent stack overflow when mapping bi-directional relations")
-                        beginControlFlow("withoutEntity(%T::class, $entityParamName.${entity.id.name}) {", entityClass)
+                        val entityId = "$entityParamName.${entity.id.name}"
+                        if (setAssoc.isSelfReferential) {
+                            beginControlFlow("if ($assocVarId != $entityId) {")
+                        }
+                        beginControlFlow("withoutEntity(%T::class, $entityId) {", entityClass)
                     }
 
                     beginControlFlow("if (${setAssoc.name.asVariable()}Id != ${attrValName}LastElement?.${setAssoc.targetId.name}) {")
@@ -265,6 +304,9 @@ class MappingsGenerator : SourceGenerator {
                     endControlFlow()
 
                     if (setAssoc.isBidirectional && entity.id != null) {
+                        if (setAssoc.isSelfReferential) {
+                            endControlFlow()
+                        }
                         endControlFlow()
                     }
 
@@ -308,14 +350,18 @@ class MappingsGenerator : SourceGenerator {
         return func.build()
     }
 
-    private fun buildToEntityMapFunc(entityClass: ClassName, entity: EntityDefinition, graph: EntityGraph): FunSpec {
+    private fun buildToEntityMapFunc(hasSelfRef: Boolean, entityClass: ClassName, entity: EntityDefinition, graph: EntityGraph): FunSpec {
         val rootKey = entity.id?.asUnderlyingTypeName() ?: throw MissingIdException(entity)
 
-        val func = FunSpec.builder("to${entity.name}Map")
+        val func = if (hasSelfRef) {
+            buildSelfReferencesToMapFuncBuilder(entity, rootKey, entityClass)
+        } else {
+            FunSpec.builder("to${entity.name}Map")
                 .receiver(Iterable::class.parameterizedBy(ResultRow::class))
                 .returns(
                     ClassName("kotlin.collections", "Map").parameterizedBy(rootKey, entityClass)
                 )
+        }
         
         val currentEntityValName = "current${entity.name.asObject()}"
 
@@ -327,7 +373,11 @@ class MappingsGenerator : SourceGenerator {
 
             addComment("\tCreate this entity or expand on the sub-entity lists contained within")
             addStatement("\tval rowWrapper = %T(row, entityStore, selfReferenceRequests)", RowWrapper::class)
-            addStatement("\tval $currentEntityValName = rowWrapper.to${entity.name}()")
+            if (hasSelfRef) {
+                addStatement("\tval $currentEntityValName = rowWrapper.to${entity.name}(nextAlias)")
+            } else {
+                addStatement("\tval $currentEntityValName = rowWrapper.to${entity.name}()")
+            }
             addStatement("\trowWrapper.addSubEntitiesTo${entity.name}($currentEntityValName)")
 
             addStatement("}")

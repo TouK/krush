@@ -5,30 +5,28 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import com.squareup.kotlinpoet.metadata.toImmutableKmClass
 import org.jetbrains.exposed.sql.ResultRow
+import pl.touk.krush.RowWrapper
 import pl.touk.krush.meta.toClassName
 import pl.touk.krush.model.*
 import javax.lang.model.element.TypeElement
-
-fun hasSelfReferences(entityType: TypeElement, entity: EntityDefinition): Boolean {
-    return entity.associations
-        .any { it.target == entityType }
-}
 
 @KotlinPoetMetadataPreview
 fun buildToEntityFuncSelf(entityType: TypeElement, entity: EntityDefinition): FunSpec {
     val entityClass = entityType.toImmutableKmClass().toClassName()
     val func = FunSpec.builder("to${entity.name}")
-        .receiver(ResultRow::class.java)
+        .receiver(RowWrapper::class.java)
         .addParameter(
             "alias",
             ClassName("org.jetbrains.exposed.sql", "Alias")
                 .parameterizedBy(ClassName(entityType.packageName, "${entityClass}Table"))
         )
         .addParameter(
-            "parentAlias",
-            ClassName("org.jetbrains.exposed.sql", "Alias")
-                .parameterizedBy(ClassName(entityType.packageName, "${entityClass}Table"))
-                .copy(nullable = true)
+            ParameterSpec.builder(
+                "nextAlias",
+                ClassName("org.jetbrains.exposed.sql", "Alias")
+                    .parameterizedBy(ClassName(entityType.packageName, "${entityClass}Table"))
+                    .copy(nullable = true)
+            ).defaultValue("null").build()
         )
         .returns(entityClass)
 
@@ -37,23 +35,23 @@ fun buildToEntityFuncSelf(entityType: TypeElement, entity: EntityDefinition): Fu
             val embeddableIdName = id.name.asVariable()
             val embeddableIdMapping = id.properties.joinToString(", \n") { property ->
                 val name = property.name
-                "\t\t$name = this[alias[${entity.tableName}.${id.propName(property)}]]"
+                "\t\t$name = this.row[alias[${entity.tableName}.${id.propName(property)}]]"
             }
             "\t$embeddableIdName = ${id.qualifiedName}(\n$embeddableIdMapping\n\t)"
         } else {
-            "\t${id.name} = this[alias[${entity.tableName}.${id.name}]]"
+            "\t${id.name} = this.row[alias[${entity.tableName}.${id.name}]]"
         }
     }?.let { listOf(it) } ?: emptyList()
 
     val propsMappings = entity.getPropertyNames().map { name ->
-        "\t$name = this[alias[${entity.name}Table.${name}]]"
+        "\t$name = this.row[alias[${entity.name}Table.${name}]]"
     }
 
     val embeddedMappings = entity.embeddables.map { embeddable ->
         val embeddableName = embeddable.propertyName.asVariable()
         val embeddableMapping = embeddable.getPropertyNames().joinToString(", \n") { name ->
             val tablePropName = embeddable.propertyName.asVariable() + name.asVariable().capitalize()
-            "\t\t$name = this[alias${entity.name}Table.${tablePropName}Id]"
+            "\t\t$name = this.row[alias${entity.name}Table.${tablePropName}Id]"
         }
 
         "\t$embeddableName = ${embeddable.qualifiedName}(\n$embeddableMapping\n\t)"
@@ -65,9 +63,8 @@ fun buildToEntityFuncSelf(entityType: TypeElement, entity: EntityDefinition): Fu
             if (!it.nullable) {
                 "\t${it.name} = this.to${it.target.simpleName}()"
             } else {
-                if (hasSelfReferences(entityType, entity)) {
-                    //TODO: IM NOT SURE IF THIS IS CORRECT
-                    "\t${it.name} = this[alias[${entity.name}Table.${it.name}Id]]?.let { parentAlias?.let{ this.to${it.target.simpleName}(parentAlias, alias)} }"
+                if (entity.hasSelfReferentialAssoc()) {
+                    "\t${it.name} = this.row[${entity.name}Table.${it.name}Id]?.let { nextAlias?.let { this.to${it.target.simpleName}(nextAlias, null) } }"
                 } else {
                     "\t${it.name} = this[${entity.name}Table.${it.name}Id]?.let { this.to${it.target.simpleName}() }"
                 }
@@ -89,50 +86,35 @@ fun buildToEntityFuncSelf(entityType: TypeElement, entity: EntityDefinition): Fu
 
 
 @KotlinPoetMetadataPreview
-fun buildSelfReferencesFuncBuilder(
-    entity: EntityDefinition,
-    rootKey: TypeName,
-    entityType: TypeElement,
-    entityClass: ClassName
-) = FunSpec.builder("to${entity.name}Map")
-    .receiver(Iterable::class.parameterizedBy(ResultRow::class))
-    .addParameter(
-        "parentAlias",
-        ClassName("org.jetbrains.exposed.sql", "Alias")
-            .parameterizedBy(
-                ClassName(
-                    entityType.packageName,
-                    "${entityClass}Table"
-                )
-            ).copy(nullable = true)
-    )
-    .returns(
-        ClassName("kotlin.collections", "MutableMap").parameterizedBy(
-            rootKey,
-            entityType.toImmutableKmClass().toClassName()
+fun buildSelfReferencesToMapFuncBuilder(entity: EntityDefinition, rootKey: TypeName, entityClass: ClassName) =
+    FunSpec.builder("to${entity.name}Map")
+        .receiver(Iterable::class.parameterizedBy(ResultRow::class))
+        .addParameter(
+            ParameterSpec.builder(
+                "nextAlias",
+                ClassName("org.jetbrains.exposed.sql", "Alias")
+                    .parameterizedBy(ClassName(entityClass.packageName, "${entityClass}Table")).copy(nullable = true)
+            ).defaultValue("null").build()
         )
-    )
+        .returns(
+            ClassName("kotlin.collections", "Map").parameterizedBy(rootKey, entityClass)
+        )
 
-
-fun buildSelfReferencesToEntityBuilder(
-    entity: EntityDefinition,
-    entityType: TypeElement,
-    entityClass: ClassName
-) = FunSpec.builder("to${entity.name}")
-    .receiver(ResultRow::class.java)
-    .addParameter(
-        "parentAlias",
-        ClassName(
-            "org.jetbrains.exposed.sql",
-            "Alias"
-        ).parameterizedBy(ClassName(entityType.packageName, "${entityClass}Table"))
-            .copy(nullable = true)
-    )
-    .returns(entityClass)
-
+fun buildSelfReferencesToEntityBuilder(entity: EntityDefinition, entityClass: ClassName) =
+    FunSpec.builder("to${entity.name}")
+        .receiver(RowWrapper::class.java)
+        .addParameter(
+            ParameterSpec.builder(
+                "nextAlias",
+                ClassName("org.jetbrains.exposed.sql", "Alias")
+                    .parameterizedBy(ClassName(entityClass.packageName, "${entityClass}Table"))
+                    .copy(nullable = true)
+            ).defaultValue("null").build()
+        )
+        .returns(entityClass)
 
 fun selfReferenceAssociationsMapping(it: AssociationDefinition, entity: EntityDefinition) =
-    "\t${it.name} = this[${entity.name}Table.${it.name}Id]?.let { parentAlias?.let{ this.to${it.target.simpleName}(parentAlias, null)} }"
+    "\t${it.name} = this[${entity.name}Table.${it.name}Id]?.let { nextAlias?.let { this.to${it.target.simpleName}(nextAlias, null) } }"
 
 @KotlinPoetMetadataPreview
 fun buildSelfReferencesToEntityListFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
@@ -140,17 +122,16 @@ fun buildSelfReferencesToEntityListFunc(entityType: TypeElement, entity: EntityD
         .receiver(Iterable::class.parameterizedBy(ResultRow::class))
         .returns(List::class.asClassName().parameterizedBy(entityType.toImmutableKmClass().toClassName()))
         .addParameter(
-            "parentAlias",
-            ClassName("org.jetbrains.exposed.sql", "Alias")
-                .parameterizedBy(
-                    ClassName(
-                       packageName = entityType.packageName,
-                       "${entityType.toImmutableKmClass().toClassName()}Table"
-                    )
-                ).copy(nullable = true)
+            ParameterSpec.builder(
+                "nextAlias",
+                ClassName("org.jetbrains.exposed.sql", "Alias")
+                    .parameterizedBy(
+                        ClassName(packageName = entityType.packageName, "${entityType.toImmutableKmClass().toClassName()}Table"))
+                    .copy(nullable = true)
+            ).defaultValue("null").build()
         )
 
-    func.addStatement("return this.to${entity.name}Map(parentAlias).values.toList()")
+    func.addStatement("return this.to${entity.name}Map(nextAlias).values.toList()")
 
     return func.build()
 }
