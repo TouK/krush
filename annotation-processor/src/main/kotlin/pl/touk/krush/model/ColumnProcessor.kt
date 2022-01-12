@@ -3,7 +3,7 @@ package pl.touk.krush.model
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import com.squareup.kotlinpoet.metadata.specs.toTypeSpec
-import com.squareup.kotlinpoet.metadata.toImmutableKmClass
+import com.squareup.kotlinpoet.metadata.toKmClass
 import mappingOverrides
 import pl.touk.krush.env.AnnotationEnvironment
 import pl.touk.krush.env.TypeEnvironment
@@ -125,7 +125,7 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
 
         return converterType?.let {
             val spec = converterType.toTypeSpec()
-            val targetType = converterType.toTypeElement().toImmutableKmClass().functions
+            val targetType = converterType.toTypeElement().toKmClass().functions
                 .find { it.name == AttributeConverter<*, *>::convertToDatabaseColumn.name }
                 ?.returnType?.toModelType() ?: throw ConverterTypeNotFoundException(converterType)
 
@@ -166,7 +166,7 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
     }
 
     private fun VariableElement.toModelType(): Type? {
-        return this.enclosingElement.toTypeElement().toImmutableKmClass().properties
+        return this.enclosingElement.toTypeElement().toKmClass().properties
                 .find { it.name == this.simpleName.toString() }
                 ?.returnType
                 ?.toModelType()

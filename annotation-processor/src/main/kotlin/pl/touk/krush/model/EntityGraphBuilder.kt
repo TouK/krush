@@ -25,6 +25,7 @@ class EntityGraphBuilder(
     fun build(): EntityGraphs {
         when (val annEnvValidation = annEnv.validate()) {
             is Error ->  throw EntityGraphValidationFailedException(annEnvValidation.errors)
+            else -> {}
         }
 
         val graphs = buildEntities(annEnv.entities)
@@ -33,6 +34,7 @@ class EntityGraphBuilder(
 
         when (val entityGraphsValidation = graphs.validate()) {
             is Error ->  throw EntityGraphValidationFailedException(entityGraphsValidation.errors)
+            else -> {}
         }
 
         return graphs
@@ -64,6 +66,7 @@ class EntityGraphBuilder(
                 try {
                     when (val elValidationResult = validator.validate(el)) {
                         is Error -> errors.addAll(elValidationResult.errors)
+                        else -> {}
                     }
                 } catch (ex: Exception) {
                     errors.add(ValidationErrorMessage("Validation exception: $ex, element: $el, validator: $validator"))

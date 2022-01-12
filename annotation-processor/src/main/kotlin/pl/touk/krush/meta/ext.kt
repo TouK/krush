@@ -1,10 +1,10 @@
 package pl.touk.krush.meta
 
 import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.metadata.ImmutableKmClass
-import com.squareup.kotlinpoet.metadata.ImmutableKmType
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
+import kotlinx.metadata.KmClass
 import kotlinx.metadata.KmClassifier
+import kotlinx.metadata.KmType
 import org.jetbrains.annotations.NotNull
 import org.jetbrains.annotations.Nullable
 import pl.touk.krush.model.Type
@@ -13,19 +13,25 @@ import javax.lang.model.element.VariableElement
 private fun List<String>.packageName() = this.dropLast(1).joinToString(separator = ".")
 
 @KotlinPoetMetadataPreview
-fun ImmutableKmClass.toClassName(): ClassName {
+fun KmClass.toClassName(): ClassName {
     return this.name.split("/").let { ClassName(it.packageName(), it.last()) }
 }
 
 @KotlinPoetMetadataPreview
-fun ImmutableKmType.toModelType(): Type {
-    return when(val classifier = (this.abbreviatedType?.classifier ?: this.classifier)){
+fun KmType.toModelType(): Type {
+    return when(val classifier = (this.abbreviatedType?.classifier ?: this.classifier)) {
         is KmClassifier.Class -> {
             classifier.name
                 .split("/").let { Type(it.packageName(), it.last()) }
         }
-        is KmClassifier.TypeAlias -> classifier.name
-            .split("/").let { Type(it.packageName(), it.last(), this.copy(abbreviatedType = null).toModelType()) }
+        is KmClassifier.TypeAlias -> {
+            val noAbbreviatedType = KmType(flags).also {
+                it.classifier = this.classifier
+                it.abbreviatedType = null
+            }
+            classifier.name
+                .split("/").let { Type(it.packageName(), it.last(), noAbbreviatedType.toModelType()) }
+        }
         is KmClassifier.TypeParameter -> TODO()
     }
 }

@@ -1,8 +1,7 @@
 package pl.touk.krush.env
 
-import com.squareup.kotlinpoet.metadata.ImmutableKmClass
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
-import com.squareup.kotlinpoet.metadata.toImmutableKmClass
+import com.squareup.kotlinpoet.metadata.toKmClass
 import javax.annotation.processing.ProcessingEnvironment
 import javax.annotation.processing.RoundEnvironment
 import javax.lang.model.element.Element
@@ -79,7 +78,7 @@ class EnvironmentBuilder(private val roundEnv: RoundEnvironment, private val pro
             element.getAnnotation(Transient::class.java) == null && element.getAnnotation(Embedded::class.java) == null
 
     private fun toEmbeddedElements(embeddable: Element): List<VariableElement> {
-        val enclosingKmClass = embeddable.toTypeElement().toImmutableKmClass()
+        val enclosingKmClass = embeddable.toTypeElement().toKmClass()
         val propertyNames = enclosingKmClass.properties.map { it.name }
         return (embeddable.asType() as DeclaredType).asElement().enclosedElements
             .filter { propertyNames.contains(it.simpleName.toString()) }
