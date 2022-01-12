@@ -73,7 +73,7 @@ assertThat(selectedBooks).containsOnly(persistedBook)
 ```
 
 ### Installation
-Gradle:
+Gradle Groovy:
 ```groovy
 repositories {
     mavenCentral()
@@ -85,6 +85,25 @@ dependencies {
     api "pl.touk.krush:krush-annotation-processor:$krushVersion"
     kapt "pl.touk.krush:krush-annotation-processor:$krushVersion"
     api "pl.touk.krush:krush-runtime:$krushVersion" 
+}
+```
+
+Gradle Kotlin:
+```kotlin
+import org.jetbrains.kotlin.kapt3.base.Kapt.kapt
+
+repositories {
+    mavenCentral()
+}
+
+plugins {
+	kotlin("kapt") version "1.6.10"
+}
+
+dependencies {
+    api("pl.touk.krush:krush-annotation-processor:$krushVersion")
+    kapt("pl.touk.krush:krush-annotation-processor:$krushVersion")
+    api("pl.touk.krush:krush-runtime:$krushVersion")
 }
 ```
 
