@@ -33,6 +33,8 @@ data class EntityDefinition(
                || getAssociations(AssociationType.ONE_TO_ONE).any { it.mapped }
     }
 
+    fun hasSelfReferentialAssoc(): Boolean = associations.any { it.isSelfReferential }
+
     val name: Name get() = type.simpleName
     val qualifiedName: Name get() = type.qualifiedName
 

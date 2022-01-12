@@ -17,7 +17,8 @@ class OneToManyPostProcessor(override val typeEnv: TypeEnvironment, private val 
 
             val graph = graphs[sourceType.packageName] ?: throw EntityNotMappedException(sourceType)
             graph.computeIfPresent(sourceType) { _, entity ->
-                val isMapped = entity.getAssociations(AssociationType.MANY_TO_ONE).any { it.target == entityType }
+                val isMapped = entity.getAssociations(AssociationType.MANY_TO_ONE, AssociationType.ONE_TO_ONE)
+                    .any { it.target == entityType }
                 if (isMapped) {
                     entity
                 } else {

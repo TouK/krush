@@ -18,9 +18,9 @@ class TaskTest : BaseDatabaseTest() {
 
             // given
             val board = BoardTable.insert(Board())
-            val task1 = TaskTable.insert(Task(description = "Collect underpants"), board = board)
-            val task2 = TaskTable.insert(Task(description = "?", requirements = listOf(task1)), board = board)
-            val task3 = TaskTable.insert(Task(description = "Profit!", requirements = listOf(task1, task2)), board = board)
+            val task1 = TaskTable.insert(Task(description = "Collect underpants"), boardParam = board)
+            val task2 = TaskTable.insert(Task(description = "?", requirements = listOf(task1)), boardParam = board)
+            val task3 = TaskTable.insert(Task(description = "Profit!", requirements = listOf(task1, task2)), boardParam = board)
 
             // when
             val selectedBoards = Join(
