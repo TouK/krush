@@ -19,7 +19,7 @@ dependencies {
     testCompile'org.junit.jupiter:junit-jupiter:5.5.2'
     testCompile 'org.assertj:assertj-core:3.14.0'
     testRuntime 'ch.qos.logback:logback-classic:1.2.3'
-    testCompile("net.serverpeon.testing.compile:compile-testing-extension:1.0.0")
+    testCompile("net.serverpeon.testing.compile:compile-testing-extension:1.0.1")
 }
 
 tasks.test {
