@@ -97,7 +97,7 @@ repositories {
 }
 
 plugins {
-	kotlin("kapt") version "1.6.10"
+    kotlin("kapt") version "$kotlinVersion"
 }
 
 dependencies {
