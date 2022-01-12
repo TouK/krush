@@ -90,8 +90,6 @@ dependencies {
 
 Gradle Kotlin:
 ```kotlin
-import org.jetbrains.kotlin.kapt3.base.Kapt.kapt
-
 repositories {
     mavenCentral()
 }
