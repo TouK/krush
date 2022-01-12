@@ -3,7 +3,7 @@ package pl.touk.krush.source
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
-import com.squareup.kotlinpoet.metadata.toImmutableKmClass
+import com.squareup.kotlinpoet.metadata.toKmClass
 import org.jetbrains.exposed.sql.ResultRow
 import pl.touk.krush.RowWrapper
 import pl.touk.krush.meta.toClassName
@@ -12,7 +12,7 @@ import javax.lang.model.element.TypeElement
 
 @KotlinPoetMetadataPreview
 fun buildToEntityFuncSelf(entityType: TypeElement, entity: EntityDefinition): FunSpec {
-    val entityClass = entityType.toImmutableKmClass().toClassName()
+    val entityClass = entityType.toKmClass().toClassName()
     val func = FunSpec.builder("to${entity.name}")
         .receiver(RowWrapper::class.java)
         .addParameter(
@@ -120,13 +120,13 @@ fun selfReferenceAssociationsMapping(it: AssociationDefinition, entity: EntityDe
 fun buildSelfReferencesToEntityListFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec {
     val func = FunSpec.builder("to${entity.name}List")
         .receiver(Iterable::class.parameterizedBy(ResultRow::class))
-        .returns(List::class.asClassName().parameterizedBy(entityType.toImmutableKmClass().toClassName()))
+        .returns(List::class.asClassName().parameterizedBy(entityType.toKmClass().toClassName()))
         .addParameter(
             ParameterSpec.builder(
                 "nextAlias",
                 ClassName("org.jetbrains.exposed.sql", "Alias")
                     .parameterizedBy(
-                        ClassName(packageName = entityType.packageName, "${entityType.toImmutableKmClass().toClassName()}Table"))
+                        ClassName(packageName = entityType.packageName, "${entityType.toKmClass().toClassName()}Table"))
                     .copy(nullable = true)
             ).defaultValue("null").build()
         )

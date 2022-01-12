@@ -2,7 +2,7 @@ package pl.touk.krush.model
 
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import com.squareup.kotlinpoet.metadata.isData
-import com.squareup.kotlinpoet.metadata.toImmutableKmClass
+import com.squareup.kotlinpoet.metadata.toKmClass
 import pl.touk.krush.model.ValidationResult.Error
 import pl.touk.krush.model.ValidationResult.Success
 import javax.lang.model.element.TypeElement
@@ -24,6 +24,7 @@ interface Validator<T> {
     fun validate(el: T): ValidationResult
 }
 
+@KotlinPoetMetadataPreview
 val entityTypeValidators = listOf(
         DataClassValidator()
 )
@@ -34,11 +35,11 @@ val entityDefValidators = listOf(
         EntityPropertyTypeValidator()
 )
 
+@KotlinPoetMetadataPreview
 class DataClassValidator : Validator<TypeElement> {
 
-    @KotlinPoetMetadataPreview
     override fun validate(el: TypeElement): ValidationResult {
-        if (!el.toImmutableKmClass().isData) {
+        if (!el.toKmClass().isData) {
             return Error(ValidationErrorMessage("Entity ${el.qualifiedName} is not data class"))
         }
 

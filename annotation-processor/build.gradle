@@ -11,7 +11,6 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
     implementation "com.squareup:kotlinpoet:$kotlinpoet_version"
     implementation "com.squareup:kotlinpoet-metadata:$kotlinpoet_version"
-    implementation "com.squareup:kotlinpoet-metadata-specs:$kotlinpoet_version"
 
     api 'org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.0.Final'
 

@@ -3,14 +3,14 @@ package pl.touk.krush.source
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
-import com.squareup.kotlinpoet.metadata.toImmutableKmClass
+import com.squareup.kotlinpoet.metadata.toKmClass
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.statements.UpdateBuilder
 import pl.touk.krush.RowWrapper
 import pl.touk.krush.env.TypeEnvironment
+import pl.touk.krush.meta.toClassName
 import pl.touk.krush.model.*
 import pl.touk.krush.model.AssociationType.*
-import pl.touk.krush.meta.toClassName
 import pl.touk.krush.validation.EntityNotMappedException
 import pl.touk.krush.validation.MissingIdException
 import javax.lang.model.element.TypeElement
@@ -44,7 +44,7 @@ class MappingsGenerator : SourceGenerator {
         graph.traverse { entityType, entity ->
             // Functions for reading objects from the DB
             val hasSelfRef = entity.hasSelfReferentialAssoc()
-            val entityClass = entityType.toImmutableKmClass().toClassName()
+            val entityClass = entityType.toKmClass().toClassName()
             fileSpec.addFunction(buildToEntityFunc(hasSelfRef, entityClass, entity))
             if (hasSelfRef) {
                 fileSpec.addFunction(buildToEntityFuncSelf(entityType, entity))
@@ -401,7 +401,7 @@ class MappingsGenerator : SourceGenerator {
                         val referencingIdName = "referencing${entityName}Id"
                         val referencingEntityName = "referencing${selfRefAssoc.target.simpleName}"
                         val targetType = selfRefAssoc.target
-                        val targetClass = targetType.toImmutableKmClass().toClassName()
+                        val targetClass = targetType.toKmClass().toClassName()
 
                         addStatement("\t\t%T::class -> unsatisfiedMap.forEach { ($subjectIdName, $referencingIdSetName) ->", targetClass)
                         addStatement("\t\t\tval $subjectValName = entityStore[%T::class]?.get($subjectIdName) as? $entityName", targetClass)
@@ -430,7 +430,7 @@ class MappingsGenerator : SourceGenerator {
 
         val func = FunSpec.builder("from")
                 .receiver(UpdateBuilder::class.asClassName().parameterizedBy(STAR))
-                .addParameter(param, entityType.toImmutableKmClass().toClassName())
+                .addParameter(param, entityType.toKmClass().toClassName())
 
         entityAssocParams(entity).forEach { func.addParameter(it) }
 
@@ -503,8 +503,8 @@ class MappingsGenerator : SourceGenerator {
 
         val func = FunSpec.builder("from")
                 .receiver(UpdateBuilder::class.asClassName().parameterizedBy(STAR))
-                .addParameter(sourceParam, entityType.toImmutableKmClass().toClassName())
-                .addParameter(targetParam, targetType.toImmutableKmClass().toClassName())
+                .addParameter(sourceParam, entityType.toKmClass().toClassName())
+                .addParameter(targetParam, targetType.toKmClass().toClassName())
 
         listOf(Triple(entityType, entityId, sourceSuffix), Triple(targetType, assoc.targetId, targetSuffix)).forEach { (type, id, side) ->
             val rootVal = type.simpleName.asVariable()
@@ -533,7 +533,7 @@ class MappingsGenerator : SourceGenerator {
         return entity.associations.filter { !it.mapped }.map { assoc ->
             ParameterSpec.builder(
                     assoc.target.simpleName.asVariable(),
-                    assoc.target.toImmutableKmClass().toClassName().copy(nullable = true)
+                    assoc.target.toKmClass().toClassName().copy(nullable = true)
             ).defaultValue("null").build()
         }
     }

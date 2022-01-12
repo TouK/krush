@@ -3,7 +3,7 @@ package pl.touk.krush.source
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
-import com.squareup.kotlinpoet.metadata.toImmutableKmClass
+import com.squareup.kotlinpoet.metadata.toKmClass
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.Table.PrimaryKey
@@ -24,7 +24,7 @@ class TablesGenerator : SourceGenerator {
                 AnnotationSpec.builder(Suppress::class).addMember("%S", "UNUSED_PARAMETER").build()
             )
             .addImport("org.jetbrains.exposed.sql", "Table", "insert")
-            .addImport("org.jetbrains.exposed.sql.java-time", "date", "datetime", "timestamp")
+            .addImport("org.jetbrains.exposed.sql.javatime", "date", "datetime", "timestamp")
             .addImport("pl.touk.krush",
                 "stringWrapper",
                 "longWrapper",
@@ -186,7 +186,7 @@ class TablesGenerator : SourceGenerator {
         val entityName = entity.name.asVariable()
         val isGenerated = entity.id?.generatedValue ?: false
         val persistedName = if (isGenerated) "persisted${entityName.capitalize()}" else entityName
-        val entityClass = entityType.toImmutableKmClass().toClassName()
+        val entityClass = entityType.toKmClass().toClassName()
         val func = FunSpec.builder("insert")
                 .receiver(Type(entityType.packageName, entity.tableName).asUnderlyingClassName())
                 .addParameter(entity.name.asVariable(), entityClass)
@@ -222,7 +222,7 @@ class TablesGenerator : SourceGenerator {
         return entity.associations.filter { !it.mapped }.map { assoc ->
             ParameterSpec.builder(
                     assoc.target.simpleName.asVariable() + "Param",
-                    assoc.target.toImmutableKmClass().toClassName().copy(nullable = true)
+                    assoc.target.toKmClass().toClassName().copy(nullable = true)
             ).defaultValue("null").build()
         }
     }

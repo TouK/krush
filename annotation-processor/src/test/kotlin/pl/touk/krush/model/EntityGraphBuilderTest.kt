@@ -8,7 +8,7 @@ import javax.lang.model.util.Elements
 import javax.lang.model.util.Types
 
 @KotlinPoetMetadataPreview
- class EntityGraphBuilderTest(types: Types, elements: Elements) : AnnotationProcessorTest(types, elements), EntityGraphSampleData {
+class EntityGraphBuilderTest(types: Types, elements: Elements) : AnnotationProcessorTest(types, elements), EntityGraphSampleData {
 
     @Test
     fun shouldPutEntityToGraph() {
