@@ -14,7 +14,7 @@ import pl.touk.krush.base.BaseDatabaseTest
 class CategoryTest: BaseDatabaseTest() {
 
     @Test
-    fun shouldCreateCategories() {
+    fun shouldCreateCategoriesUsingAlias() {
         transaction {
             SchemaUtils.create(CategoryTable)
 
