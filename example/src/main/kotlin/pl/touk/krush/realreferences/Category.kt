@@ -12,7 +12,7 @@ data class Category(
         @Column
         val name: String,
 
-        @OneToOne
+        @ManyToOne
         @JoinColumn(name = "parent_id")
         val parent: Category?,
 

@@ -55,7 +55,7 @@ class MappingsGenerator : SourceGenerator {
                 fileSpec.addFunction(buildSelfReferencesToEntityListFunc(entityType, entity))
             }
             fileSpec.addFunction(buildAddSubEntitiesToEntityFunc(entityClass, entity))
-            fileSpec.addFunction(buildToEntityMapFunc(hasSelfRef, entityClass, entity, graph))
+            fileSpec.addFunction(buildToEntityMapFunc(hasSelfRef, entityClass, entity, graphs))
 
             // Functions for inserting objects into the DB
             buildFromEntityFunc(entityType, entity)?.let { funSpec ->
@@ -122,7 +122,11 @@ class MappingsGenerator : SourceGenerator {
                 } else if (!assoc.nullable) {
                     "\t${assoc.name} = this.to${assoc.target.simpleName}()"
                 } else {
-                    "\t${assoc.name} = row[${entity.tableName}.${assoc.defaultIdPropName()}]?.let { this.to${assoc.target.simpleName}() }"
+                    if (assoc.isSelfReferential) {
+                        "\t${assoc.name} = row[${entity.tableName}.${assoc.defaultIdPropName()}]?.let { nextAlias?.let { this.to${assoc.target.simpleName}(nextAlias) } }"
+                    } else {
+                        "\t${assoc.name} = row[${entity.tableName}.${assoc.defaultIdPropName()}]?.let { this.to${assoc.target.simpleName}() }"
+                    }
                 }
             }
 
@@ -274,7 +278,6 @@ class MappingsGenerator : SourceGenerator {
                     // Allowing a null id here allows users to not include a join with the other table if they don't
                     // need the relation-lists to be populated
                     addStatement("val $assocVarId = ${idReadingBlock(setAssoc.targetId, setAssoc.targetTable, nullable = true, rowReference = "row")}")
-//                    beginControlFlow("if ($assocVarId != null && !containsEntity(%T::class, $assocVarId)) {", targetClass)
                     beginControlFlow("if ($assocVarId != null) {")
 
                     addStatement("val $attrValName = $entityParamName.$assocVar as MutableList<$targetTypeName>")
@@ -350,7 +353,9 @@ class MappingsGenerator : SourceGenerator {
         return func.build()
     }
 
-    private fun buildToEntityMapFunc(hasSelfRef: Boolean, entityClass: ClassName, entity: EntityDefinition, graph: EntityGraph): FunSpec {
+    private fun buildToEntityMapFunc(
+        hasSelfRef: Boolean, entityClass: ClassName, entity: EntityDefinition, graphs: EntityGraphs
+    ): FunSpec {
         val rootKey = entity.id?.asUnderlyingTypeName() ?: throw MissingIdException(entity)
 
         val func = if (hasSelfRef) {
@@ -382,17 +387,20 @@ class MappingsGenerator : SourceGenerator {
 
             addStatement("}")
 
-            val selfRefAssociations = graph.values
-                .flatMap { entityDef ->
-                    entityDef.associations.filter { it.isSelfReferential }
-                }
+            val selfRefAssociations = DFS(graphs).visit(entity.type)
+                .flatMap { it.associations }
+                .filter { it.isSelfReferential }
 
-            if(selfRefAssociations.isNotEmpty()) {
+            val selfRefAssociationsFiltered = selfRefAssociations
+                // filter out bidirectional associations processed twice
+                .filterNot { selfRefAssoc -> selfRefAssociations.any { it != selfRefAssoc && it.target == selfRefAssoc.source && it.isBidirectional } }
+
+            if (selfRefAssociationsFiltered.isNotEmpty()) {
                 // Go through all self references requested and add them to the respective list.
                 addStatement("selfReferenceRequests.forEach { (clazz, unsatisfiedMap) -> ")
                 addStatement("\twhen(clazz) {")
 
-                selfRefAssociations
+                selfRefAssociationsFiltered
                     .forEach { selfRefAssoc ->
                         val entityName = selfRefAssoc.source.simpleName
                         val subjectIdName = "subject${entityName}Id"

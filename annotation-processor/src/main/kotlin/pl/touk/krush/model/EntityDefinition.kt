@@ -160,6 +160,20 @@ fun EntityGraph.traverse(function: (TypeElement, EntityDefinition) -> Unit) {
     this.entries.forEach { (key, value) -> function.invoke(key, value) }
 }
 
+class DFS(val graphs: EntityGraphs) {
+    private val result = mutableSetOf<EntityDefinition>()
+    private val visited = mutableSetOf<TypeElement>()
+
+    fun visit(elem: TypeElement): List<EntityDefinition> {
+        val current = graphs.entity(elem.packageName, elem) ?: throw EntityNotMappedException(elem)
+        result.add(current)
+        visited.add(elem)
+        val remaining = current.associations.map { it.target }.filterNot { visited.contains(it) }
+        remaining.forEach { visit(it) }
+        return result.toList()
+    }
+}
+
 fun EntityGraph.allAssociations() =
         this.values.flatMap { entityDef -> entityDef.associations.map { it.target } }.toSet()
 
