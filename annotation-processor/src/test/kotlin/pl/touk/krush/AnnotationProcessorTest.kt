@@ -1,6 +1,6 @@
 package pl.touk.krush
 
-import net.serverpeon.testing.compile.CompilationExtension
+import com.google.testing.compile.CompilationExtension
 import org.junit.jupiter.api.extension.ExtendWith
 import pl.touk.krush.env.TypeEnvironment
 import javax.lang.model.util.Elements
