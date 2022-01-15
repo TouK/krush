@@ -3,7 +3,7 @@ apply plugin: 'kotlin-kapt'
 
 dependencies {
     api "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    api 'org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.0.Final'
+    api 'org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.2'
 
     api project(":runtime")
     api project(":runtime-postgresql")
