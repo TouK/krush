@@ -3,7 +3,7 @@ apply plugin: 'kotlin-kapt'
 
 dependencies {
     api "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    api 'org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.0.Final'
+    api 'org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.2'
 
     api project(":runtime")
     api project(":runtime-postgresql")
@@ -12,7 +12,7 @@ dependencies {
 
     implementation("com.h2database:h2:2.0.206")
     implementation("org.postgresql:postgresql:42.3.1")
-    implementation("org.flywaydb:flyway-core:7.8.1")
+    implementation("org.flywaydb:flyway-core:8.4.1")
 
     testCompile'org.junit.jupiter:junit-jupiter:5.5.2'
     testCompile 'org.testcontainers:testcontainers:1.15.3'
