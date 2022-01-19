@@ -10,7 +10,7 @@ dependencies {
     api project(":annotation-processor")
     kapt project(":annotation-processor")
 
-    implementation("com.h2database:h2:2.0.206")
+    implementation("com.h2database:h2:2.1.210")
     implementation("org.postgresql:postgresql:42.3.1")
     implementation("org.flywaydb:flyway-core:8.4.1")
 
