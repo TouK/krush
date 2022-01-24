@@ -1,5 +1,15 @@
-# 0.5.1
+# 0.6.0
+Infrastructure
+* Kotlin 1.6.10
+* Exposed [0.37.2](https://github.com/JetBrains/Exposed/releases/tag/0.37.2)
+* kotlin-poet 1.10.2
 
+Bug fixes
+* Breaking tests due to old exposed version ([60](https://github.com/TouK/krush/issues/60))
+* Self-referenced entities generate invalid code ([22](https://github.com/TouK/krush/issues/22))
+* Fix indentation in generated code ([51](https://github.com/TouK/krush/issues/51))
+
+# 0.5.1
 Bug fixes
 * @JoinColumn name ignored when using @ManyToOne ([53](https://github.com/TouK/krush/issues/53))
 
