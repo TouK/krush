@@ -1,5 +1,3 @@
-@file:Suppress("UNCHECKED_CAST")
-
 package pl.touk.krush.realreferences
 
 import org.assertj.core.api.Assertions.assertThat
