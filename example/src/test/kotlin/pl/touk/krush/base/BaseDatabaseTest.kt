@@ -21,7 +21,6 @@ abstract class BaseDatabaseTest {
             .withDatabaseName("krush")
             .withUsername("krush")
             .withPassword("krush")
-            .withReuse(true)
     }
 
     private lateinit var dataSource: DataSource
