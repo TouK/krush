@@ -14,7 +14,7 @@ dependencies {
     testCompile 'org.junit.jupiter:junit-jupiter:5.8.2'
     testCompile 'org.assertj:assertj-core:3.23.1'
     testRuntime 'ch.qos.logback:logback-classic:1.2.11'
-    testCompile("io.github.jbock-java:compile-testing:0.19.11")
+    testCompile("io.github.jbock-java:compile-testing:0.19.12")
 }
 
 tasks.test {
