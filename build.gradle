@@ -9,7 +9,7 @@ buildscript {
 }
 
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.6.10'
+    id 'org.jetbrains.kotlin.jvm' version '1.7.0'
     id 'pl.allegro.tech.build.axion-release' version '1.13.6'
     id 'maven-publish'
 }
@@ -66,7 +66,7 @@ configure([project(':annotation-processor'), project(':runtime'), project(':runt
                     licenses {
                         license {
                             name = 'The Apache Software License, Version 2.0'
-                            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                            url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
                             distribution = 'repo'
                         }
                     }
