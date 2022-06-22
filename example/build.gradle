@@ -19,7 +19,7 @@ dependencies {
     testCompile 'org.testcontainers:junit-jupiter:1.17.2'
     testCompile 'org.testcontainers:postgresql:1.17.2'
     testCompile 'org.assertj:assertj-core:3.23.1'
-    testRuntime 'ch.qos.logback:logback-classic:1.2.10'
+    testRuntime 'ch.qos.logback:logback-classic:1.2.11'
 }
 
 tasks.test {
