@@ -8,4 +8,9 @@
     <root level="info">
         <appender-ref ref="STDOUT" />
     </root>
+
+    <logger name="Exposed" level="debug">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
 </configuration>
