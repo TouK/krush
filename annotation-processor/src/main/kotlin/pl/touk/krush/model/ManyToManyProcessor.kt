@@ -2,7 +2,7 @@ package pl.touk.krush.model
 
 import pl.touk.krush.env.AnnotationEnvironment
 import pl.touk.krush.env.TypeEnvironment
-import pl.touk.krush.env.toTypeElement
+import pl.touk.krush.meta.toTypeElement
 import javax.persistence.JoinTable
 
 class ManyToManyProcessor(override val typeEnv: TypeEnvironment, private val annEnv: AnnotationEnvironment) : ElementProcessor {

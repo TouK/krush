@@ -4,13 +4,13 @@ import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import com.squareup.kotlinpoet.metadata.specs.toTypeSpec
 import com.squareup.kotlinpoet.metadata.toKmClass
-import mappingOverrides
 import pl.touk.krush.env.AnnotationEnvironment
 import pl.touk.krush.env.TypeEnvironment
 import pl.touk.krush.env.enclosingTypeElement
-import pl.touk.krush.env.toTypeElement
 import pl.touk.krush.meta.isNullable
+import pl.touk.krush.meta.mappingOverrides
 import pl.touk.krush.meta.toModelType
+import pl.touk.krush.meta.toTypeElement
 import pl.touk.krush.validation.ConverterTypeNotFoundException
 import pl.touk.krush.validation.ElementTypeNotFoundException
 import pl.touk.krush.validation.EntityNotMappedException
