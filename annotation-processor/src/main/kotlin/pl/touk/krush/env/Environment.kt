@@ -1,7 +1,10 @@
 package pl.touk.krush.env
 
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
+import com.squareup.kotlinpoet.metadata.isCompanionObject
 import com.squareup.kotlinpoet.metadata.toKmClass
+import pl.touk.krush.meta.toTypeElement
+import pl.touk.krush.meta.toVariableElement
 import javax.annotation.processing.ProcessingEnvironment
 import javax.annotation.processing.RoundEnvironment
 import javax.lang.model.element.Element
@@ -40,16 +43,6 @@ data class AnnotationEnvironment(
 
 fun Element.enclosingTypeElement() = this.enclosingElement.toTypeElement()
 
-fun Element.toTypeElement(): TypeElement {
-    require(this is TypeElement) { "Invalid element type ${this.kind}, type expected" }
-    return this
-}
-
- fun Element.toVariableElement(): VariableElement {
-    require(this is VariableElement) { "Invalid element type ${this.kind}, var expected" }
-    return this
-}
-
 @KotlinPoetMetadataPreview
 class EnvironmentBuilder(private val roundEnv: RoundEnvironment, private val processingEnv: ProcessingEnvironment) {
 
@@ -61,7 +54,7 @@ class EnvironmentBuilder(private val roundEnv: RoundEnvironment, private val pro
         val manyToOne = roundEnv.getElementsAnnotatedWith(ManyToOne::class.java).toVariableElements()
         val manyToMany = roundEnv.getElementsAnnotatedWith(ManyToMany::class.java).toVariableElements()
         val oneToOne = roundEnv.getElementsAnnotatedWith(OneToOne::class.java).toVariableElements()
-        val columns = (roundEnv.rootElements.asSequence().map(this::toColumnElements).flatten()
+        val columns = (roundEnv.rootElements.asSequence().flatMap(this::toColumnElements)
             .minus(ids + embeddedIds + oneToOne + oneToMany + manyToOne + manyToMany)).toList()
         val embedded = roundEnv.getElementsAnnotatedWith(Embedded::class.java).toVariableElements()
         val embeddedColumn = roundEnv.getElementsAnnotatedWith(Embeddable::class.java).map(this::toEmbeddedElements).flatten().toList()
@@ -71,11 +64,19 @@ class EnvironmentBuilder(private val roundEnv: RoundEnvironment, private val pro
                 embeddedColumn = embeddedColumn)
     }
 
-    private fun toColumnElements(entity: Element) = entity.enclosedElements.filter(this::isColumn).map(Element::toVariableElement)
+    private fun toColumnElements(entity: Element) =
+        entity.enclosedElements.filter(this::isColumn).map(Element::toVariableElement)
 
-    private fun isColumn(element: Element) = element.kind == ElementKind.FIELD &&
-            element.enclosingElement.getAnnotation(Entity::class.java) != null &&
-            element.getAnnotation(Transient::class.java) == null && element.getAnnotation(Embedded::class.java) == null
+    private fun Element.isCompanionObject(): Boolean =
+        simpleName.toString() == "Companion" &&
+        toVariableElement().toTypeElement().toKmClass().isCompanionObject
+
+    private fun isColumn(element: Element): Boolean {
+        return element.kind == ElementKind.FIELD &&
+                element.isCompanionObject().not() &&
+                element.enclosingElement.getAnnotation(Entity::class.java) != null &&
+                element.getAnnotation(Transient::class.java) == null && element.getAnnotation(Embedded::class.java) == null
+    }
 
     private fun toEmbeddedElements(embeddable: Element): List<VariableElement> {
         val enclosingKmClass = embeddable.toTypeElement().toKmClass()
@@ -89,7 +90,6 @@ class EnvironmentBuilder(private val roundEnv: RoundEnvironment, private val pro
     private fun isEmbedded(element: Element) = element.kind == ElementKind.FIELD &&
             element.enclosingElement.getAnnotation(Embeddable::class.java) != null &&
             element.getAnnotation(Transient::class.java) == null && element.getAnnotation(Embedded::class.java) == null
-
 
     fun buildTypeEnv() = TypeEnvironment(processingEnv.typeUtils, processingEnv.elementUtils)
 

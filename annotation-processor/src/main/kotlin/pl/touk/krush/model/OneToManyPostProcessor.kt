@@ -1,10 +1,10 @@
 package pl.touk.krush.model
 
-import joinColumns
 import pl.touk.krush.env.AnnotationEnvironment
 import pl.touk.krush.env.TypeEnvironment
 import pl.touk.krush.env.enclosingTypeElement
-import pl.touk.krush.env.toTypeElement
+import pl.touk.krush.meta.joinColumns
+import pl.touk.krush.meta.toTypeElement
 import pl.touk.krush.validation.EntityNotMappedException
 import javax.lang.model.element.Name
 

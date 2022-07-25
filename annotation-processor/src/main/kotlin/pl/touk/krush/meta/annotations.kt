@@ -1,3 +1,5 @@
+package pl.touk.krush.meta
+
 import javax.lang.model.element.VariableElement
 import javax.persistence.AttributeOverride
 import javax.persistence.AttributeOverrides

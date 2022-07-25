@@ -12,7 +12,7 @@ import javax.lang.model.util.Types
 class ModelValidatorTest(types: Types, elements: Elements) : AnnotationProcessorTest(types, elements), EntityGraphSampleData {
 
     @Test
-    fun shouldFailedValidationWhenEntityIsNotDataClass() {
+    fun shouldNotPassValidationWhenEntityIsNotDataClass() {
 
         //given
         val validator = DataClassValidator()
@@ -28,7 +28,7 @@ class ModelValidatorTest(types: Types, elements: Elements) : AnnotationProcessor
     }
 
     @Test
-    fun shouldFailedValidationWhenEntityIdIsNotPresent() {
+    fun shouldNotPassValidationWhenEntityIdIsNotPresent() {
 
         //given
         val validator = EntityIdValidator()
@@ -44,7 +44,7 @@ class ModelValidatorTest(types: Types, elements: Elements) : AnnotationProcessor
     }
 
     @Test
-    fun shouldFailedValidationWhenEntityIdTypeIsUnsupported() {
+    fun shouldNotPassValidationWhenEntityIdTypeIsUnsupported() {
 
         //given
         val validator = EntityIdTypeValidator()
@@ -60,7 +60,7 @@ class ModelValidatorTest(types: Types, elements: Elements) : AnnotationProcessor
     }
 
     @Test
-    fun shouldFailedValidationWhenEntityPropertyTypeIsUnsupported() {
+    fun shouldNotPassValidationWhenEntityPropertyTypeIsUnsupported() {
 
         //given
         val validator = EntityPropertyTypeValidator()

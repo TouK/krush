@@ -8,9 +8,30 @@ import kotlinx.metadata.KmType
 import org.jetbrains.annotations.NotNull
 import org.jetbrains.annotations.Nullable
 import pl.touk.krush.model.Type
+import javax.lang.model.element.Element
+import javax.lang.model.element.TypeElement
 import javax.lang.model.element.VariableElement
+import javax.lang.model.type.DeclaredType
+import javax.lang.model.type.TypeMirror
 
 private fun List<String>.packageName() = this.dropLast(1).joinToString(separator = ".")
+
+fun Element.toTypeElement(): TypeElement {
+    require(this is TypeElement) { "Invalid element type ${this.kind}, type expected" }
+    return this
+}
+
+fun Element.toVariableElement(): VariableElement {
+    require(this is VariableElement) { "Invalid element type ${this.kind}, var expected" }
+    return this
+}
+
+private fun TypeMirror.asDeclaredType(): DeclaredType {
+    require(this is DeclaredType)
+    return this
+}
+
+fun VariableElement.toTypeElement() = asType().asDeclaredType().asElement().toTypeElement()
 
 @KotlinPoetMetadataPreview
 fun KmClass.toClassName(): ClassName {

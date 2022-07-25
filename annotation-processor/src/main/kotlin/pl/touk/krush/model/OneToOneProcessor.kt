@@ -1,11 +1,11 @@
 package pl.touk.krush.model
 
-import joinColumns
 import pl.touk.krush.env.AnnotationEnvironment
 import pl.touk.krush.env.TypeEnvironment
-import pl.touk.krush.env.toTypeElement
-import pl.touk.krush.env.toVariableElement
 import pl.touk.krush.meta.isNullable
+import pl.touk.krush.meta.joinColumns
+import pl.touk.krush.meta.toTypeElement
+import pl.touk.krush.meta.toVariableElement
 import javax.persistence.OneToOne
 
 class OneToOneProcessor(override val typeEnv: TypeEnvironment, private val annEnv: AnnotationEnvironment) : ElementProcessor {

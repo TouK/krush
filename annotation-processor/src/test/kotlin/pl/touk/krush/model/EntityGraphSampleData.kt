@@ -3,14 +3,12 @@ package pl.touk.krush.model
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import pl.touk.krush.env.AnnotationEnvironment
 import pl.touk.krush.env.TypeEnvironment
-import pl.touk.krush.env.toTypeElement
-import pl.touk.krush.env.toVariableElement
+import pl.touk.krush.meta.toTypeElement
+import pl.touk.krush.meta.toVariableElement
 import javax.lang.model.element.Element
 import javax.lang.model.element.Name
 import javax.lang.model.element.TypeElement
 import javax.lang.model.element.VariableElement
-import javax.lang.model.type.DeclaredType
-import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.Elements
 import javax.persistence.Column
 import javax.persistence.JoinColumn
@@ -228,7 +226,7 @@ interface EntityGraphSampleData {
                 AssociationDefinition(
                     name =  targetEntity.simpleName,
                     source = entity,
-                    target = targetEntity.toVariableElement().asType().asDeclaredType().asElement().toTypeElement(),
+                    target = targetEntity.toVariableElement().toTypeElement(),
                     joinColumns = listOf(targetEntity.getAnnotation(JoinColumn::class.java)),
                     type = AssociationType.ONE_TO_ONE,
                     targetId = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
@@ -253,7 +251,7 @@ interface EntityGraphSampleData {
                 AssociationDefinition(
                     name = sourceEntity.simpleName,
                     source = entity,
-                    target = sourceEntity.toVariableElement().asType().asDeclaredType().asElement().toTypeElement(),
+                    target = sourceEntity.toVariableElement().toTypeElement(),
                     type = AssociationType.ONE_TO_ONE,
                     targetId = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
                     mapped = false,
@@ -551,11 +549,6 @@ interface EntityGraphSampleData {
             .filter { it.simpleName.contentEquals(name) }
             .map(Element::toVariableElement)
             .first()
-
-    private fun TypeMirror.asDeclaredType(): DeclaredType {
-        require(this is DeclaredType)
-        return this
-    }
 }
 
 private const val KOTLIN_PKG = "kotlin"
