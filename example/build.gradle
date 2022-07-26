@@ -3,25 +3,25 @@ apply plugin: 'kotlin-kapt'
 apply plugin: 'kotlinx-serialization'
 
 dependencies {
-    api "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    api 'org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.2'
+    api("org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version")
+    api("org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.2")
 
-    api project(":runtime")
-    api project(":runtime-postgresql")
-    api project(":annotation-processor")
-    kapt project(":annotation-processor")
+    api(project(":runtime"))
+    api(project(":runtime-postgresql"))
+    api(project(":annotation-processor"))
+    kapt(project(":annotation-processor"))
 
     implementation("com.h2database:h2:2.1.210")
     implementation("org.postgresql:postgresql:42.4.0")
     implementation("org.flywaydb:flyway-core:8.5.13")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.0-RC")
 
-    testCompile 'org.junit.jupiter:junit-jupiter:5.5.2'
-    testCompile 'org.testcontainers:testcontainers:1.17.2'
-    testCompile 'org.testcontainers:junit-jupiter:1.17.2'
-    testCompile 'org.testcontainers:postgresql:1.17.2'
-    testCompile 'org.assertj:assertj-core:3.23.1'
-    testRuntime 'ch.qos.logback:logback-classic:1.2.11'
+    testImplementation("org.junit.jupiter:junit-jupiter:5.8.2")
+    testImplementation("org.testcontainers:testcontainers:1.17.2")
+    testImplementation("org.testcontainers:junit-jupiter:1.17.2")
+    testImplementation("org.testcontainers:postgresql:1.17.2")
+    testImplementation("org.assertj:assertj-core:3.23.1")
+    testRuntimeOnly("ch.qos.logback:logback-classic:1.2.11")
 }
 
 tasks.test {
