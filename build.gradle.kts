@@ -1,28 +1,21 @@
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-
-    dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlin_version"
-    }
-}
+import pl.touk.krush.gradle.signPublicationIfKeyPresent
 
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.7.0'
-    id 'pl.allegro.tech.build.axion-release' version '1.13.14'
-    id 'maven-publish'
+    kotlin("jvm") apply true
+    kotlin("kapt") apply true
+    kotlin("plugin.serialization") version "1.7.10"
+    id("pl.allegro.tech.build.axion-release") version "1.13.14"
+    `maven-publish`
 }
 
 scmVersion {
     useHighestVersion = true
     tag {
-        prefix = 'krush-'
+        prefix = "krush-"
     }
 }
 
-group = 'pl.touk.krush'
+group = "pl.touk.krush"
 project.version = scmVersion.version
 
 allprojects {
@@ -31,57 +24,56 @@ allprojects {
     }
 }
 
-configure([project(':annotation-processor'), project(':runtime'), project(':runtime-postgresql')]) {
-    apply plugin: 'java'
-    apply plugin: 'maven-publish'
-    apply plugin: 'signing'
+val snapshot = scmVersion.version.endsWith("SNAPSHOT")
 
-    def snapshot = scmVersion.version.endsWith('SNAPSHOT')
+configure(listOf(project(":annotation-processor"), project(":runtime"), project(":runtime-postgresql"))) {
+    apply(plugin = "java")
+    apply(plugin = "maven-publish")
+    apply(plugin = "signing")
 
-    tasks.withType(Sign) {
-        onlyIf { !snapshot }
+    tasks.withType(Sign::class.java) {
+        onlyIf { snapshot.not() }
     }
 
     java {
-        withJavadocJar()
         withSourcesJar()
+        withJavadocJar()
     }
 
     publishing {
         publications {
-            mavenJava(MavenPublication) {
-                artifactId "krush-${project.name}"
-                from components.java
-                pom {
-                    groupId = 'pl.touk.krush'
-                    name = "krush-${project.name}"
-                    version = scmVersion.version
+            create<MavenPublication>("maven") {
+                groupId = "pl.touk.krush"
+                artifactId = "krush-${project.name}"
 
-                    description = 'Krush, idiomatic persistence layer for Kotlin'
-                    url = 'https://github.com/TouK/sputnik/'
+                from(components["java"])
+                pom {
+                    name.set("krush-${project.name}")
+                    description.set("Krush, idiomatic persistence layer for Kotlin")
+                    url.set("https://github.com/TouK/krush")
                     scm {
-                        url = 'scm:git@github.com:TouK/krush.git'
-                        connection = 'scm:git@github.com:TouK/krush.git'
-                        developerConnection = 'scm:git@github.com:Touk/krush.git'
+                        url.set("scm:git@github.com:TouK/krush.git")
+                        connection.set("scm:git@github.com:TouK/krush.git")
+                        developerConnection.set("scm:git@github.com:TouK/krush.git")
                     }
                     licenses {
                         license {
-                            name = 'The Apache Software License, Version 2.0'
-                            url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
-                            distribution = 'repo'
+                            name.set("The Apache Software License, Version 2.0")
+                            url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
                         }
                     }
                     developers {
                         developer {
-                            id = 'mateusz_sledz'
-                            name = 'Mateusz Śledź'
+                            id.set("mateusz_sledz")
+                            name.set("Mateusz Śledź")
                         }
                         developer {
-                            id = 'piotr_jagielski'
-                            name = 'Piotr Jagielski'
+                            id.set("piotr_jagielski")
+                            name.set("Piotr Jagielski")
                         }
                     }
                 }
+                signPublicationIfKeyPresent(project)
             }
         }
 
@@ -91,16 +83,12 @@ configure([project(':annotation-processor'), project(':runtime'), project(':runt
                     username = System.getenv("SONATYPE_USERNAME")
                     password = System.getenv("SONATYPE_PASSWORD")
                 }
-                def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-                def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
-                url = snapshot ? snapshotsRepoUrl : releasesRepoUrl
+                val releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+                val snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
+                url = uri(if (snapshot) snapshotsRepoUrl else releasesRepoUrl)
             }
         }
     }
 
-    signing {
-        useInMemoryPgpKeys(System.getenv('SIGNING_PRIVATE_KEY'), System.getenv('SIGNING_PASSWORD'))
-        sign publishing.publications.mavenJava
-    }
 
 }
