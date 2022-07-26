@@ -17,6 +17,7 @@ scmVersion {
 
 group = "pl.touk.krush"
 project.version = scmVersion.version
+val rootVersion = scmVersion.version
 
 allprojects {
     repositories {
@@ -45,8 +46,10 @@ configure(listOf(project(":annotation-processor"), project(":runtime"), project(
             create<MavenPublication>("maven") {
                 groupId = "pl.touk.krush"
                 artifactId = "krush-${project.name}"
+                version = rootVersion
 
                 from(components["java"])
+
                 pom {
                     name.set("krush-${project.name}")
                     description.set("Krush, idiomatic persistence layer for Kotlin")
