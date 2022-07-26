@@ -202,6 +202,31 @@ ReservationTable.update({ ReservationTable.uid eq reservation.uid }) {
   it[ReservationTable.freedAt] = freedAt
 }
 ```
+
+Other Exposed features are supported as well, like, `replace`:
+```kotlin
+val reservation = Reservation().reserve()
+
+ReservationTable.replace { it.from(reservation) }
+val freedReservation = reservation.free()
+ReservationTable.replace { it.from(freedReservation) }
+
+val allReservations = ReservationTable.selectAll().toReservationList()
+assertThat(allReservations).containsExactly(freedReservation)
+```               
+and `batchInsert`/`batchReplace`:
+```kotlin
+val reservation1 = Reservation().reserve()
+val reservation2 = Reservation().reserve()
+
+ReservationTable.batchInsert(
+    listOf(reservation1, reservation2), body = { this.from(it) }
+)
+val allReservations = ReservationTable.selectAll().toReservationList()
+assertThat(allReservations)
+    .containsExactly(reservation1, reservation2)
+}
+```
 [Complete example](https://github.com/TouK/krush-example/blob/master/src/test/kotlin/pl/touk/krush/ReservationTest.kt)
 
 ### Associations
