@@ -5,12 +5,12 @@
         </encoder>
     </appender>
 
-    <root level="info">
+    <root level="INFO">
         <appender-ref ref="STDOUT" />
     </root>
 
-    <logger name="Exposed" level="debug">
-        <appender-ref ref="CONSOLE"/>
+    <logger name="Exposed" level="DEBUG">
+        <appender-ref ref="STDOUT"/>
     </logger>
 
 </configuration>
