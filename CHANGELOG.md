@@ -1,8 +1,21 @@
+# 1.0.0
+🎉🎉🎉 We finally reached 1.0 release! 🎉🎉🎉
+
+Infrastructure
+* Kotlin [1.7.10](https://github.com/JetBrains/kotlin/releases/tag/v1.7.10)
+* Exposed [0.38.2](https://github.com/JetBrains/Exposed/releases/tag/0.38.2)
+* kotlin-poet [1.12.0](https://github.com/square/kotlinpoet/releases/tag/1.12.0)
+* Switched to build.gradle.kts ([112](https://github.com/TouK/krush/pull/122))
+* First initial refactor of SelfReferencesFunctions.kt class ([85](https://github.com/TouK/krush/pull/85))
+
+Bug fixes
+* Kapt task fails if @kotlinx.serialization.Serializable is also applied to the class ([96](https://github.com/TouK/krush/issues/96))
+
 # 0.6.0
 Infrastructure
-* Kotlin 1.6.10
+* Kotlin [1.6.10](https://github.com/JetBrains/kotlin/releases/tag/v1.6.10)
 * Exposed [0.37.2](https://github.com/JetBrains/Exposed/releases/tag/0.37.2)
-* kotlin-poet 1.10.2
+* kotlin-poet [1.10.2](https://github.com/square/kotlinpoet/releases/tag/1.10.2)
 
 Bug fixes
 * Breaking tests due to old exposed version ([60](https://github.com/TouK/krush/issues/60))
@@ -15,16 +28,16 @@ Bug fixes
 
 # 0.5.0
 Infrastructure
-* Kotlin 1.5.10
+* Kotlin [1.5.10](https://github.com/JetBrains/kotlin/releases/tag/v1.5.10)
 * Exposed [0.32.1](https://github.com/JetBrains/Exposed/releases/tag/0.32.1)
-* kotlin-poet 1.9.0
+* kotlin-poet [1.9.0](https://github.com/square/kotlinpoet/releases/tag/1.9.0)
 
 Features
 * Conversion of TypeMirror and TypeElement is deprecated in KotlinPoet, use kotlin-metadata APIs instead ([49](https://github.com/TouK/krush/issues/49))
 
 # 0.4.0
 Infrastructure
-* Kotlin 1.4.31
+* Kotlin [1.4.31](https://github.com/JetBrains/kotlin/releases/tag/v1.4.31)
 * Exposed [0.31.1](https://github.com/JetBrains/Exposed/releases/tag/0.31.1)
 * kotlin-poet 1.7.2
 
