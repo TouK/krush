@@ -9,7 +9,7 @@ fun MavenPublication.signPublicationIfKeyPresent(project: Project) {
     val signingKeyPassphrase = System.getenv("SIGNING_PASSWORD")
     if (!signingKey.isNullOrBlank()) {
         project.extensions.configure<SigningExtension>("signing") {
-            useInMemoryPgpKeys(signingKey.replace(" ", "\r\n"), signingKeyPassphrase)
+            useInMemoryPgpKeys(signingKey, signingKeyPassphrase)
             sign(this@signPublicationIfKeyPresent)
         }
     }
