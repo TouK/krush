@@ -2,13 +2,14 @@ import pl.touk.krush.gradle.Versions
 
 plugins {
     id("kotlin")
-    id("kotlin-kapt")
 }
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect:${Versions.kotlin}")
     implementation("com.squareup:kotlinpoet:${Versions.kotlinpoet}")
     implementation("com.squareup:kotlinpoet-metadata:${Versions.kotlinpoet}")
+    implementation("com.squareup:kotlinpoet-ksp:${Versions.kotlinpoet}")
+    implementation("com.google.devtools.ksp:symbol-processing-api:${Versions.ksp}")
 
     api("org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.2.Final")
 

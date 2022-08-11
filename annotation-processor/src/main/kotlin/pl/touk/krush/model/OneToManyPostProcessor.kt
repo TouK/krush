@@ -3,7 +3,9 @@ package pl.touk.krush.model
 import pl.touk.krush.env.AnnotationEnvironment
 import pl.touk.krush.env.TypeEnvironment
 import pl.touk.krush.env.enclosingTypeElement
+import pl.touk.krush.meta.asVariable
 import pl.touk.krush.meta.joinColumns
+import pl.touk.krush.meta.toModelType
 import pl.touk.krush.meta.toTypeElement
 import pl.touk.krush.validation.EntityNotMappedException
 import javax.lang.model.element.Name
@@ -12,8 +14,8 @@ class OneToManyPostProcessor(override val typeEnv: TypeEnvironment, private val 
 
     override fun process(graphs: EntityGraphs) {
         for (oneToMany in annEnv.oneToMany) {
-            val entityType = oneToMany.enclosingTypeElement()
-            val sourceType = oneToMany.asType().getTypeArgument().asElement().toTypeElement()
+            val entityType = oneToMany.enclosingTypeElement().toModelType()
+            val sourceType = oneToMany.asType().getTypeArgument().asElement().toTypeElement().toModelType()
 
             val graph = graphs[sourceType.packageName] ?: throw EntityNotMappedException(sourceType)
             graph.computeIfPresent(sourceType) { _, entity ->
@@ -31,9 +33,5 @@ class OneToManyPostProcessor(override val typeEnv: TypeEnvironment, private val 
                 }
             }
         }
-    }
-
-    private fun Name.decapitalize() : Name {
-        return typeEnv.elementUtils.getName(this.asVariable().decapitalize())
     }
 }

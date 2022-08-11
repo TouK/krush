@@ -4,6 +4,7 @@ import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import pl.touk.krush.AnnotationProcessorTest
+import pl.touk.krush.meta.toModelType
 import javax.lang.model.util.Elements
 import javax.lang.model.util.Types
 
@@ -22,7 +23,7 @@ class EntityGraphBuilderTest(types: Types, elements: Elements) : AnnotationProce
         assertThat(graphs).containsKey("pl.touk.example")
 
         assertThat(graphs["pl.touk.example"])
-                .containsKey(customerTestEntity(getTypeEnv()))
+                .containsKey(customerTestEntity(getTypeEnv()).toModelType())
                 .containsValue(customerTestEntityDefinition(getTypeEnv()))
     }
 
@@ -38,7 +39,7 @@ class EntityGraphBuilderTest(types: Types, elements: Elements) : AnnotationProce
         assertThat(graphs).containsKey("pl.touk.example")
 
         assertThat(graphs["pl.touk.example"])
-                .containsKey(customPropertyNameEntity(getTypeEnv()))
+                .containsKey(customPropertyNameEntity(getTypeEnv()).toModelType())
                 .containsValue(defaultPropertyNameEntityDefinition(getTypeEnv()))
                 .containsValue(customPropertyNameEntityDefinition(getTypeEnv()))
     }
@@ -55,7 +56,7 @@ class EntityGraphBuilderTest(types: Types, elements: Elements) : AnnotationProce
         assertThat(graphs).containsKey("pl.touk.example")
 
         assertThat(graphs["pl.touk.example"])
-                .containsKey(nullablePropertyEntity(getTypeEnv()))
+                .containsKey(nullablePropertyEntity(getTypeEnv()).toModelType())
                 .containsValue(nullablePropertyEntityDefinition(getTypeEnv()))
     }
 
@@ -71,9 +72,9 @@ class EntityGraphBuilderTest(types: Types, elements: Elements) : AnnotationProce
         assertThat(graphs).containsKey("pl.touk.example")
 
         assertThat(graphs["pl.touk.example"])
-                .containsKey(oneToOneSourceEntity(getTypeEnv()))
+                .containsKey(oneToOneSourceEntity(getTypeEnv()).toModelType())
                 .containsValue(oneToOneSourceEntityDefinition(getTypeEnv()))
-                .containsKey(oneToOneTargetEntity(getTypeEnv()))
+                .containsKey(oneToOneTargetEntity(getTypeEnv()).toModelType())
                 .containsValue(oneToOneTargetEntityDefinition(getTypeEnv()))
     }
 
@@ -89,7 +90,7 @@ class EntityGraphBuilderTest(types: Types, elements: Elements) : AnnotationProce
         assertThat(graphs).containsKey("pl.touk.example")
 
         assertThat(graphs["pl.touk.example"])
-                .containsKey(numericPropertyEntity(getTypeEnv()))
+                .containsKey(numericPropertyEntity(getTypeEnv()).toModelType())
                 .containsValue(numericPropertyEntityDefinition(getTypeEnv()))
     }
 
@@ -105,7 +106,7 @@ class EntityGraphBuilderTest(types: Types, elements: Elements) : AnnotationProce
         assertThat(graphs).containsKey("pl.touk.example")
 
         assertThat(graphs["pl.touk.example"])
-                .containsKey(datePropertyEntity(getTypeEnv()))
+                .containsKey(datePropertyEntity(getTypeEnv()).toModelType())
                 .containsValue(datePropertyEntityDefinition(getTypeEnv()))
     }
 
@@ -121,7 +122,7 @@ class EntityGraphBuilderTest(types: Types, elements: Elements) : AnnotationProce
         assertThat(graphs).containsKey("pl.touk.example")
 
         assertThat(graphs["pl.touk.example"])
-                .containsKey(embeddedPropertyEntity(getTypeEnv()))
+                .containsKey(embeddedPropertyEntity(getTypeEnv()).toModelType())
                 .containsValue(embeddedPropertyEntityDefinition(getTypeEnv()))
     }
 
@@ -137,7 +138,7 @@ class EntityGraphBuilderTest(types: Types, elements: Elements) : AnnotationProce
         assertThat(graphs).containsKey("pl.touk.example")
 
         assertThat(graphs["pl.touk.example"])
-                .containsKey(enumPropertyEntity(getTypeEnv()))
+                .containsKey(enumPropertyEntity(getTypeEnv()).toModelType())
                 .containsValue(enumPropertyEntityDefinition(getTypeEnv()))
     }
 
@@ -153,7 +154,7 @@ class EntityGraphBuilderTest(types: Types, elements: Elements) : AnnotationProce
         assertThat(graphs).containsKey("pl.touk.example")
 
         assertThat(graphs["pl.touk.example"])
-                .containsKey(typealiasEntity(getTypeEnv()))
+                .containsKey(typealiasEntity(getTypeEnv()).toModelType())
                 .containsValue(typealiasEntityDefinition(getTypeEnv()))
     }
 }

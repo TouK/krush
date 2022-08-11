@@ -3,6 +3,7 @@ package pl.touk.krush.model
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import pl.touk.krush.env.AnnotationEnvironment
 import pl.touk.krush.env.TypeEnvironment
+import pl.touk.krush.meta.toModelType
 import pl.touk.krush.meta.toTypeElement
 import pl.touk.krush.meta.toVariableElement
 import javax.lang.model.element.Element
@@ -97,7 +98,7 @@ interface EntityGraphSampleData {
         val id = getVariableElement(entity, typeEnvironment.elementUtils, "id")
 
         return EntityDefinition(
-            type = entity, table = "customers",
+            type = entity.toModelType(), table = "customers",
             id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)))
     }
 
@@ -131,14 +132,16 @@ interface EntityGraphSampleData {
         val prop1 = getVariableElement(entity, elements,"prop1")
         val prop2 = getVariableElement(entity, elements,"prop2")
 
-        return EntityDefinition(
-            type = entity, table = entity.simpleName.asVariable(),
+        val modelType = entity.toModelType()
+        val entityDefinition = EntityDefinition(
+            type = modelType, table = modelType.simpleName.asVariable(),
             id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
             properties = listOf(
                 propertyDefinition(typeEnvironment, prop1, "prop1", STRING, false),
                 propertyDefinition(typeEnvironment, prop2, "prop2", STRING, false)
             )
         )
+        return entityDefinition
     }
 
     fun customPropertyNameEntityDefinition(typeEnvironment: TypeEnvironment): EntityDefinition {
@@ -149,7 +152,7 @@ interface EntityGraphSampleData {
         val prop1 = getVariableElement(entity, elements,"prop1")
 
         return EntityDefinition(
-            type = entity,
+            type = entity.toModelType(),
             table = "entity",
             id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.getAnnotation(Column::class.java).name)),
             properties = listOf(
@@ -179,7 +182,7 @@ interface EntityGraphSampleData {
         val prop1 = getVariableElement(entity, typeEnvironment.elementUtils,"prop1")
 
         return EntityDefinition(
-            type = entity,
+            type = entity.toModelType(),
             table = "nullablePropertyEntity",
             id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
             properties = listOf(
@@ -217,16 +220,18 @@ interface EntityGraphSampleData {
         val entity = oneToOneSourceEntity(typeEnvironment)
         val id = getVariableElement(entity, elements, "id")
         val targetEntity = getVariableElement(entity, elements,"targetEntity")
+        val entityModelType = entity.toModelType()
+        val targetModelType = targetEntity.toTypeElement().toModelType()
 
         return EntityDefinition(
-            type = entity,
-            table = entity.simpleName.asVariable(),
+            type = entityModelType,
+            table = entityModelType.simpleName.asVariable(),
             id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
             associations = listOf(
                 AssociationDefinition(
-                    name =  targetEntity.simpleName,
-                    source = entity,
-                    target = targetEntity.toVariableElement().toTypeElement(),
+                    name =  targetEntity.simpleName.toString(),
+                    source = entityModelType,
+                    target = targetModelType,
                     joinColumns = listOf(targetEntity.getAnnotation(JoinColumn::class.java)),
                     type = AssociationType.ONE_TO_ONE,
                     targetId = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
@@ -242,16 +247,18 @@ interface EntityGraphSampleData {
         val entity = oneToOneTargetEntity(typeEnvironment)
         val id = getVariableElement(entity, elements, "id")
         val sourceEntity = getVariableElement(entity, elements, "sourceEntity")
+        val entityModelType = entity.toModelType()
+        val sourceModelType = sourceEntity.toTypeElement().toModelType()
 
         return EntityDefinition(
-            type = entity,
-            table = entity.simpleName.asVariable(),
+            type = entityModelType,
+            table = entityModelType.simpleName.asVariable(),
             id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
             associations = listOf(
                 AssociationDefinition(
-                    name = sourceEntity.simpleName,
-                    source = entity,
-                    target = sourceEntity.toVariableElement().toTypeElement(),
+                    name = sourceEntity.simpleName.toString(),
+                    source = entityModelType,
+                    target = sourceModelType,
                     type = AssociationType.ONE_TO_ONE,
                     targetId = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
                     mapped = false,
@@ -283,6 +290,7 @@ interface EntityGraphSampleData {
         val elements = typeEnvironment.elementUtils
 
         val entity = numericPropertyEntity(typeEnvironment)
+        val entityType = entity.toModelType()
         val id = getVariableElement(entity, elements, "id")
         val long = getVariableElement(entity, typeEnvironment.elementUtils,"long")
         val int = getVariableElement(entity, typeEnvironment.elementUtils,"int")
@@ -291,8 +299,8 @@ interface EntityGraphSampleData {
         val double = getVariableElement(entity, typeEnvironment.elementUtils,"double")
 
         return EntityDefinition(
-            type = entity,
-            table = entity.simpleName.asVariable(),
+            type = entityType,
+            table = entityType.simpleName.asVariable(),
             id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
             properties = listOf(
                 propertyDefinition(typeEnvironment, long, "long", LONG, false),
@@ -325,6 +333,7 @@ interface EntityGraphSampleData {
         val elements = typeEnvironment.elementUtils
 
         val entity = datePropertyEntity(typeEnvironment)
+        val entityType = entity.toModelType()
         val id = getVariableElement(entity, elements, "id")
         val localDate = getVariableElement(entity, typeEnvironment.elementUtils,"localDate")
         val localDateTime = getVariableElement(entity, typeEnvironment.elementUtils,"localDateTime")
@@ -332,8 +341,8 @@ interface EntityGraphSampleData {
         val zonedDateTime = getVariableElement(entity, typeEnvironment.elementUtils,"zonedDateTime")
 
         return EntityDefinition(
-            type = entity,
-            table = entity.simpleName.asVariable(),
+            type = entityType,
+            table = entityType.simpleName.asVariable(),
             id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
             properties = listOf(
                 propertyDefinition(typeEnvironment, localDate, "localDate", LOCAL_DATE, false),
@@ -349,8 +358,8 @@ interface EntityGraphSampleData {
 
         val embeddedPropertyEntity = embeddedPropertyEntity(typeEnvironment)
         val embeddedPropertyEntityId = getVariableElement(embeddedPropertyEntity, elements, "id")
-        val embeddableType = getVariableElement(embeddedPropertyEntity, typeEnvironment.elementUtils,"embeddableType")
-        val property1 = getVariableElement(embeddableType(typeEnvironment), typeEnvironment.elementUtils,"property1")
+        val embeddableType = getVariableElement(embeddedPropertyEntity, typeEnvironment.elementUtils, "embeddableType")
+        val property1 = getVariableElement(embeddableType(typeEnvironment), typeEnvironment.elementUtils, "property1")
 
         val annEnv = AnnotationEnvironment(entities =  listOf(embeddedPropertyEntity), ids = listOf(embeddedPropertyEntityId),
             columns = emptyList(), oneToMany = emptyList(), manyToOne = emptyList(),
@@ -363,17 +372,18 @@ interface EntityGraphSampleData {
         val elements = typeEnvironment.elementUtils
 
         val entity = embeddedPropertyEntity(typeEnvironment)
+        val entityType = entity.toModelType()
         val id = getVariableElement(entity, elements, "id")
         val property1 = getVariableElement(embeddableType(typeEnvironment), typeEnvironment.elementUtils,"property1")
 
         return EntityDefinition(
-            type = entity,
-            table = entity.simpleName.asVariable(),
+            type = entityType,
+            table = entityType.simpleName.asVariable(),
             id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
             embeddables = listOf(
                 EmbeddableDefinition(
-                    propertyName = typeEnvironment.elementUtils.getName("embeddableType"),
-                    qualifiedName = typeEnvironment.elementUtils.getName("pl.touk.example.EmbeddableType"),
+                    propertyName = typeEnvironment.elementUtils.getName("embeddableType").toString(),
+                    qualifiedName = typeEnvironment.elementUtils.getName("pl.touk.example.EmbeddableType").toString(),
                     nullable = false,
                     properties = listOf(
                         propertyDefinition(typeEnvironment, property1, "property1", STRING, false)
@@ -401,12 +411,13 @@ interface EntityGraphSampleData {
         val elements = typeEnvironment.elementUtils
 
         val entity = enumPropertyEntity(typeEnvironment)
+        val entityType = entity.toModelType()
         val id = getVariableElement(entity, elements, "id")
         val enumClass = getVariableElement(entity, typeEnvironment.elementUtils,"enumClass")
 
         return EntityDefinition(
-            type = entity,
-            table = entity.simpleName.asVariable(),
+            type = entityType,
+            table = entityType.simpleName.asVariable(),
             id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
             properties = listOf(
                 propertyDefinition(typeEnvironment, enumClass, "enumClass", Type("pl.touk.example", "EnumClass"), false)
@@ -418,38 +429,41 @@ interface EntityGraphSampleData {
 
     fun idNotPresentEntityDefinition(typeEnvironment: TypeEnvironment): EntityDefinition {
         val entity = idNotPresentEntity(typeEnvironment)
+        val entityType = entity.toModelType()
 
         return EntityDefinition(
-            type = entity, id = null,
-            table = entity.simpleName.asVariable(), properties = emptyList(), embeddables = emptyList()
+            type = entityType, id = null,
+            table = entityType.simpleName.asVariable(), properties = emptyList(), embeddables = emptyList()
         )
     }
 
     fun idTypeUnsupportedEntityDefinition(typeEnvironment: TypeEnvironment): EntityDefinition {
         val entity = idTypeUnsupportedEntity(typeEnvironment)
+        val entityType = entity.toModelType()
         val id = getVariableElement(entity, typeEnvironment.elementUtils, "id")
 
         val idPropDef = PropertyDefinition(
-            name = id.simpleName, columnName = typeEnvironment.elementUtils.getName("id"),
+            name = id.simpleName.toString(), columnName = typeEnvironment.elementUtils.getName("id").toString(),
             column = id.getAnnotation(Column::class.java), type = FLOAT, nullable = true
         )
 
         return EntityDefinition(
-            type = entity,
-            id = IdDefinition(name = id.simpleName, type = FLOAT, generatedValue = true, properties = listOf(idPropDef), nullable = true),
-            table = entity.simpleName.asVariable(), properties = emptyList(), embeddables = emptyList()
+            type = entityType,
+            id = IdDefinition(name = id.simpleName.toString(), type = FLOAT, generatedValue = true, properties = listOf(idPropDef), nullable = true),
+            table = entityType.simpleName.asVariable(), properties = emptyList(), embeddables = emptyList()
         )
     }
 
     fun propertyTypeUnsupportedEntityDefinition(typeEnvironment: TypeEnvironment): EntityDefinition {
         val entity = propertyTypeUnsupportedEntity(typeEnvironment)
+        val entityType = entity.toModelType()
         val id = getVariableElement(entity, typeEnvironment.elementUtils, "id")
         val prop = getVariableElement(entity, typeEnvironment.elementUtils,"prop")
 
         return EntityDefinition(
-            type = entity,
+            type = entityType,
             id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
-            table = entity.simpleName.asVariable(),
+            table = entityType.simpleName.asVariable(),
             properties = listOf(
                 propertyDefinition(typeEnvironment, prop, "prop", Type("kotlin", "Pair"), false)
             ),
@@ -474,13 +488,14 @@ interface EntityGraphSampleData {
 
     fun typealiasEntityDefinition(typeEnvironment: TypeEnvironment): EntityDefinition {
         val entity = typealiasEntity(typeEnvironment)
+        val entityType = entity.toModelType()
         val id = getVariableElement(entity, typeEnvironment.elementUtils, "id")
         val prop1 = getVariableElement(entity, typeEnvironment.elementUtils, "aliased")
         val plainString = getVariableElement(entity, typeEnvironment.elementUtils, "justAString")
 
         return EntityDefinition(
-            type = entity,
-            table = entity.simpleName.asVariable(),
+            type = entityType,
+            table = entityType.simpleName.asVariable(),
             id = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
             properties = listOf(
                 propertyDefinition(
@@ -517,14 +532,14 @@ interface EntityGraphSampleData {
 
     private fun autoGenIdDefinition(id: VariableElement, name: Name): IdDefinition {
         val idPropDef = PropertyDefinition(
-            name = id.simpleName,
-            columnName = name,
+            name = id.simpleName.toString(),
+            columnName = name.toString(),
             column = id.getAnnotation(Column::class.java),
             type = LONG,
             nullable = true
         )
         return IdDefinition(
-            name = id.simpleName,
+            name = id.simpleName.toString(),
             type = LONG,
             generatedValue = true,
             nullable = true,
@@ -534,8 +549,8 @@ interface EntityGraphSampleData {
 
     private fun propertyDefinition(typeEnvironment: TypeEnvironment, property: VariableElement, columnName: String, type: Type, nullable: Boolean): PropertyDefinition {
         return PropertyDefinition(
-            name = typeEnvironment.elementUtils.getName(property.simpleName),
-            columnName = typeEnvironment.elementUtils.getName(columnName),
+            name = typeEnvironment.elementUtils.getName(property.simpleName).toString(),
+            columnName = typeEnvironment.elementUtils.getName(columnName).toString(),
             column = property.getAnnotation(Column::class.java),
             type = type,
             nullable = nullable

@@ -2,15 +2,11 @@ package pl.touk.krush.model
 
 import pl.touk.krush.validation.EntityNotMappedException
 import pl.touk.krush.validation.MissingIdException
-import java.util.*
-import javax.lang.model.element.Name
-import javax.lang.model.element.TypeElement
 import javax.persistence.Column
 import javax.persistence.JoinColumn
-import javax.persistence.Table
 
 data class EntityDefinition(
-    val type: TypeElement,
+    val type: Type,
     val table: String,
     val id: IdDefinition? = null,
     val properties: List<PropertyDefinition> = emptyList(),
@@ -35,18 +31,18 @@ data class EntityDefinition(
 
     fun hasSelfReferentialAssoc(): Boolean = associations.any { it.isSelfReferential }
 
-    val name: Name get() = type.simpleName
-    val qualifiedName: Name get() = type.qualifiedName
+    val name: String get() = type.simpleName
+    val qualifiedName: String get() = type.qualifiedName
 
     val tableName: String get() = "${name}Table"
     val idColumn: String get() = id?.let { id -> "${tableName}.${id.name}" } ?: throw MissingIdException(this)
 }
 
 data class IdDefinition (
-    val name: Name,
+    val name: String,
     val type: Type,
     // for composite id
-    val qualifiedName: Name? = null,
+    val qualifiedName: String? = null,
     // for non-composite id just single property
     val properties: List<PropertyDefinition> = emptyList(),
     val generatedValue: Boolean = false,
@@ -66,9 +62,9 @@ data class IdDefinition (
 }
 
 data class AssociationDefinition(
-    val name: Name,
-    val source: TypeElement,
-    val target: TypeElement,
+    val name: String,
+    val source: Type,
+    val target: Type,
     val mapped: Boolean = true,
     val mappedBy: String? = null,
     val joinColumns: List<JoinColumn> = emptyList(),
@@ -91,8 +87,8 @@ data class AssociationDefinition(
 }
 
 data class PropertyDefinition(
-    val name: Name,
-    val columnName: Name,
+    val name: String,
+    val columnName: String,
     val column: Column?,
     val sharedColumn: JoinColumn? = null,
     val type: Type,
@@ -131,11 +127,13 @@ data class Type(
     val packageName: String,
     val simpleName: String,
     val aliasOf: Type? = null
-)
+) {
+    val qualifiedName: String by lazy { "$packageName.$simpleName" }
+}
 
 data class EmbeddableDefinition(
-    val propertyName: Name,
-    val qualifiedName: Name,
+    val propertyName: String,
+    val qualifiedName: String,
     val nullable: Boolean,
     val properties: List<PropertyDefinition> = emptyList()
 ) {
@@ -147,7 +145,7 @@ enum class AssociationType {
 }
 
 typealias EntityGraphs = MutableMap<String, EntityGraph>
-typealias EntityGraph = MutableMap<TypeElement, EntityDefinition>
+typealias EntityGraph = MutableMap<Type, EntityDefinition>
 
 fun EntityGraph(): EntityGraph = mutableMapOf()
 fun EntityGraphs(): EntityGraphs = mutableMapOf()
@@ -156,15 +154,15 @@ fun EntityGraph.traverse(function: (EntityDefinition) -> Unit) {
     this.entries.forEach { (_, value) -> function.invoke(value) }
 }
 
-fun EntityGraph.traverse(function: (TypeElement, EntityDefinition) -> Unit) {
+fun EntityGraph.traverse(function: (Type, EntityDefinition) -> Unit) {
     this.entries.forEach { (key, value) -> function.invoke(key, value) }
 }
 
 class DFS(val graphs: EntityGraphs) {
     private val result = mutableSetOf<EntityDefinition>()
-    private val visited = mutableSetOf<TypeElement>()
+    private val visited = mutableSetOf<Type>()
 
-    fun visit(elem: TypeElement): List<EntityDefinition> {
+    fun visit(elem: Type): List<EntityDefinition> {
         val current = graphs.entity(elem.packageName, elem) ?: throw EntityNotMappedException(elem)
         result.add(current)
         visited.add(elem)
@@ -177,30 +175,16 @@ class DFS(val graphs: EntityGraphs) {
 fun EntityGraph.allAssociations() =
         this.values.flatMap { entityDef -> entityDef.associations.map { it.target } }.toSet()
 
-fun EntityGraphs.entityId(typeElement: TypeElement) : IdDefinition {
-    val graph = this[typeElement.packageName] ?: throw EntityNotMappedException(typeElement)
-    return graph[typeElement]?.id ?: throw EntityNotMappedException(typeElement)
+fun EntityGraphs.entityId(type: Type) : IdDefinition {
+    val graph = this[type.packageName] ?: throw EntityNotMappedException(type)
+    return graph[type]?.id ?: throw EntityNotMappedException(type)
 }
 
-fun EntityGraphs.entity(packageName: String, typeElement: TypeElement) : EntityDefinition? {
-    return this[packageName]?.get(typeElement)
+fun EntityGraphs.entity(packageName: String, type: Type) : EntityDefinition? {
+    return this[packageName]?.get(type)
 }
 
 fun EntityGraphs.entities() : Iterable<EntityDefinition> = this.map { it.value }.flatMap { it.entries }.map { it.value }
 
-fun Name.asObject() = this.toString().capitalize()
-fun Name.asVariable() = this.toString().decapitalize()
-
-val TypeElement.packageName: String
-    get() {
-        val dotIdx = this.qualifiedName.lastIndexOf('.')
-        if (dotIdx < 0) {
-            return "default"
-        }
-        return this.qualifiedName.substring(0 until dotIdx)
-    }
-
-val TypeElement.tableName: String
-    get() {
-        return this.getAnnotation(Table::class.java)?.name ?: this.simpleName.asVariable()
-    }
+fun String.asObject() = this.capitalize()
+fun String.asVariable() = this.decapitalize()

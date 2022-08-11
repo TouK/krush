@@ -2,6 +2,7 @@ package pl.touk.krush.gradle
 
 object Versions {
     const val kotlin = "1.7.10"
+    const val ksp = "1.7.10-1.0.6"
     const val exposed = "0.38.2"
     const val kotlinpoet = "1.12.0"
     const val postgresDriver = "42.4.0"

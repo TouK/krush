@@ -4,6 +4,7 @@ import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import pl.touk.krush.AnnotationProcessorTest
+import pl.touk.krush.meta.toModelType
 import javax.lang.model.util.Elements
 import javax.lang.model.util.Types
 
@@ -17,15 +18,15 @@ class DFSTest(types: Types, elements: Elements) : AnnotationProcessorTest(types,
 
         //when
         val graphs = graphBuilder.build()
-        val typeElement = oneToOneSourceEntity(getTypeEnv())
+        val type = oneToOneSourceEntity(getTypeEnv()).toModelType()
 
-        val elements = DFS(graphs).visit(typeElement)
+        val elements = DFS(graphs).visit(type)
 
         //then
         assertThat(elements)
             .hasSize(2)
             .extracting("type")
-            .containsOnly(typeElement, oneToOneTargetEntity(getTypeEnv()))
+            .containsOnly(type, oneToOneTargetEntity(getTypeEnv()).toModelType())
     }
 
 }

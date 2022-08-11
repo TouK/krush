@@ -1,6 +1,6 @@
 package pl.touk.krush.validation
 
-import javax.lang.model.element.TypeElement
+import pl.touk.krush.model.Type
 
-class AssociationTargetEntityNotFoundException(targetEntity: TypeElement) :
-        RuntimeException("Could not resolve $targetEntity entity")
+class AssociationTargetEntityNotFoundException(targetType: Type) :
+        RuntimeException("Could not resolve $targetType entity")

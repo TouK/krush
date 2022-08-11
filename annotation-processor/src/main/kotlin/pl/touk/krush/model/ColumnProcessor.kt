@@ -7,6 +7,7 @@ import com.squareup.kotlinpoet.metadata.toKmClass
 import pl.touk.krush.env.AnnotationEnvironment
 import pl.touk.krush.env.TypeEnvironment
 import pl.touk.krush.env.enclosingTypeElement
+import pl.touk.krush.meta.asVariable
 import pl.touk.krush.meta.isNullable
 import pl.touk.krush.meta.mappingOverrides
 import pl.touk.krush.meta.toModelType
@@ -39,12 +40,12 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
             val type = idElt.toModelType() ?: throw ElementTypeNotFoundException(idElt)
 
             val idPropDef = PropertyDefinition(
-                name = idElt.simpleName, columnName = columnName, converter = converter,
+                name = idElt.simpleName.toString(), columnName = columnName.toString(), converter = converter,
                 column = columnAnn, type = type,
                 nullable = idElt.isNullable()
             )
             val idDefinition = IdDefinition(
-                name = idElt.simpleName, type = type, properties = listOf(idPropDef), generatedValue = generatedValue,
+                name = idElt.simpleName.toString(), type = type, properties = listOf(idPropDef), generatedValue = generatedValue,
                 nullable = idElt.isNullable(), embedded = false
             )
             entity.copy(id = idDefinition)
@@ -52,19 +53,19 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
 
     private fun processEmbeddedIds(graphs: EntityGraphs) {
         for (element in annEnv.embeddedIds) { // @Entity Record(@EmbeddedId val id: RecordId)
-            val embeddableType = element.toModelType() ?: throw ElementTypeNotFoundException(element)
             val embeddableTypeElement = (element.asType() as DeclaredType).asElement().toTypeElement() // RecordId
+            val embeddableType = embeddableTypeElement.toModelType()
             val columns = annEnv.embeddedColumn
                     .filter { columnElt -> columnElt.enclosingTypeElement() == embeddableTypeElement }
                     .toList() //id, type
-            val entityType = element.enclosingTypeElement() //Record
+            val entityType = element.enclosingTypeElement().toModelType() //Record
 
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
             graph.computeIfPresent(entityType) { _, entity ->
                 //Record
                 val columnDefs = columns.map { column -> propertyDefinition(column, element.mappingOverrides()) }
                 val idDefinition = IdDefinition(
-                    name = element.simpleName, type = embeddableType, qualifiedName = embeddableTypeElement.qualifiedName,
+                    name = element.simpleName.toString(), type = embeddableType, qualifiedName = embeddableType.qualifiedName,
                     properties = columnDefs, nullable = element.isNullable(), embedded = true
                 )
                 entity.copy(id = idDefinition)
@@ -80,18 +81,19 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
 
     private fun processEmbeddedColumns(graphs: EntityGraphs) {
         for (element in annEnv.embedded) { // @Entity User(@Embedded InvoiceAddress element)
-            val embeddableType = (element.asType() as DeclaredType).asElement().toTypeElement() // InvoiceAddress
+            val embeddableTypeElement = (element.asType() as DeclaredType).asElement().toTypeElement() // InvoiceAddress
+            val embeddableType = embeddableTypeElement.toModelType()
             val columns = annEnv.embeddedColumn
-                .filter { columnElt -> columnElt.enclosingTypeElement() == embeddableType }
+                .filter { columnElt -> columnElt.enclosingTypeElement() == embeddableTypeElement }
                 .toList() //city, street, houseNumber
-            val entityType = element.enclosingTypeElement() //User
+            val entityType = element.enclosingTypeElement().toModelType() //User
 
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
             graph.computeIfPresent(entityType) { _, entity ->
                 //User
                 val columnDefs = columns.map { column -> propertyDefinition(column, element.mappingOverrides()) }
                 val embeddable = EmbeddableDefinition(
-                    propertyName = element.simpleName, qualifiedName = embeddableType.qualifiedName,
+                    propertyName = element.simpleName.toString(), qualifiedName = embeddableType.qualifiedName,
                     nullable = element.isNullable(), properties = columnDefs
                 )
                 entity.addEmbeddable(embeddable)
@@ -107,7 +109,7 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
         val enumerated = getEnumeratedDefinition(columnElt)
         val type = columnElt.toModelType() ?: throw ElementTypeNotFoundException(columnElt)
         return PropertyDefinition(
-            name = name, columnName = columnName, column = columnAnn, type = type,
+            name = name.toString(), columnName = columnName.toString(), column = columnAnn, type = type,
             nullable = columnElt.isNullable(), converter = converter, enumerated = enumerated
         )
     }

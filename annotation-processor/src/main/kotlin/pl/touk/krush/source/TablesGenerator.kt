@@ -3,7 +3,6 @@ package pl.touk.krush.source
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
-import com.squareup.kotlinpoet.metadata.toKmClass
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.Table.PrimaryKey
@@ -11,8 +10,6 @@ import pl.touk.krush.env.TypeEnvironment
 import pl.touk.krush.model.*
 import pl.touk.krush.meta.toClassName
 import pl.touk.krush.validation.*
-import javax.lang.model.element.Name
-import javax.lang.model.element.TypeElement
 import javax.persistence.JoinColumn
 
 @KotlinPoetMetadataPreview
@@ -161,7 +158,7 @@ class TablesGenerator : SourceGenerator {
     }
 
     private fun addEmbeddedTableProperty(embeddable: EmbeddableDefinition, column: PropertyDefinition, entity: EntityDefinition, tableSpec: TypeSpec.Builder, fileSpec: FileSpec.Builder, typeEnvironment: TypeEnvironment) {
-        val name = typeEnvironment.elementUtils.getName(embeddable.propertyName.asVariable() + column.name.asVariable().capitalize())
+        val name = embeddable.propertyName.asVariable() + column.name.asVariable().capitalize()
         val embeddedProperty = column.copy(name = name, nullable = embeddable.nullable || column.nullable)
         addTableProperty(embeddedProperty, entity, tableSpec, fileSpec)
     }
@@ -182,11 +179,11 @@ class TablesGenerator : SourceGenerator {
         }
     }
 
-    private fun addInsertFunc(entityType: TypeElement, entity: EntityDefinition, fileSpec: FileSpec.Builder) {
+    private fun addInsertFunc(entityType: Type, entity: EntityDefinition, fileSpec: FileSpec.Builder) {
         val entityName = entity.name.asVariable()
         val isGenerated = entity.id?.generatedValue ?: false
         val persistedName = if (isGenerated) "persisted${entityName.capitalize()}" else entityName
-        val entityClass = entityType.toKmClass().toClassName()
+        val entityClass = entityType.toClassName()
         val func = FunSpec.builder("insert")
                 .receiver(Type(entityType.packageName, entity.tableName).asUnderlyingClassName())
                 .addParameter(entity.name.asVariable(), entityClass)
@@ -222,7 +219,7 @@ class TablesGenerator : SourceGenerator {
         return entity.associations.filter { !it.mapped }.map { assoc ->
             ParameterSpec.builder(
                     assoc.target.simpleName.asVariable() + "Param",
-                    assoc.target.toKmClass().toClassName().copy(nullable = true)
+                    assoc.target.toClassName().copy(nullable = true)
             ).defaultValue("null").build()
         }
     }
@@ -375,7 +372,7 @@ class TablesGenerator : SourceGenerator {
                 .build()
     }
 
-    private fun idCodeBlock(prop: PropertyDefinition, entityName: Name, columnName: String): CodeBlock {
+    private fun idCodeBlock(prop: PropertyDefinition, entityName: String, columnName: String): CodeBlock {
         return if (prop.converter != null) {
             converterPropInitializer(entityName = entityName, propertyName = prop.name, columnName = columnName)
         } else when (prop.asUnderlyingTypeName()) {
@@ -413,12 +410,12 @@ fun Type.asClassName(): ClassName {
     return ClassName(this.packageName, this.simpleName)
 }
 
-private fun converterPropInitializer(entityName: Name, propertyName: Name, columnName: String): CodeBlock {
+private fun converterPropInitializer(entityName: String, propertyName: String, columnName: String): CodeBlock {
     val convertFunc = converterFuncName(entityName, propertyName)
     return CodeBlock.of("%L(%S)", convertFunc, columnName)
 }
 
-private fun converterFuncName(entityName: Name, propertyName: Name) =
+private fun converterFuncName(entityName: String, propertyName: String) =
         entityName.asVariable().decapitalize().plus("_$propertyName")
 
 @JvmField val BIG_DECIMAL = ClassName("java.math", "BigDecimal")

@@ -3,6 +3,8 @@ package pl.touk.krush.model
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import pl.touk.krush.env.AnnotationEnvironment
 import pl.touk.krush.env.TypeEnvironment
+import pl.touk.krush.meta.tableName
+import pl.touk.krush.meta.toModelType
 import pl.touk.krush.model.ValidationResult.Error
 import pl.touk.krush.model.ValidationResult.Success
 import pl.touk.krush.validation.EntityGraphValidationFailedException
@@ -43,9 +45,10 @@ class EntityGraphBuilder(
     private fun buildEntities(entityList: List<TypeElement>) : EntityGraphs {
         val graphs = EntityGraphs()
         for (entityElt in entityList) {
-            val graph = graphs.getOrDefault(entityElt.packageName, EntityGraph())
-            graph[entityElt] = EntityDefinition(type = entityElt, table = entityElt.tableName)
-            graphs[entityElt.packageName] = graph
+            val modelType = entityElt.toModelType()
+            val graph = graphs.getOrDefault(modelType.packageName, EntityGraph())
+            graph[modelType] = EntityDefinition(type = modelType, table = entityElt.tableName)
+            graphs[modelType.packageName] = graph
         }
         return graphs
     }

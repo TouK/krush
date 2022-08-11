@@ -32,7 +32,7 @@ class MappingsGenerator : SourceGenerator {
 
         graph.allAssociations().forEach { entity ->
             if (entity.packageName != packageName) {
-                fileSpec.addImport(entity.packageName, "${entity.simpleName}", "${entity.simpleName}Table",
+                fileSpec.addImport(entity.packageName, entity.simpleName, "${entity.simpleName}Table",
                         "to${entity.simpleName}", "to${entity.simpleName}Map", "to${entity.simpleName}List", "addSubEntitiesTo${entity.simpleName}")
             }
         }
@@ -44,7 +44,7 @@ class MappingsGenerator : SourceGenerator {
         graph.traverse { entityType, entity ->
             // Functions for reading objects from the DB
             val hasSelfRef = entity.hasSelfReferentialAssoc()
-            val entityClass = entityType.toKmClass().toClassName()
+            val entityClass = entityType.toClassName()
             fileSpec.addFunction(buildToEntityFunc(hasSelfRef, entityClass, entity))
             if (hasSelfRef) {
                 fileSpec.addFunction(buildToEntityFuncSelf(entityType, entity))
@@ -409,7 +409,7 @@ class MappingsGenerator : SourceGenerator {
                         val referencingIdName = "referencing${entityName}Id"
                         val referencingEntityName = "referencing${selfRefAssoc.target.simpleName}"
                         val targetType = selfRefAssoc.target
-                        val targetClass = targetType.toKmClass().toClassName()
+                        val targetClass = targetType.toClassName()
 
                         addStatement("\t\t%T::class -> unsatisfiedMap.forEach { ($subjectIdName, $referencingIdSetName) ->", targetClass)
                         addStatement("\t\t\tval $subjectValName = entityStore[%T::class]?.get($subjectIdName) as? $entityName", targetClass)
@@ -432,13 +432,13 @@ class MappingsGenerator : SourceGenerator {
         return func.build()
     }
 
-    private fun buildFromEntityFunc(entityType: TypeElement, entity: EntityDefinition): FunSpec? {
+    private fun buildFromEntityFunc(entityType: Type, entity: EntityDefinition): FunSpec? {
         val param = entity.name.asVariable()
         val tableName = entity.tableName
 
         val func = FunSpec.builder("from")
                 .receiver(UpdateBuilder::class.asClassName().parameterizedBy(STAR))
-                .addParameter(param, entityType.toKmClass().toClassName())
+                .addParameter(param, entityType.toClassName())
 
         entityAssocParams(entity).forEach { func.addParameter(it) }
 
@@ -500,7 +500,7 @@ class MappingsGenerator : SourceGenerator {
         return func.build()
     }
 
-    private fun buildFromManyToManyFunc(entityType: TypeElement, entity: EntityDefinition, assoc: AssociationDefinition): FunSpec {
+    private fun buildFromManyToManyFunc(entityType: Type, entity: EntityDefinition, assoc: AssociationDefinition): FunSpec {
         val (sourceSuffix, targetSuffix) = if (assoc.isSelfReferential) "Source" to "Target" else "" to ""
         val sourceParam = entity.name.asVariable() + sourceSuffix
         val targetVal = assoc.target.simpleName.asVariable()
@@ -511,8 +511,8 @@ class MappingsGenerator : SourceGenerator {
 
         val func = FunSpec.builder("from")
                 .receiver(UpdateBuilder::class.asClassName().parameterizedBy(STAR))
-                .addParameter(sourceParam, entityType.toKmClass().toClassName())
-                .addParameter(targetParam, targetType.toKmClass().toClassName())
+                .addParameter(sourceParam, entityType.toClassName())
+                .addParameter(targetParam, targetType.toClassName())
 
         listOf(Triple(entityType, entityId, sourceSuffix), Triple(targetType, assoc.targetId, targetSuffix)).forEach { (type, id, side) ->
             val rootVal = type.simpleName.asVariable()
@@ -541,7 +541,7 @@ class MappingsGenerator : SourceGenerator {
         return entity.associations.filter { !it.mapped }.map { assoc ->
             ParameterSpec.builder(
                     assoc.target.simpleName.asVariable(),
-                    assoc.target.toKmClass().toClassName().copy(nullable = true)
+                    assoc.target.toClassName().copy(nullable = true)
             ).defaultValue("null").build()
         }
     }
