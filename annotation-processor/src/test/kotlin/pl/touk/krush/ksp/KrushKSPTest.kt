@@ -71,6 +71,35 @@ class KrushKSPTest {
         assertCompiles(source)
     }
 
+    @Test
+    fun shouldProcessEnum() {
+        val source = SourceFile.kotlin(
+            "Message.kt", """
+                package pl.touk.krush.example
+
+                import javax.persistence.*
+
+                enum class MessageStatus {
+                    NEW, PENDING, RECEIVED
+                }
+
+                @Entity
+                data class Message(
+                    @Id @GeneratedValue
+                    val id: Long? = null,
+
+                    @Enumerated(EnumType.STRING)
+                    val status: MessageStatus,
+
+                    @Enumerated(EnumType.ORDINAL)
+                    val previousStatus: MessageStatus
+                )
+            """.trimIndent()
+        )
+
+        assertCompiles(source)
+    }
+
     private fun assertCompiles(source: SourceFile) {
         val compilation = KotlinCompilation().apply {
             sources = listOf(source)

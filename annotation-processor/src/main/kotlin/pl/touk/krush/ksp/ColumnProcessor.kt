@@ -95,9 +95,8 @@ class ColumnProcessor(override val resolver: Resolver, private val annEnv: Annot
     }
 
     private fun getEnumeratedDefinition(columnDecl: KSPropertyDeclaration): EnumeratedDefinition? {
-        return columnDecl.getKSAnnotationByType(Enumerated::class)?.let { enumeratedAnn ->
-            enumeratedAnn.arguments.firstOrNull { it.name?.getShortName() == "value" }?.value?.toString()
-        }?.let { EnumeratedDefinition(EnumType.valueOf(it)) }
+        val enumTypeValue = columnDecl.getAnnotationByType(Enumerated::class)?.value
+        return enumTypeValue?.let { EnumeratedDefinition(EnumType.valueOf(it.toString())) }
     }
 
 }
