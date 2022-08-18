@@ -2,23 +2,18 @@ package pl.touk.krush.source
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
-import com.squareup.kotlinpoet.metadata.toKmClass
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.statements.UpdateBuilder
 import pl.touk.krush.RowWrapper
-import pl.touk.krush.env.TypeEnvironment
 import pl.touk.krush.meta.toClassName
 import pl.touk.krush.model.*
 import pl.touk.krush.model.AssociationType.*
 import pl.touk.krush.validation.EntityNotMappedException
 import pl.touk.krush.validation.MissingIdException
-import javax.lang.model.element.TypeElement
 
-@KotlinPoetMetadataPreview
 class MappingsGenerator : SourceGenerator {
 
-    override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String, typeEnv: TypeEnvironment): FileSpec {
+    override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String): FileSpec {
         val fileSpec = FileSpec.builder(packageName, fileName = "mappings")
             .addAnnotation(
                 AnnotationSpec.builder(Suppress::class)

@@ -19,6 +19,7 @@ dependencies {
     testImplementation("org.assertj:assertj-core:${Versions.assertj}")
     testRuntimeOnly("ch.qos.logback:logback-classic:${Versions.logback}")
     testImplementation("io.github.jbock-java:compile-testing:0.19.12")
+    testImplementation("com.github.tschuchortdev:kotlin-compile-testing-ksp:1.4.9")
 }
 
 tasks.test {

@@ -2,20 +2,17 @@ package pl.touk.krush.source
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.Table.PrimaryKey
-import pl.touk.krush.env.TypeEnvironment
 import pl.touk.krush.model.*
 import pl.touk.krush.meta.toClassName
 import pl.touk.krush.validation.*
 import javax.persistence.JoinColumn
 
-@KotlinPoetMetadataPreview
 class TablesGenerator : SourceGenerator {
 
-    override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String, typeEnv: TypeEnvironment): FileSpec {
+    override fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String): FileSpec {
         val fileSpec = FileSpec.builder(packageName, fileName = "tables")
             .addAnnotation(
                 AnnotationSpec.builder(Suppress::class).addMember("%S", "UNUSED_PARAMETER").build()
@@ -31,7 +28,7 @@ class TablesGenerator : SourceGenerator {
             )
 
         val isJsonbUsed = graph.any { (_, entity) ->
-            entity.properties.any { it.column?.columnDefinition == "jsonb" }
+            entity.properties.any { it.isJsonb() }
         }
 
         if (isJsonbUsed) {
@@ -82,7 +79,7 @@ class TablesGenerator : SourceGenerator {
 
             entity.embeddables.forEach { embeddable ->
                 embeddable.properties.forEach { prop ->
-                    addEmbeddedTableProperty(embeddable, prop, entity, tableSpec, fileSpec, typeEnv)
+                    addEmbeddedTableProperty(embeddable, prop, entity, tableSpec, fileSpec)
                 }
             }
 
@@ -157,7 +154,7 @@ class TablesGenerator : SourceGenerator {
         fileSpec.addType(manyToManyTableSpec.build())
     }
 
-    private fun addEmbeddedTableProperty(embeddable: EmbeddableDefinition, column: PropertyDefinition, entity: EntityDefinition, tableSpec: TypeSpec.Builder, fileSpec: FileSpec.Builder, typeEnvironment: TypeEnvironment) {
+    private fun addEmbeddedTableProperty(embeddable: EmbeddableDefinition, column: PropertyDefinition, entity: EntityDefinition, tableSpec: TypeSpec.Builder, fileSpec: FileSpec.Builder) {
         val name = embeddable.propertyName.asVariable() + column.name.asVariable().capitalize()
         val embeddedProperty = column.copy(name = name, nullable = embeddable.nullable || column.nullable)
         addTableProperty(embeddedProperty, entity, tableSpec, fileSpec)
@@ -364,7 +361,7 @@ class TablesGenerator : SourceGenerator {
         id: IdDefinition, idProp: PropertyDefinition, entity: EntityDefinition, differentiator: String
     ) : CodeBlock {
         val targetTable = entity.tableName
-        val columnName = entity.name.asVariable() + differentiator + "_" + idProp.columnName.toString()
+        val columnName = entity.name.asVariable() + differentiator + "_" + idProp.columnName
         val idCodeBlock = idCodeBlock(idProp, entity.name, columnName)
 
         return CodeBlock.builder().add(idCodeBlock)
@@ -395,9 +392,9 @@ fun PropertyDefinition.asUnderlyingTypeName(): TypeName {
 }
 
 fun Type.asUnderlyingClassName(): ClassName {
-    return if(this.aliasOf !=null) {
+    return if (this.aliasOf != null) {
         ClassName(this.aliasOf.packageName, this.aliasOf.simpleName)
-    }else{
+    } else {
         ClassName(this.packageName, this.simpleName)
     }
 }

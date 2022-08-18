@@ -1,14 +1,21 @@
 package pl.touk.krush.source
 
-import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
+import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.asClassName
 import org.jetbrains.exposed.sql.ResultRow
 import pl.touk.krush.RowWrapper
 import pl.touk.krush.meta.toClassName
-import pl.touk.krush.model.*
+import pl.touk.krush.model.AssociationType
+import pl.touk.krush.model.EntityDefinition
+import pl.touk.krush.model.Type
+import pl.touk.krush.model.asVariable
+import pl.touk.krush.model.capitalize
 
-@KotlinPoetMetadataPreview
 fun buildToEntityFuncSelf(entityType: Type, entity: EntityDefinition): FunSpec {
     val func = FunSpec.builder("to${entity.name}")
         .receiver(RowWrapper::class.java)
@@ -93,7 +100,6 @@ private fun generateIdMapping(entity: EntityDefinition) = entity.id?.let { id ->
 
 private const val EXPOSED_PACKAGE_NAME = "org.jetbrains.exposed.sql"
 
-@KotlinPoetMetadataPreview
 fun buildSelfReferencesToMapFuncBuilder(entity: EntityDefinition, rootKey: TypeName, entityClass: ClassName) =
     FunSpec.builder("to${entity.name}Map")
         .receiver(Iterable::class.parameterizedBy(ResultRow::class))
@@ -122,10 +128,6 @@ fun buildSelfReferencesToEntityBuilder(entity: EntityDefinition, entityClass: Cl
         )
         .returns(entityClass)
 
-fun selfReferenceAssociationsMapping(it: AssociationDefinition, entity: EntityDefinition) =
-    "\t${it.name} = this[${entity.name}Table.${it.name}Id]?.let { nextAlias?.let { this.to${it.target.simpleName}(nextAlias, null) } }"
-
-@KotlinPoetMetadataPreview
 fun buildSelfReferencesToEntityListFunc(entityType: Type, entity: EntityDefinition): FunSpec {
     val entityName = entity.name
 
@@ -145,7 +147,6 @@ fun buildSelfReferencesToEntityListFunc(entityType: Type, entity: EntityDefiniti
     return func.build()
 }
 
-@KotlinPoetMetadataPreview
 private fun generateSelfAlias(entityType: Type): ParameterizedTypeName {
     val className = entityType.toClassName()
     return ClassName(EXPOSED_PACKAGE_NAME, "Alias")

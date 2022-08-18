@@ -86,10 +86,26 @@ data class AssociationDefinition(
     val isBidirectional get() = mappedBy != null
 }
 
+data class ColumnDefinition(
+    val name: String,
+    val length: Int,
+    val precision: Int = 0,
+    val scale: Int = 0,
+    val isJsonb: Boolean = false
+) {
+    companion object {
+        fun from(column: Column) = ColumnDefinition(
+            name = column.name, length = column.length,
+            precision = column.precision, scale = column.scale,
+            isJsonb = column.columnDefinition.toLowerCase() == "jsonb"
+        )
+    }
+}
+
 data class PropertyDefinition(
     val name: String,
     val columnName: String,
-    val column: Column?,
+    val column: ColumnDefinition?,
     val sharedColumn: JoinColumn? = null,
     val type: Type,
     val nullable: Boolean,
@@ -106,7 +122,7 @@ data class PropertyDefinition(
         return enumerated != null
     }
 
-    fun isJsonb() = column?.columnDefinition?.toLowerCase() == "jsonb"
+    fun isJsonb() = column?.isJsonb ?: false
 }
 
 data class ConverterDefinition(

@@ -1,6 +1,8 @@
 package pl.touk.krush.model
 
+import com.squareup.kotlinpoet.DelicateKotlinPoetApi
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import com.squareup.kotlinpoet.metadata.specs.toTypeSpec
 import com.squareup.kotlinpoet.metadata.toKmClass
@@ -41,7 +43,7 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
 
             val idPropDef = PropertyDefinition(
                 name = idElt.simpleName.toString(), columnName = columnName.toString(), converter = converter,
-                column = columnAnn, type = type,
+                column = columnAnn?.let(ColumnDefinition::from), type = type,
                 nullable = idElt.isNullable()
             )
             val idDefinition = IdDefinition(
@@ -109,8 +111,8 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
         val enumerated = getEnumeratedDefinition(columnElt)
         val type = columnElt.toModelType() ?: throw ElementTypeNotFoundException(columnElt)
         return PropertyDefinition(
-            name = name.toString(), columnName = columnName.toString(), column = columnAnn, type = type,
-            nullable = columnElt.isNullable(), converter = converter, enumerated = enumerated
+            name = name.toString(), columnName = columnName.toString(), column = columnAnn?.let(ColumnDefinition::from),
+            type = type, nullable = columnElt.isNullable(), converter = converter, enumerated = enumerated
         )
     }
 
@@ -129,7 +131,7 @@ class ColumnProcessor(override val typeEnv: TypeEnvironment, private val annEnv:
             val spec = converterType.toTypeSpec()
             val targetType = converterType.toTypeElement().toKmClass().functions
                 .find { it.name == AttributeConverter<*, *>::convertToDatabaseColumn.name }
-                ?.returnType?.toModelType() ?: throw ConverterTypeNotFoundException(converterType)
+                ?.returnType?.toModelType() ?: throw ConverterTypeNotFoundException(converterType.toModelType().toString())
 
             return ConverterDefinition(
                 name = converterType.qualifiedName.asVariable(), targetType = targetType, isObject = spec.kind == TypeSpec.Kind.OBJECT

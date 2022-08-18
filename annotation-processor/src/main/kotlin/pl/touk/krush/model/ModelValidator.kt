@@ -26,13 +26,13 @@ interface Validator<T> {
 
 @KotlinPoetMetadataPreview
 val entityTypeValidators = listOf(
-        DataClassValidator()
+    DataClassValidator()
 )
 
 val entityDefValidators = listOf(
-        EntityIdValidator(),
-        EntityIdTypeValidator(),
-        EntityPropertyTypeValidator()
+    EntityIdValidator(),
+    EntityIdTypeValidator(),
+    EntityPropertyTypeValidator()
 )
 
 @KotlinPoetMetadataPreview

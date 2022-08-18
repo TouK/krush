@@ -5,7 +5,6 @@ import pl.touk.krush.env.EnvironmentBuilder
 import pl.touk.krush.model.EntityGraphBuilder
 import pl.touk.krush.source.MappingsGenerator
 import pl.touk.krush.source.TablesGenerator
-import java.io.File
 import javax.annotation.processing.AbstractProcessor
 import javax.annotation.processing.RoundEnvironment
 import javax.annotation.processing.SupportedAnnotationTypes
@@ -28,12 +27,6 @@ class KrushAnnotationProcessor : AbstractProcessor() {
     }
 
     override fun process(annotations: MutableSet<out TypeElement>?, roundEnv: RoundEnvironment): Boolean {
-
-        val kaptKotlinGeneratedDir = processingEnv.options[KAPT_KOTLIN_GENERATED_OPTION_NAME] ?: run {
-            processingEnv.messager.printMessage(ERROR, "Can't find the target directory for generated Kotlin files.")
-            return false
-        }
-
         val envBuilder = EnvironmentBuilder(roundEnv, processingEnv)
 
         val graphs = try {
@@ -49,11 +42,8 @@ class KrushAnnotationProcessor : AbstractProcessor() {
             val generators = listOf(TablesGenerator(), MappingsGenerator())
             generators.forEach { generator ->
                 graphs.entries.forEach { (packageName, graph) ->
-                    val poetFile = generator.generate(graph, graphs, packageName, envBuilder.buildTypeEnv())
-                    File(kaptKotlinGeneratedDir).apply {
-                        parentFile.mkdirs()
-                        poetFile.writeTo(this)
-                    }
+                    val poetFile = generator.generate(graph, graphs, packageName)
+                    poetFile.writeTo(filer = processingEnv.filer)
                 }
             }
             return true

@@ -1,14 +1,19 @@
 package pl.touk.krush.meta
 
+import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSName
+import com.google.devtools.ksp.symbol.KSPropertyDeclaration
+import com.google.devtools.ksp.symbol.KSTypeReference
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import kotlinx.metadata.KmClass
 import kotlinx.metadata.KmClassifier
 import kotlinx.metadata.KmType
 import org.jetbrains.annotations.NotNull
 import org.jetbrains.annotations.Nullable
+import pl.touk.krush.ksp.getAnnotationByType
 import pl.touk.krush.model.Type
-import pl.touk.krush.model.asObject
 import pl.touk.krush.model.asVariable
 import javax.lang.model.element.Element
 import javax.lang.model.element.Name
@@ -56,13 +61,18 @@ val TypeElement.tableName: String
         return this.getAnnotation(Table::class.java)?.name ?: this.simpleName.asVariable()
     }
 
+val KSClassDeclaration.tableName: String
+    get() {
+        return this.getAnnotationByType(Table::class)?.name ?: this.simpleName.asVariable()
+    }
+
 fun TypeElement.toModelType() = Type(
     this.packageName, this.simpleName.toString()
 )
 
 fun Type.toClassName() = ClassName(packageName, simpleName)
 
-fun Name.asObject() = this.toString().asObject()
+fun KSName.asVariable() = this.asString().asVariable()
 fun Name.asVariable() = this.toString().asVariable()
 
 @KotlinPoetMetadataPreview
@@ -86,3 +96,17 @@ fun KmType.toModelType(): Type {
 
 fun VariableElement.isNullable() =
     this.getAnnotation(NotNull::class.java) == null && this.getAnnotation(Nullable::class.java) != null
+
+fun KSPropertyDeclaration.toModelType(): Type {
+    val resolvedClass = this.type.resolve().toClassName()
+    return Type(resolvedClass.packageName, resolvedClass.simpleName)
+}
+
+fun KSClassDeclaration.toModelType() = Type(
+    this.packageName.asString(), this.simpleName.asString()
+)
+
+fun KSTypeReference.toModelType(): Type {
+    val resolvedType = this.resolve().toClassName()
+    return Type(resolvedType.packageName, resolvedType.simpleName)
+}

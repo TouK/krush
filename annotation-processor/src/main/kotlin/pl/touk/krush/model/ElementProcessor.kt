@@ -24,7 +24,7 @@ interface ElementProcessor {
     }
 
     fun processElements(elements: List<VariableElement>, graphs: EntityGraphs,
-                                 processor: (EntityDefinition, VariableElement) -> EntityDefinition) {
+                        processor: (EntityDefinition, VariableElement) -> EntityDefinition) {
         for (element in elements) {
             val entityType = element.enclosingTypeElement().toModelType()
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)

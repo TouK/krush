@@ -444,7 +444,7 @@ interface EntityGraphSampleData {
 
         val idPropDef = PropertyDefinition(
             name = id.simpleName.toString(), columnName = typeEnvironment.elementUtils.getName("id").toString(),
-            column = id.getAnnotation(Column::class.java), type = FLOAT, nullable = true
+            column = id.getAnnotation(Column::class.java)?.let(ColumnDefinition::from), type = FLOAT, nullable = true
         )
 
         return EntityDefinition(
@@ -534,7 +534,7 @@ interface EntityGraphSampleData {
         val idPropDef = PropertyDefinition(
             name = id.simpleName.toString(),
             columnName = name.toString(),
-            column = id.getAnnotation(Column::class.java),
+            column = id.getAnnotation(Column::class.java)?.let(ColumnDefinition::from),
             type = LONG,
             nullable = true
         )
@@ -551,7 +551,7 @@ interface EntityGraphSampleData {
         return PropertyDefinition(
             name = typeEnvironment.elementUtils.getName(property.simpleName).toString(),
             columnName = typeEnvironment.elementUtils.getName(columnName).toString(),
-            column = property.getAnnotation(Column::class.java),
+            column = property.getAnnotation(Column::class.java)?.let(ColumnDefinition::from),
             type = type,
             nullable = nullable
         )

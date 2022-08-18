@@ -7,5 +7,5 @@ import pl.touk.krush.model.EntityGraphs
 
 interface SourceGenerator {
 
-    fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String, typeEnv: TypeEnvironment) : FileSpec
+    fun generate(graph: EntityGraph, graphs: EntityGraphs, packageName: String) : FileSpec
 }
