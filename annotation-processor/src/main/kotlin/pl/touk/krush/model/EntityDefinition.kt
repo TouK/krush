@@ -144,7 +144,7 @@ data class Type(
     val simpleName: String,
     val aliasOf: Type? = null
 ) {
-    val qualifiedName: String by lazy { "$packageName.$simpleName" }
+    val qualifiedName: String by lazy { if (packageName.isNotBlank()) "$packageName.$simpleName" else simpleName }
 }
 
 data class EmbeddableDefinition(

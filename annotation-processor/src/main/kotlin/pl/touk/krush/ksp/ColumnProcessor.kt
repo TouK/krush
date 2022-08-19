@@ -12,6 +12,7 @@ import pl.touk.krush.meta.asVariable
 import pl.touk.krush.meta.toModelType
 import pl.touk.krush.model.*
 import pl.touk.krush.validation.ConverterTypeNotFoundException
+import pl.touk.krush.validation.EntityNotMappedException
 import javax.persistence.AttributeConverter
 import javax.persistence.AttributeOverride
 import javax.persistence.Column
@@ -23,9 +24,9 @@ class ColumnProcessor(override val resolver: Resolver, private val annEnv: Annot
 
     override fun process(graphs: EntityGraphs) {
         processIds(graphs)
-//        processEmbeddedIds(graphs)
+        processEmbeddedIds(graphs)
         processColumns(graphs)
-//        processEmbeddedColumns(graphs)
+        processEmbeddedColumns(graphs)
     }
 
     private fun processIds(graphs: EntityGraphs) =
@@ -49,11 +50,57 @@ class ColumnProcessor(override val resolver: Resolver, private val annEnv: Annot
             entity.copy(id = idDefinition)
         }
 
+    private fun processEmbeddedIds(graphs: EntityGraphs) {
+        for (element in annEnv.embeddedIds) { // @Entity Record(@EmbeddedId val id: RecordId)
+            val (columnDecl, classDecl) = element
+            val embeddableType = columnDecl.toModelType() // RecordId
+            val columns = annEnv.embeddableColumns
+                .filter { columnElt -> columnElt.second.toModelType() == embeddableType }
+                .toList() // id, type
+            val entityType = classDecl.toModelType() // Record
+
+            val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
+            graph.computeIfPresent(entityType) { _, entity ->
+                //Record
+                val columnDefs = columns.map { column -> propertyDefinition(column.first, columnDecl.mappingOverrides()) }
+                val idDefinition = IdDefinition(
+                    name = columnDecl.simpleName.asString(), type = embeddableType, qualifiedName = embeddableType.qualifiedName,
+                    properties = columnDefs, nullable = columnDecl.isNullable(), embedded = true
+                )
+                entity.copy(id = idDefinition)
+            }
+        }
+    }
+
     private fun processColumns(graphs: EntityGraphs) =
         processElements(annEnv.columns, graphs) { entity, (columnDecl, _) ->
             val columnDefinition = propertyDefinition(columnDecl)
             entity.addProperty(columnDefinition)
         }
+
+    // TODO: unify with processEmbeddedIds
+    private fun processEmbeddedColumns(graphs: EntityGraphs) {
+        for (element in annEnv.embeddedColumns) { // @Entity User(@Embedded InvoiceAddress element)
+            val (columnDecl, classDecl) = element
+            val embeddableType = columnDecl.toModelType() // InvoiceAddress
+            val columns = annEnv.embeddableColumns
+                .filter { columnElt -> columnElt.second.toModelType() == embeddableType }
+                .toList() // city, street, houseNumber
+            val entityType = classDecl.toModelType() // User
+
+            val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
+            graph.computeIfPresent(entityType) { _, entity ->
+                // User
+                val columnDefs = columns.map { column -> propertyDefinition(column.first, columnDecl.mappingOverrides()) }
+                val embeddable = EmbeddableDefinition(
+                    propertyName = columnDecl.simpleName.asString(), qualifiedName = embeddableType.qualifiedName,
+                    nullable = columnDecl.isNullable(), properties = columnDefs
+                )
+                entity.addEmbeddable(embeddable)
+            }
+        }
+    }
+
 
     private fun propertyDefinition(columnDecl: KSPropertyDeclaration, overrideMapping: List<AttributeOverride> = emptyList()): PropertyDefinition {
         val columnAnn: Column? = columnDecl.getAnnotationByType(Column::class)

@@ -1,7 +1,5 @@
 package pl.touk.krush.ksp
 
-import com.google.devtools.ksp.KspExperimental
-import com.google.devtools.ksp.getAnnotationsByType
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
@@ -15,6 +13,9 @@ import com.google.devtools.ksp.visitor.KSTopDownVisitor
 import com.squareup.kotlinpoet.ksp.writeTo
 import pl.touk.krush.source.MappingsGenerator
 import pl.touk.krush.source.TablesGenerator
+import javax.persistence.Embeddable
+import javax.persistence.Embedded
+import javax.persistence.EmbeddedId
 import javax.persistence.Entity
 import javax.persistence.Id
 
@@ -27,9 +28,15 @@ class KrushSymbolProcessor(val env: SymbolProcessorEnvironment) : SymbolProcesso
         val visitor = KrushEntityVisitor()
         symbols.forEach { it.accept(visitor, null) }
 
+        val embeddableVisitor = KrushEmbeddableVisitor()
+        resolver.getSymbolsWithAnnotation(Embeddable::class.java.name)
+            .forEach { it.accept(embeddableVisitor, null) }
+
         val annotationEnv = AnnotationEnvironment(
-            visitor.entities, visitor.ids, visitor.columns,
-            emptyList(), emptyList(), emptyList(), emptyList()
+            entities = visitor.entities, ids = visitor.ids, embeddedIds = visitor.embeddedIds, columns = visitor.columns,
+            embeddedColumns = visitor.embeddedColumns,
+            oneToMany = emptyList(), manyToOne = emptyList(), manyToMany = emptyList(), oneToOne = emptyList(),
+            embeddableColumns = embeddableVisitor.columns
         )
 
         val graphs = EntityGraphBuilder(resolver, annotationEnv).build()
@@ -45,11 +52,12 @@ class KrushSymbolProcessor(val env: SymbolProcessorEnvironment) : SymbolProcesso
         return invalid
     }
 
-    @OptIn(KspExperimental::class)
     internal class KrushEntityVisitor(
         val entities: MutableList<KSClassDeclaration> = mutableListOf(),
         val ids: MutableList<KSPropertyWithClassDeclaration> = mutableListOf(),
+        val embeddedIds: MutableList<KSPropertyWithClassDeclaration> = mutableListOf(),
         val columns: MutableList<KSPropertyWithClassDeclaration> = mutableListOf(),
+        val embeddedColumns: MutableList<KSPropertyWithClassDeclaration> = mutableListOf(),
     ) : KSTopDownVisitor<KSClassDeclaration?, Unit>() {
 
         override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KSClassDeclaration?) {
@@ -59,17 +67,39 @@ class KrushSymbolProcessor(val env: SymbolProcessorEnvironment) : SymbolProcesso
 
         override fun visitPropertyDeclaration(property: KSPropertyDeclaration, data: KSClassDeclaration?) {
             super.visitPropertyDeclaration(property, data)
-            property.getAnnotationsByType(Id::class).firstOrNull()?.let {
+            property.getKSAnnotationByType(Id::class)?.let {
                 ids.add(property to data!!)
+                return
+            }
+            property.getKSAnnotationByType(EmbeddedId::class)?.let {
+                embeddedIds.add(property to data!!)
+                return
+            }
+            property.getKSAnnotationByType(Embedded::class)?.let {
+                embeddedColumns.add(property to data!!)
                 return
             }
 
             columns.add(property to data!!)
         }
 
-        override fun defaultHandler(node: KSNode, data: KSClassDeclaration?) {
+        override fun defaultHandler(node: KSNode, data: KSClassDeclaration?) {}
+    }
+
+    internal class KrushEmbeddableVisitor(
+        val columns: MutableList<KSPropertyWithClassDeclaration> = mutableListOf()
+    ): KSTopDownVisitor<KSClassDeclaration?, Unit>() {
+
+        override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KSClassDeclaration?) {
+            super.visitClassDeclaration(classDeclaration, classDeclaration)
         }
 
+        override fun visitPropertyDeclaration(property: KSPropertyDeclaration, data: KSClassDeclaration?) {
+            super.visitPropertyDeclaration(property, data)
+            columns.add(property to data!!)
+        }
+
+        override fun defaultHandler(node: KSNode, data: KSClassDeclaration?) {}
     }
 }
 
