@@ -1,19 +1,18 @@
 package pl.touk.krush.realreferences
 
+import java.util.*
 import javax.persistence.*
 
 @Entity
 @Table(name = "category")
 data class Category(
         @Id
-        @GeneratedValue
-        val id: Long? = null,
+        val uuid: UUID = UUID.randomUUID(),
 
         @Column
         val name: String,
 
         @ManyToOne
-        @JoinColumn(name = "parent_id")
         val parent: Category?,
 
         @OneToMany(mappedBy = "parent")

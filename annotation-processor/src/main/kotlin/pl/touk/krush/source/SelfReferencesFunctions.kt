@@ -56,9 +56,9 @@ private fun generateAssociationMappings(entity: EntityDefinition) =
                 "\t$name = this.to$targetName()"
             } else {
                 if (entity.hasSelfReferentialAssoc()) {
-                    "\t$name = this.row[${entity.name}Table.${name}Id]?.let { nextAlias?.let { this.to$targetName(nextAlias, null) } }"
+                    "\t$name = this.row[alias[${entity.tableName}.${it.defaultIdPropName()}]]?.let { nextAlias?.let { this.to$targetName(nextAlias, null) } }"
                 } else {
-                    "\t$name = this[${entity.name}Table.${name}Id]?.let { this.to$targetName() }"
+                    "\t$name = this[alias[${entity.tableName}.${it.defaultIdPropName()}]]?.let { this.to$targetName() }"
                 }
             }
         }

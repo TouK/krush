@@ -23,7 +23,7 @@ class CategoryTest: BaseDatabaseTest() {
             val child2 = CategoryTable.insert(Category(name = "child2", parent = parent))
 
             val categories =
-                CategoryTable.join(parentAlias, JoinType.LEFT, CategoryTable.parentId, parentAlias[CategoryTable.id])
+                CategoryTable.join(parentAlias, JoinType.LEFT, CategoryTable.parentUuid, parentAlias[CategoryTable.uuid])
                 .selectAll()
                 .map { it.toCategory(parentAlias) }
 
@@ -31,7 +31,7 @@ class CategoryTest: BaseDatabaseTest() {
                 .containsExactlyInAnyOrder(parent, child1, child2)
 
             val fullCategoryMapping =
-                CategoryTable.join(parentAlias, JoinType.LEFT, CategoryTable.parentId, parentAlias[CategoryTable.id])
+                CategoryTable.join(parentAlias, JoinType.LEFT, CategoryTable.parentUuid, parentAlias[CategoryTable.uuid])
                     .selectAll()
                     .toCategoryList(parentAlias)
 
