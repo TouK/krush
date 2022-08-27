@@ -40,4 +40,25 @@ class CategoryTest: BaseDatabaseTest() {
         }
     }
 
+    @Test
+    fun shouldReferenceCategoriesShallowlyForSelfReferentialEntities() {
+        transaction {
+            SchemaUtils.create(CategoryTable, EntryTable, EntryRelatedEntriesTable)
+
+            val category = CategoryTable.insert(Category(name = "parent", parent = null))
+
+            val entryWithoutCategory = EntryTable.insert(Entry())
+            val entry = EntryTable.insert(Entry(category = category, relatedEntries = listOf(entryWithoutCategory)))
+
+            val entryMapping = EntryTable
+                .join(CategoryTable, JoinType.LEFT, EntryTable.categoryUuid, CategoryTable.uuid)
+                .join(EntryRelatedEntriesTable, JoinType.LEFT, EntryTable.uuid, EntryRelatedEntriesTable.entrySourceUuid)
+                .selectAll()
+                .toEntryList()
+
+            assertThat(entryMapping)
+                .containsExactlyInAnyOrder(entry, entryWithoutCategory)
+
+        }
+    }
 }
