@@ -35,7 +35,6 @@ data class EntityDefinition(
     val qualifiedName: String get() = type.qualifiedName
 
     val tableName: String get() = "${name}Table"
-    val idColumn: String get() = id?.let { id -> "${tableName}.${id.name}" } ?: throw MissingIdException(this)
 }
 
 data class IdDefinition (
@@ -57,8 +56,6 @@ data class IdDefinition (
             "$idTypeName${prop.name.asVariable().capitalize()}"
         } else name.asVariable()
     }
-
-    val propsAsArgs: String get() = this.properties.map { this.propName(it) }.joinToString(", ")
 }
 
 data class AssociationDefinition(
@@ -67,7 +64,7 @@ data class AssociationDefinition(
     val target: Type,
     val mapped: Boolean = true,
     val mappedBy: String? = null,
-    val joinColumns: List<JoinColumn> = emptyList(),
+    val joinColumns: List<JoinColumnDefinition> = emptyList(),
     val joinTable: String? = null,
     val nullable: Boolean = false,
     val type: AssociationType,
@@ -102,11 +99,19 @@ data class ColumnDefinition(
     }
 }
 
+data class JoinColumnDefinition(
+    val name: String
+) {
+    companion object {
+        fun from(column: JoinColumn) = JoinColumnDefinition(name = column.name)
+    }
+}
+
 data class PropertyDefinition(
     val name: String,
     val columnName: String,
     val column: ColumnDefinition?,
-    val sharedColumn: JoinColumn? = null,
+    val sharedColumn: JoinColumnDefinition? = null,
     val type: Type,
     val nullable: Boolean,
     val converter: ConverterDefinition? = null,

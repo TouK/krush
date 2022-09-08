@@ -17,13 +17,15 @@ class RecordTest: BaseDatabaseTest() {
 
             // given
             val recordId = RecordId("id1", "type1")
-            val record = Record(recordId, LocalDateTime.now()).also(RecordTable::insert)
+            val record = Record(recordId, LocalDateTime.now()).let(RecordTable::insert)
 
             // when
             val selectedRecords = RecordTable.selectAll().toRecordList()
 
             // then
-            assertThat(selectedRecords).containsOnly(record)
+            assertThat(selectedRecords)
+                .usingRecursiveFieldByFieldElementComparatorIgnoringFields("timestamp")
+                .containsOnly(record)
 
         }
     }

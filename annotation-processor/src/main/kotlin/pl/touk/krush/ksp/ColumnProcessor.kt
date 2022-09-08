@@ -9,6 +9,7 @@ import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.ksp.toClassName
 import pl.touk.krush.meta.asVariable
+import pl.touk.krush.meta.isNullable
 import pl.touk.krush.meta.toModelType
 import pl.touk.krush.model.*
 import pl.touk.krush.validation.ConverterTypeNotFoundException
@@ -61,7 +62,7 @@ class ColumnProcessor(override val resolver: Resolver, private val annEnv: Annot
 
             val graph = graphs[entityType.packageName] ?: throw EntityNotMappedException(entityType)
             graph.computeIfPresent(entityType) { _, entity ->
-                //Record
+                // Record
                 val columnDefs = columns.map { column -> propertyDefinition(column.first, columnDecl.mappingOverrides()) }
                 val idDefinition = IdDefinition(
                     name = columnDecl.simpleName.asString(), type = embeddableType, qualifiedName = embeddableType.qualifiedName,
@@ -147,5 +148,3 @@ class ColumnProcessor(override val resolver: Resolver, private val annEnv: Annot
     }
 
 }
-
-private fun KSPropertyDeclaration.isNullable() = this.type.resolve().isMarkedNullable

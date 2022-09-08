@@ -18,6 +18,8 @@ import javax.persistence.Embedded
 import javax.persistence.EmbeddedId
 import javax.persistence.Entity
 import javax.persistence.Id
+import javax.persistence.ManyToOne
+import javax.persistence.OneToMany
 
 class KrushSymbolProcessor(val env: SymbolProcessorEnvironment) : SymbolProcessor {
 
@@ -33,9 +35,10 @@ class KrushSymbolProcessor(val env: SymbolProcessorEnvironment) : SymbolProcesso
             .forEach { it.accept(embeddableVisitor, null) }
 
         val annotationEnv = AnnotationEnvironment(
-            entities = visitor.entities, ids = visitor.ids, embeddedIds = visitor.embeddedIds, columns = visitor.columns,
-            embeddedColumns = visitor.embeddedColumns,
-            oneToMany = emptyList(), manyToOne = emptyList(), manyToMany = emptyList(), oneToOne = emptyList(),
+            entities = visitor.entities, ids = visitor.ids, embeddedIds = visitor.embeddedIds,
+            columns = visitor.columns, embeddedColumns = visitor.embeddedColumns,
+            oneToMany = visitor.oneToMany, manyToOne = visitor.manyToOne,
+            manyToMany = visitor.manyToMany, oneToOne = visitor.oneToOne,
             embeddableColumns = embeddableVisitor.columns
         )
 
@@ -58,6 +61,10 @@ class KrushSymbolProcessor(val env: SymbolProcessorEnvironment) : SymbolProcesso
         val embeddedIds: MutableList<KSPropertyWithClassDeclaration> = mutableListOf(),
         val columns: MutableList<KSPropertyWithClassDeclaration> = mutableListOf(),
         val embeddedColumns: MutableList<KSPropertyWithClassDeclaration> = mutableListOf(),
+        val oneToMany: MutableList<KSPropertyWithClassDeclaration> = mutableListOf(),
+        val manyToOne: MutableList<KSPropertyWithClassDeclaration> = mutableListOf(),
+        val manyToMany: MutableList<KSPropertyWithClassDeclaration> = mutableListOf(),
+        val oneToOne: MutableList<KSPropertyWithClassDeclaration> = mutableListOf()
     ) : KSTopDownVisitor<KSClassDeclaration?, Unit>() {
 
         override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KSClassDeclaration?) {
@@ -77,6 +84,14 @@ class KrushSymbolProcessor(val env: SymbolProcessorEnvironment) : SymbolProcesso
             }
             property.getKSAnnotationByType(Embedded::class)?.let {
                 embeddedColumns.add(property to data!!)
+                return
+            }
+            property.getKSAnnotationByType(OneToMany::class)?.let {
+                oneToMany.add(property to data!!)
+                return
+            }
+            property.getKSAnnotationByType(ManyToOne::class)?.let {
+                manyToOne.add(property to data!!)
                 return
             }
 

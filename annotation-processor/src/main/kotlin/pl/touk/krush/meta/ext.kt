@@ -110,3 +110,5 @@ fun KSTypeReference.toModelType(): Type {
     val resolvedType = this.resolve().toClassName()
     return Type(resolvedType.packageName, resolvedType.simpleName)
 }
+
+fun KSPropertyDeclaration.isNullable() = this.type.resolve().isMarkedNullable

@@ -17,11 +17,12 @@ class OneToOneProcessor(override val typeEnv: TypeEnvironment, private val annEn
             val parentEntityId = graphs.entityId(targetType)
             val mappedBy: String? = oneToOneElt.getAnnotation(OneToOne::class.java)?.mappedBy?.ifBlank { null }
 
+            val joinColumns = oneToOneElt.joinColumns().map(JoinColumnDefinition::from)
             val associationDef = AssociationDefinition(
                 name = oneToOneElt.simpleName.toString(), type = AssociationType.ONE_TO_ONE,
                 mapped = mappedBy.isNullOrEmpty(), mappedBy = mappedBy,
                 source = entity.type, target = targetType,
-                joinColumns = oneToOneElt.joinColumns(), targetId = parentEntityId,
+                joinColumns = joinColumns, targetId = parentEntityId,
                 nullable = oneToOneElt.isNullable()
             )
 

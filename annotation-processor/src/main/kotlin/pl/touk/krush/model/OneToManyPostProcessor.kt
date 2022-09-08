@@ -25,9 +25,10 @@ class OneToManyPostProcessor(override val typeEnv: TypeEnvironment, private val 
                     entity
                 } else {
                     val parentEntityId = graphs.entityId(entityType)
+                    val joinColumns = oneToMany.joinColumns().map(JoinColumnDefinition::from)
                     val associationDef = AssociationDefinition(
                         name = entityType.simpleName.decapitalize(), type = AssociationType.MANY_TO_ONE,
-                        source = sourceType, target = entityType, joinColumns = oneToMany.joinColumns(), mapped = false, targetId = parentEntityId
+                        source = sourceType, target = entityType, joinColumns = joinColumns, mapped = false, targetId = parentEntityId
                     )
                     entity.addAssociation(associationDef)
                 }

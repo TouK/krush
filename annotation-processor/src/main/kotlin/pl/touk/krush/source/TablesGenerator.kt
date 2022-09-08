@@ -346,8 +346,8 @@ class TablesGenerator : SourceGenerator {
 
     private fun associationInitializer(assoc: AssociationDefinition, idProp: PropertyDefinition) : CodeBlock {
         // if it's embedded key - match by id column name, otherwise - just use JoinColumn name
-        val joinColumnFinder: (JoinColumn) -> Boolean =
-            if (assoc.targetId.embedded) { x -> x.name == idProp.columnName.toString() } else { _ -> true }
+        val joinColumnFinder: (JoinColumnDefinition) -> Boolean =
+            if (assoc.targetId.embedded) { x -> x.name == idProp.columnName } else { _ -> true }
         val columnName = assoc.joinColumns.find(joinColumnFinder)?.name
             ?: "${assoc.name.asVariable()}_${assoc.targetId.name.asVariable()}"
         val idCodeBlock = idCodeBlock(idProp, assoc.target.simpleName, columnName)

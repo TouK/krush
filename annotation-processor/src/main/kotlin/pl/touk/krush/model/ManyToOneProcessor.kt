@@ -14,9 +14,10 @@ class ManyToOneProcessor(override val typeEnv: TypeEnvironment, private val annE
         processElements(annEnv.manyToOne, graphs) { entity, manyToOneElt ->
             val target = manyToOneElt.toVariableElement().toTypeElement().toModelType()
             val parentEntityId = graphs.entityId(target)
+            val joinColumns = manyToOneElt.joinColumns().map(JoinColumnDefinition::from)
             val associationDef = AssociationDefinition(
                 name = manyToOneElt.simpleName.toString(), type = AssociationType.MANY_TO_ONE,
-                source = entity.type, target = target, joinColumns = manyToOneElt.joinColumns(), targetId = parentEntityId,
+                source = entity.type, target = target, joinColumns = joinColumns, targetId = parentEntityId,
                 nullable = manyToOneElt.isNullable()
             )
 

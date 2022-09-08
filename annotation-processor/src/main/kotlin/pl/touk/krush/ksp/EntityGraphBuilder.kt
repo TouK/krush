@@ -20,7 +20,7 @@ class EntityGraphBuilder(resolver: Resolver, val annEnv: AnnotationEnvironment) 
         ColumnProcessor(resolver, annEnv),
 //        OneToOneProcessor(typeEnv, annEnv),
 //        OneToManyProcessor(typeEnv, annEnv),
-//        ManyToOneProcessor(typeEnv, annEnv),
+        ManyToOneProcessor(resolver, annEnv),
 //        ManyToManyProcessor(typeEnv, annEnv),
 //        OneToManyPostProcessor(typeEnv, annEnv)
     )

@@ -223,6 +223,9 @@ interface EntityGraphSampleData {
         val entityModelType = entity.toModelType()
         val targetModelType = targetEntity.toTypeElement().toModelType()
 
+        val joinColumns = targetEntity.getAnnotation(JoinColumn::class.java)
+            ?.let { listOf(JoinColumnDefinition.from(it)) }
+            ?: emptyList()
         return EntityDefinition(
             type = entityModelType,
             table = entityModelType.simpleName.asVariable(),
@@ -232,7 +235,7 @@ interface EntityGraphSampleData {
                     name =  targetEntity.simpleName.toString(),
                     source = entityModelType,
                     target = targetModelType,
-                    joinColumns = listOf(targetEntity.getAnnotation(JoinColumn::class.java)),
+                    joinColumns = joinColumns,
                     type = AssociationType.ONE_TO_ONE,
                     targetId = autoGenIdDefinition(id, typeEnvironment.elementUtils.getName(id.simpleName)),
                     mapped = true
