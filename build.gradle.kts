@@ -3,7 +3,7 @@ import pl.touk.krush.gradle.signPublicationIfKeyPresent
 plugins {
     kotlin("jvm") apply true
     kotlin("kapt") apply true
-    kotlin("plugin.serialization") version "1.7.10"
+    kotlin("plugin.serialization") version "1.7.22"
     id("pl.allegro.tech.build.axion-release") version "1.13.14"
     `maven-publish`
 }
