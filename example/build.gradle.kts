@@ -17,7 +17,7 @@ dependencies {
     implementation("com.h2database:h2:2.1.210")
     implementation("org.postgresql:postgresql:${Versions.postgresDriver}")
     implementation("org.flywaydb:flyway-core:9.11.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.0-RC")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
 
     testImplementation("org.junit.jupiter:junit-jupiter:${Versions.junit}")
     testImplementation("org.testcontainers:testcontainers:${Versions.testContainers}")
