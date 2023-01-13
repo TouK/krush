@@ -9,6 +9,8 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect:${Versions.kotlin}")
     implementation("com.squareup:kotlinpoet:${Versions.kotlinpoet}")
     implementation("com.squareup:kotlinpoet-metadata:${Versions.kotlinpoet}")
+    // needed until kotlipoet supports kotlin 1.8 directly
+    implementation("org.jetbrains.kotlinx:kotlinx-metadata-jvm:${Versions.kotlinxMetadata}")
 
     api("org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.2.Final")
 
