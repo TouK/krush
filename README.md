@@ -279,6 +279,43 @@ assertThat(selectedArticle).isEqualTo(persistedArticle)
 
 Update logic for associations not implemented (yet!) - you have to manually add/remove records from `ArticleTagsTable`.
 
+### Custom column wrappers
+
+Krush exposes some helpful wrappers for user classes to easily convert them to specific columns in database, e.g.
+
+```kotlin
+@JvmInline
+value class MyStringId(val raw: String)
+
+@JvmInline
+value class MyUUID(val raw: UUID)
+
+@JvmInline
+value class MyVersion(val raw: Int)
+
+enum class MyState { ACTIVE, INACTIVE }
+
+fun Table.myStringId(name: String) = stringWrapper(name, ::MyStringId) { it.raw }
+
+fun Table.myUUID(name: String) = uuidWrapper(name, ::MyUUID) { it.raw }
+
+fun Table.myVersion(name: String) = integerWrapper(name, ::MyVersion) { it.raw }
+
+fun Table.myState(name: String) = booleanWrapper(name, { if (it) MyState.ACTIVE else MyState.INACTIVE }) {
+    when (it) {
+        MyState.ACTIVE -> true
+        MyState.INACTIVE -> false
+    }
+}
+
+object MyTable : Table("test") {
+    val id = myStringId("my_id").nullable()
+    val uuid = myUUID("my_uuid").nullable()
+    val version = myVersion("my_version").nullable()
+    val state = myState("my_state").nullable()
+}
+```
+
 ### Example projects
 
 * [https://github.com/TouK/kotlin-exposed-realworld](https://github.com/TouK/kotlin-exposed-realworld)
@@ -288,6 +325,7 @@ Update logic for associations not implemented (yet!) - you have to manually add/
 * [Mateusz Śledź](https://github.com/mateuszsledz)
 * [Piotr Jagielski](https://github.com/pjagielski)
 * [Namnodorel](https://github.com/Namnodorel)
+* [Dominik Przybysz](https://github.com/alien11689)
 
 Special thanks to [Łukasz Jędrzejewski](https://github.com/jedrz) for original idea of using Exposed in our projects.
 
