@@ -1,3 +1,17 @@
+# 1.2.0
+Infrastructure
+* Kotlin [1.8.10](https://github.com/JetBrains/kotlin/releases/tag/v1.8.10)
+* Exposed [0.41.1](https://github.com/JetBrains/Exposed/releases/tag/0.41.1)
+* axion-release-plugin [1.15.0](https://github.com/allegro/axion-release-plugin/releases/tag/v1.15.0)
+
+Features
+* More column wrappers ([161](https://github.com/TouK/krush/pull/161) by [@alien11689](https://github.com/alien11689))
+
+# 1.1.0
+Infrastructure
+* Kotlin [1.8.0](https://github.com/JetBrains/kotlin/releases/tag/v1.8.0)
+* Flyway [9.11.0](https://github.com/flyway/flyway/releases/tag/flyway-9.11.0)
+
 # 1.0.0
 🎉🎉🎉 We finally reached 1.0 release! 🎉🎉🎉
 
@@ -5,6 +19,8 @@ Infrastructure
 * Kotlin [1.7.10](https://github.com/JetBrains/kotlin/releases/tag/v1.7.10)
 * Exposed [0.38.2](https://github.com/JetBrains/Exposed/releases/tag/0.38.2)
 * kotlin-poet [1.12.0](https://github.com/square/kotlinpoet/releases/tag/1.12.0)
+
+Features
 * Switched to build.gradle.kts ([112](https://github.com/TouK/krush/pull/122))
 * First initial refactor of SelfReferencesFunctions.kt class ([85](https://github.com/TouK/krush/pull/85))
 
