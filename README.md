@@ -316,6 +316,52 @@ object MyTable : Table("test") {
 }
 ```
 
+### Support for Postgresql `distinct on (...)`
+
+Postgresql allows usage of nonstandard clause [`DISTINCT ON` in queries](https://www.postgresql.org/docs/current/sql-select.html).
+
+Krush provides custom `distinctOn` extension method which can be used as first parameter in custom `slice` extension method.
+
+**Postgresql specific extensions needs `krush-runtime-postgresql` dependency in maven or gradle**
+
+Example code:
+
+```kotlin
+@JvmInline
+value class MyStringId(val raw: String)
+
+@JvmInline
+value class MyVersion(val raw: Int)
+
+fun Table.myStringId(name: String) = stringWrapper(name, ::MyStringId) { it.raw }
+
+fun Table.myVersion(name: String) = integerWrapper(name, ::MyVersion) { it.raw }
+
+
+object MyTable : Table("test") {
+    val id = myStringId("my_id").nullable()
+    val version = myVersion("my_version").nullable()
+    val content = jsonb("content").nullable()
+}
+
+fun findNewestContentVersion(id: MyStringId): String? =
+    MyTable
+        .slice(MyTable.id.distinctOn(), MyTable.content)
+        .select { MyTable.id eq id }
+        .orderBy(MyTable.id to SortOrder.ASC, MyTable.version to SortOrder.DESC)
+        .map { it[MyTable.content] }
+        .firstOrNull()
+```
+
+when `findNewestContentVersion(MyStringId("123"))` is called  will generate SQL:
+
+```postgresql
+SELECT DISTINCT ON (test.my_id) TRUE, test.my_id, test."content"
+FROM test
+WHERE test.my_id = '123'
+ORDER BY test.my_id ASC, test.my_version DESC
+```
+
 ### Example projects
 
 * [https://github.com/TouK/kotlin-exposed-realworld](https://github.com/TouK/kotlin-exposed-realworld)
