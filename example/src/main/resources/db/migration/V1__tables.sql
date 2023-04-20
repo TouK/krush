@@ -36,4 +36,21 @@ CREATE TABLE IF NOT EXISTS reasons (
     id serial primary key,
     reason varchar,
     details json
-)
+);
+
+CREATE TABLE IF NOT EXISTS simple_versioned_json_content
+(
+    id      UUID  NOT NULL,
+    version INT   NOT NULL,
+    content jsonb NOT NULL,
+    CONSTRAINT pk_simple_versioned_json_content PRIMARY KEY (id, version)
+);
+
+CREATE TABLE IF NOT EXISTS tenant_versioned_json_content
+(
+    id        UUID  NOT NULL,
+    tenant_id UUID  NOT NULL,
+    version   INT   NOT NULL,
+    content   jsonb NOT NULL,
+    CONSTRAINT pk_tenant_versioned_json_content PRIMARY KEY (id, tenant_id, version)
+);
