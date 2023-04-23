@@ -49,16 +49,16 @@ fun buildToEntityFuncSelf(entityType: TypeElement, entity: EntityDefinition): Fu
 private fun generateAssociationMappings(entity: EntityDefinition) =
     entity.getAssociations(AssociationType.MANY_TO_ONE, AssociationType.ONE_TO_ONE)
         .filter { assoc -> assoc.mapped }
-        .map {
-            val name = it.name
-            val targetName = it.target.simpleName
-            if (!it.nullable) {
+        .map { assoc ->
+            val name = assoc.name
+            val targetName = assoc.target.simpleName
+            if (!assoc.nullable) {
                 "\t$name = this.to$targetName()"
             } else {
-                if (entity.hasSelfReferentialAssoc()) {
-                    "\t$name = this.row[${entity.name}Table.${name}Id]?.let { nextAlias?.let { this.to$targetName(nextAlias, null) } }"
+                if (assoc.isSelfReferential) {
+                    "\t$name = this.row[alias[${entity.tableName}.${assoc.defaultIdPropName()}]]?.let { nextAlias?.let { this.to$targetName(nextAlias, null) } }"
                 } else {
-                    "\t$name = this[${entity.name}Table.${name}Id]?.let { this.to$targetName() }"
+                    "\t$name = this.row[alias[${entity.tableName}.${assoc.defaultIdPropName()}]]?.let { this.to$targetName() }"
                 }
             }
         }

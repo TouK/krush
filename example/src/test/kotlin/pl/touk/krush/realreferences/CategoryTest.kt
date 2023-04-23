@@ -23,7 +23,7 @@ class CategoryTest: BaseDatabaseTest() {
             val child2 = CategoryTable.insert(Category(name = "child2", parent = parent))
 
             val categories =
-                CategoryTable.join(parentAlias, JoinType.LEFT, CategoryTable.parentId, parentAlias[CategoryTable.id])
+                CategoryTable.join(parentAlias, JoinType.LEFT, CategoryTable.parentUuid, parentAlias[CategoryTable.uuid])
                 .selectAll()
                 .map { it.toCategory(parentAlias) }
 
@@ -31,7 +31,7 @@ class CategoryTest: BaseDatabaseTest() {
                 .containsExactlyInAnyOrder(parent, child1, child2)
 
             val fullCategoryMapping =
-                CategoryTable.join(parentAlias, JoinType.LEFT, CategoryTable.parentId, parentAlias[CategoryTable.id])
+                CategoryTable.join(parentAlias, JoinType.LEFT, CategoryTable.parentUuid, parentAlias[CategoryTable.uuid])
                     .selectAll()
                     .toCategoryList(parentAlias)
 
@@ -40,4 +40,25 @@ class CategoryTest: BaseDatabaseTest() {
         }
     }
 
+    @Test
+    fun shouldReferenceCategoriesShallowlyForSelfReferentialEntities() {
+        transaction {
+            SchemaUtils.create(CategoryTable, EntryTable, EntryRelatedEntriesTable)
+
+            val category = CategoryTable.insert(Category(name = "parent", parent = null))
+
+            val entryWithoutCategory = EntryTable.insert(Entry())
+            val entry = EntryTable.insert(Entry(category = category, relatedEntries = listOf(entryWithoutCategory)))
+
+            val entryMapping = EntryTable
+                .join(CategoryTable, JoinType.LEFT, EntryTable.categoryUuid, CategoryTable.uuid)
+                .join(EntryRelatedEntriesTable, JoinType.LEFT, EntryTable.uuid, EntryRelatedEntriesTable.entrySourceUuid)
+                .selectAll()
+                .toEntryList()
+
+            assertThat(entryMapping)
+                .containsExactlyInAnyOrder(entry, entryWithoutCategory)
+
+        }
+    }
 }
