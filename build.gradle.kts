@@ -4,7 +4,7 @@ plugins {
     kotlin("jvm") apply true
     kotlin("kapt") apply true
     kotlin("plugin.serialization") version "1.8.10"
-    id("pl.allegro.tech.build.axion-release") version "1.15.0"
+    id("pl.allegro.tech.build.axion-release") version "1.15.1"
     `maven-publish`
 }
 
